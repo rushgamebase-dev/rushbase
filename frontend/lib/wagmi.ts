@@ -24,3 +24,4 @@ export const wagmiConfig = createConfig({
 });
 
 export { base };
+// deploy trigger 1774683268
