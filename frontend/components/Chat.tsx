@@ -378,10 +378,13 @@ export default function Chat({ onCollapse }: ChatProps) {
 
   const DesktopChat = (
     <div
-      className="flex flex-col h-full"
+      className="flex flex-col"
       style={{
         background: "#0c0c0c",
         borderLeft: collapsed ? "none" : "1px solid #1a1a1a",
+        height: "100vh",
+        maxHeight: "100vh",
+        overflow: "hidden",
       }}
     >
       <ChatHeader showCollapse />
@@ -389,8 +392,8 @@ export default function Chat({ onCollapse }: ChatProps) {
       {!collapsed && (
         <>
           <div
-            className="flex-1 overflow-y-auto"
-            style={{ minHeight: 0, padding: "8px 8px 4px 8px" }}
+            className="overflow-y-auto"
+            style={{ flex: "1 1 0", minHeight: 0, padding: "8px 8px 4px 8px" }}
             role="log"
             aria-live="polite"
             aria-label="Chat messages"
