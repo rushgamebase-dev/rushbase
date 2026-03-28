@@ -115,6 +115,16 @@ MARKET_ABI = [
     },
 ]
 
+FACTORY_READ_ABI = [
+    {
+        "name": "getActiveMarkets",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [{"name": "", "type": "address[]"}],
+    },
+]
+
 MARKET_RESOLVED_ABI = {
     "name": "MarketResolved",
     "type": "event",
@@ -538,6 +548,13 @@ class RushRoundManager:
         self.round_number = 0
         self._shutdown = False
 
+    def w3_factory_read(self):
+        """Return a read-only factory contract instance for checking active markets."""
+        return self.chain.w3.eth.contract(
+            address=Web3.to_checksum_address(self.cfg.factory_address),
+            abi=FACTORY_READ_ABI,
+        )
+
     # ── Ledger POST ────────────────────────────────────────────────────────────
 
     def _post_ledger(self, record: dict) -> None:
@@ -578,6 +595,19 @@ class RushRoundManager:
         log.info("Round #%d starting", self.round_number)
         log.info("Camera: %s (%s)", cam_name, stream_url)
         log.info("Threshold: %d  (Under %d / Over %d)", threshold, threshold, threshold)
+
+        # ── Step 0: Check for active markets (prevent double-create) ─────────
+        try:
+            factory_read = self.w3_factory_read()
+            active = factory_read.functions.getActiveMarkets().call()
+            if len(active) > 0:
+                log.warning(
+                    "Active market(s) already exist: %s — skipping round to prevent double-create",
+                    active,
+                )
+                return
+        except Exception as exc:
+            log.warning("Could not check active markets (proceeding anyway): %s", exc)
 
         # ── Step 1: Create market ─────────────────────────────────────────────
         description = f"{cam_name} — How many vehicles in 5 min?"

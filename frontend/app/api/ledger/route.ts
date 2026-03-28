@@ -84,6 +84,21 @@ export async function POST(req: NextRequest) {
 
     const addr = record.address.toLowerCase();
 
+    // Idempotency: check if this market was already recorded with same state
+    const existing = await kv.hgetall<Record<string, string>>(KEYS.ledgerMarket(addr));
+    const isUpdate = !!existing && !!existing.address;
+    const alreadyResolved = existing?.state === "resolved";
+
+    // If already resolved, don't re-increment stats (idempotent)
+    if (alreadyResolved && record.state === "resolved") {
+      return NextResponse.json({ ok: true, deduplicated: true }, {
+        headers: {
+          "X-RateLimit-Remaining": String(rl.remaining),
+          "X-RateLimit-Reset": String(rl.reset),
+        },
+      });
+    }
+
     // Store market record as hash
     await kv.hset(KEYS.ledgerMarket(addr), {
       ...record,
