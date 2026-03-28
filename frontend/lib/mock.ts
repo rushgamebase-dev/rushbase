@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FACTORY_ADDRESS } from "./contracts";
 
-// True when no contract addresses are set — all hooks fall back to mock data
+// True ONLY when no factory address is configured — fall back to mock data entirely.
+// When FACTORY_ADDRESS is set but no active market exists, the app shows a
+// "Waiting for next round..." state rather than mock market data.
 export const IS_DEMO_MODE = !FACTORY_ADDRESS;
 
 // ─── Types ────────────────────────────────────────────────────────────────────

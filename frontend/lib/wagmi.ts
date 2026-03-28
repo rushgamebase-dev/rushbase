@@ -1,8 +1,10 @@
 import { http, createConfig } from "wagmi";
 import { base } from "wagmi/chains";
-import { injected, walletConnect, coinbaseWallet } from "wagmi/connectors";
+import { injected, coinbaseWallet } from "wagmi/connectors";
 
-const projectId = "rush_prediction_market_wc";
+// Note: walletConnect removed — placeholder projectId caused errors.
+// MetaMask and Phantom both inject as window.ethereum on EVM chains.
+// Coinbase Wallet has its own connector.
 
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236";
 
@@ -11,10 +13,7 @@ export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "wss://base-mainnet.co
 export const wagmiConfig = createConfig({
   chains: [base],
   connectors: [
-    injected(),
-    walletConnect({
-      projectId,
-    }),
+    injected(), // MetaMask + Phantom (both inject as window.ethereum on EVM)
     coinbaseWallet({
       appName: "Rush",
     }),

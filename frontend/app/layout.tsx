@@ -1,12 +1,11 @@
 "use client";
 
 import "./globals.css";
-import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/wagmi";
 import { useState } from "react";
+import Chat from "@/components/Chat";
 
 export default function RootLayout({
   children,
@@ -26,16 +25,16 @@ export default function RootLayout({
       <body>
         <WagmiProvider config={wagmiConfig}>
           <QueryClientProvider client={queryClient}>
-            <RainbowKitProvider
-              theme={darkTheme({
-                accentColor: "#00ff88",
-                accentColorForeground: "#000",
-                borderRadius: "small",
-                fontStack: "system",
-              })}
-            >
-              {children}
-            </RainbowKitProvider>
+            {children}
+            {/*
+              Global floating chat button — visible on mobile across ALL pages.
+              The desktop sidebar version is rendered inside the home page 3-column layout.
+              Chat state (messages) resets on hard navigation but persists during
+              client-side routing because this component lives in the layout tree.
+            */}
+            <div className="md:hidden" aria-label="Global chat">
+              <Chat />
+            </div>
           </QueryClientProvider>
         </WagmiProvider>
       </body>

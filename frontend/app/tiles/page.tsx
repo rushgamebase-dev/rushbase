@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, X, ExternalLink } from "lucide-react";
+import { useState, useCallback } from "react";
+import Image from "next/image";
+import { Copy, Check, ExternalLink, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import TilesGrid from "@/components/TilesGrid";
 import { useTiles, IS_DEMO_MODE } from "@/lib/mock";
@@ -12,19 +13,474 @@ import { formatEther } from "viem";
 import { BASE_MAINNET, RUSH_TILES_ADDRESS } from "@/lib/contracts";
 import type { Tile } from "@/lib/mock";
 
+// ─── Mock data for sidebar ────────────────────────────────────────────────────
+
+const RUSH_TOKEN_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
+const CREATOR_ADDRESS = "0x4c385830c2E241EfeEd070Eb92606B6AedeDA277";
+const UNISWAP_LINK = "https://app.uniswap.org/#/swap?outputCurrency=" + RUSH_TOKEN_ADDRESS + "&chain=base";
+const BASESCAN_CREATOR = `https://basescan.org/address/${CREATOR_ADDRESS}`;
+
+const MOCK_REWARDS = [
+  { id: 1, ago: "3m ago", amount: "+0.005 ETH", addr: "0x4c38...A277" },
+  { id: 2, ago: "11m ago", amount: "+0.012 ETH", addr: "0xface...10fe" },
+  { id: 3, ago: "24m ago", amount: "+0.008 ETH", addr: "0xdead...cdef" },
+  { id: 4, ago: "38m ago", amount: "+0.003 ETH", addr: "0xb16b...1234" },
+  { id: 5, ago: "52m ago", amount: "+0.019 ETH", addr: "0xc0ff...ba98" },
+];
+
+const MOCK_LEADERBOARD = [
+  { rank: 1, addr: "0x4c38...A277", seats: 8 },
+  { rank: 2, addr: "0xface...10fe", seats: 6 },
+  { rank: 3, addr: "0xdead...cdef", seats: 5 },
+  { rank: 4, addr: "0xb16b...1234", seats: 4 },
+  { rank: 5, addr: "0xc0ff...ba98", seats: 3 },
+];
+
+const FLOOR_PRICE = 0.01;
+const FLOOR_24H_CHANGE = +12.5;
+const TOTAL_REWARDS = 3.24;
+const TOTAL_TILES = 100;
+
+// ─── Copy button helper ───────────────────────────────────────────────────────
+
+function CopyButton({ text, label }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }, [text]);
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all"
+      style={{
+        background: copied ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.05)",
+        border: `1px solid ${copied ? "rgba(0,255,136,0.3)" : "#2a2a2a"}`,
+        color: copied ? "#00ff88" : "#666",
+        fontFamily: "monospace",
+        cursor: "pointer",
+      }}
+      aria-label={`Copy ${label ?? text}`}
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+// ─── Left Sidebar ─────────────────────────────────────────────────────────────
+
+function LeftSidebar() {
+  return (
+    <aside
+      className="flex flex-col gap-5 p-4 overflow-y-auto"
+      style={{
+        width: "25%",
+        minWidth: 200,
+        borderRight: "1px solid #1a1a1a",
+        background: "#0d0d0d",
+      }}
+    >
+      {/* Logo + token */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/logo.png"
+            alt="Rush logo"
+            width={40}
+            height={40}
+            style={{ height: 40, width: "auto", objectFit: "contain" }}
+          />
+          <span
+            className="text-xl font-black tracking-widest"
+            style={{ color: "#00ff88", fontFamily: "monospace", textShadow: "0 0 10px rgba(0,255,136,0.4)" }}
+          >
+            RUSH
+          </span>
+        </div>
+
+        {/* $RUSH token row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-sm font-bold"
+            style={{ color: "#ffd700", fontFamily: "monospace" }}
+          >
+            $RUSH
+          </span>
+          <CopyButton text={RUSH_TOKEN_ADDRESS} label="$RUSH token address" />
+        </div>
+
+        <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
+          Rush Game
+        </span>
+
+        {/* Creator */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
+            Created by
+          </span>
+          <a
+            href={BASESCAN_CREATOR}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs transition-colors"
+            style={{ color: "#00aaff", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#44ccff")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#00aaff")}
+          >
+            0x4c38...A277
+            <ExternalLink size={10} />
+          </a>
+        </div>
+      </div>
+
+      {/* Trade button */}
+      <a
+        href={UNISWAP_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 py-2.5 rounded font-bold text-sm transition-all"
+        style={{
+          background: "rgba(0,255,136,0.12)",
+          border: "1px solid rgba(0,255,136,0.35)",
+          color: "#00ff88",
+          fontFamily: "monospace",
+          letterSpacing: "0.05em",
+          textDecoration: "none",
+        }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.2)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.12)")}
+      >
+        <ExternalLink size={14} />
+        Trade on Uniswap
+      </a>
+
+      {/* Latest Rewards feed */}
+      <div>
+        <div
+          className="text-xs font-bold tracking-widest mb-2"
+          style={{ color: "#555", fontFamily: "monospace" }}
+        >
+          LATEST REWARDS
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {MOCK_REWARDS.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between px-2 py-1.5 rounded"
+              style={{ background: "#111", border: "1px solid #1a1a1a" }}
+            >
+              <div className="flex flex-col">
+                <span className="text-xs" style={{ color: "#00ff88", fontFamily: "monospace", fontWeight: 700 }}>
+                  {r.amount}
+                </span>
+                <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
+                  {r.addr}
+                </span>
+              </div>
+              <span className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
+                {r.ago}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Right Sidebar ────────────────────────────────────────────────────────────
+
+function RightSidebar() {
+  return (
+    <aside
+      className="flex flex-col gap-4 p-4 overflow-y-auto"
+      style={{
+        width: "25%",
+        minWidth: 200,
+        borderLeft: "1px solid #1a1a1a",
+        background: "#0d0d0d",
+      }}
+    >
+      {/* Buyout CTA */}
+      <button
+        className="w-full py-3 rounded font-black text-sm tracking-wider transition-all"
+        style={{
+          background: "rgba(0,255,136,0.15)",
+          border: "1px solid rgba(0,255,136,0.45)",
+          color: "#00ff88",
+          fontFamily: "monospace",
+          cursor: "pointer",
+        }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.25)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.15)")}
+      >
+        BUYOUT — {(FLOOR_PRICE * 1.1).toFixed(3)} ETH
+      </button>
+
+      {/* Floor Price card */}
+      <div
+        className="p-4 rounded-lg"
+        style={{ background: "#111", border: "1px solid #1a1a1a" }}
+      >
+        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
+          FLOOR PRICE
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-black" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
+            {FLOOR_PRICE.toFixed(2)} ETH
+          </span>
+        </div>
+        <div
+          className="text-xs mt-1 font-bold"
+          style={{
+            color: FLOOR_24H_CHANGE >= 0 ? "#00ff88" : "#ff4444",
+            fontFamily: "monospace",
+          }}
+        >
+          {FLOOR_24H_CHANGE >= 0 ? "+" : ""}{FLOOR_24H_CHANGE.toFixed(1)}% (24h)
+        </div>
+      </div>
+
+      {/* Total Rewards card */}
+      <div
+        className="p-4 rounded-lg"
+        style={{ background: "#111", border: "1px solid rgba(255,215,0,0.15)" }}
+      >
+        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
+          TOTAL REWARDS
+        </div>
+        <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>
+          {TOTAL_REWARDS.toFixed(2)} ETH
+        </div>
+        <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
+          distributed all time
+        </div>
+      </div>
+
+      {/* Top Seat Holders leaderboard */}
+      <div>
+        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
+          TOP SEAT HOLDERS
+        </div>
+        <div className="flex flex-col gap-1">
+          {MOCK_LEADERBOARD.map((entry) => {
+            const pct = ((entry.seats / TOTAL_TILES) * 100).toFixed(0);
+            return (
+              <div
+                key={entry.rank}
+                className="flex items-center gap-2 px-3 py-2 rounded"
+                style={{ background: "#111", border: "1px solid #1a1a1a" }}
+              >
+                <span
+                  className="text-xs font-black w-4 shrink-0 tabular"
+                  style={{
+                    color: entry.rank === 1 ? "#ffd700" : entry.rank === 2 ? "#aaa" : entry.rank === 3 ? "#cd7f32" : "#555",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  #{entry.rank}
+                </span>
+                <span className="text-xs flex-1 truncate" style={{ color: "#888", fontFamily: "monospace" }}>
+                  {entry.addr}
+                </span>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-xs font-bold" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
+                    {entry.seats} seats
+                  </span>
+                  <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
+                    {pct}% fees
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Tile Modal ───────────────────────────────────────────────────────────────
+
+interface TileModalProps {
+  tile: Tile;
+  onClose: () => void;
+  onAction: (action?: string) => Promise<void>;
+  isLoading: boolean;
+  newPrice: string;
+  setNewPrice: (v: string) => void;
+  txHash?: string;
+  isSuccess?: boolean;
+  explorerUrl: string;
+  contractLoading: boolean;
+}
+
+function TileModal({
+  tile,
+  onClose,
+  onAction,
+  isLoading,
+  newPrice,
+  setNewPrice,
+  txHash,
+  isSuccess,
+  explorerUrl,
+  contractLoading,
+}: TileModalProps) {
+  const busy = isLoading || contractLoading;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Tile ${tile.id + 1} details`}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        className="w-full max-w-sm rounded-xl"
+        style={{ background: "#111", border: "1px solid #2a2a2a", boxShadow: "0 24px 48px rgba(0,0,0,0.6)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
+          <span className="text-sm font-black tracking-widest" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
+            TILE #{tile.id + 1}
+          </span>
+          <button onClick={onClose} style={{ color: "#555", background: "none", border: "none", cursor: "pointer" }} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4">
+          {/* Info rows */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between text-xs">
+              <span style={{ color: "#555", fontFamily: "monospace" }}>STATUS</span>
+              <span style={{ color: tile.isMine ? "#00ff88" : tile.isActive ? "#00aaff" : "#555", fontFamily: "monospace", fontWeight: 700 }}>
+                {tile.isMine ? "YOURS" : tile.isActive ? "OWNED" : "EMPTY"}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span style={{ color: "#555", fontFamily: "monospace" }}>PRICE</span>
+              <span style={{ color: "#e0e0e0", fontFamily: "monospace" }}>{tile.price.toFixed(4)} ETH</span>
+            </div>
+            {tile.owner && (
+              <div className="flex justify-between text-xs">
+                <span style={{ color: "#555", fontFamily: "monospace" }}>OWNER</span>
+                <span style={{ color: "#888", fontFamily: "monospace" }}>
+                  {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
+                </span>
+              </div>
+            )}
+            {tile.isMine && tile.pendingFees > 0 && (
+              <div className="flex justify-between text-xs">
+                <span style={{ color: "#555", fontFamily: "monospace" }}>PENDING FEES</span>
+                <span style={{ color: "#ffd700", fontFamily: "monospace" }}>{tile.pendingFees.toFixed(5)} ETH</span>
+              </div>
+            )}
+          </div>
+
+          {/* Tx success */}
+          {txHash && isSuccess && (
+            <a
+              href={`${explorerUrl}/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2 rounded text-xs"
+              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "monospace" }}
+            >
+              <span>Transaction confirmed</span>
+              <ExternalLink size={11} />
+            </a>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            {!tile.isActive && (
+              <button
+                onClick={() => onAction("claim")}
+                disabled={busy}
+                className="w-full py-2.5 rounded text-sm font-bold transition-all btn-primary"
+                style={{ fontFamily: "monospace" }}
+              >
+                {busy ? "CLAIMING..." : "CLAIM — 0.01 ETH"}
+              </button>
+            )}
+
+            {tile.isActive && !tile.isMine && (
+              <button
+                onClick={() => onAction("buyout")}
+                disabled={busy}
+                className="w-full py-2.5 rounded text-sm font-bold transition-all"
+                style={{ background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)", color: "#00aaff", fontFamily: "monospace" }}
+              >
+                {busy ? "BUYING OUT..." : `BUYOUT — ${(tile.price * 1.1).toFixed(4)} ETH`}
+              </button>
+            )}
+
+            {tile.isMine && (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="New price (ETH)"
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded text-xs input-base"
+                    style={{ fontFamily: "monospace" }}
+                    min="0.01"
+                    step="0.001"
+                  />
+                  <button
+                    onClick={() => onAction("setprice")}
+                    disabled={!newPrice || busy}
+                    className="px-3 py-2 rounded text-xs font-bold transition-all"
+                    style={{
+                      background: newPrice ? "rgba(0,255,136,0.15)" : "#0d0d0d",
+                      border: `1px solid ${newPrice ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
+                      color: newPrice ? "#00ff88" : "#444",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    SET
+                  </button>
+                </div>
+                <button
+                  onClick={() => onAction("abandon")}
+                  disabled={busy}
+                  className="w-full py-2.5 rounded text-xs font-bold transition-all"
+                  style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.2)", color: "#ff4444", fontFamily: "monospace" }}
+                >
+                  ABANDON TILE
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function TilesPage() {
   const { address: walletAddress } = useAccount();
 
-  // Mock data (always loaded for fallback)
   const mockData = useTiles();
-
-  // Real contract data
   const tilesContract = useTilesContract();
 
-  // Decide which data to use
   const useReal = !IS_DEMO_MODE && !!RUSH_TILES_ADDRESS && tilesContract.tiles.length > 0;
 
-  // Build tiles array from contract data when available
   const tiles: Tile[] = useReal
     ? tilesContract.tiles.map((t, i) => {
         const isOwned = t.owner !== "0x0000000000000000000000000000000000000000";
@@ -36,25 +492,15 @@ export default function TilesPage() {
           owner: isOwned ? t.owner : null,
           price: parseFloat(formatEther(t.price)),
           isActive: isOwned,
-          pendingFees: 0, // per-tile fees not available, use total
+          pendingFees: 0,
           isMine,
         };
       })
     : mockData.tiles;
 
   const myAddress = useReal ? (walletAddress ?? "") : mockData.myAddress;
-  const myTileCount = useReal
-    ? (tilesContract.player?.tileCount ?? 0)
-    : mockData.myTileCount;
-  const totalPendingFees = useReal
-    ? parseFloat(tilesContract.pendingFees)
-    : mockData.totalPendingFees;
-  const activeTileCount = useReal
-    ? tilesContract.totalActiveTiles
-    : mockData.activeTileCount;
-  const totalDistributed = useReal
-    ? parseFloat(tilesContract.totalDistributed)
-    : mockData.totalDistributed;
+  const activeTileCount = useReal ? tilesContract.totalActiveTiles : mockData.activeTileCount;
+  const totalPendingFees = useReal ? parseFloat(tilesContract.pendingFees) : mockData.totalPendingFees;
 
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
   const [newPrice, setNewPrice] = useState("");
@@ -69,22 +515,16 @@ export default function TilesPage() {
     if (useReal) {
       switch (action) {
         case "claim":
-          await tilesContract.claimTile(
-            selectedTile.id,
-            "0.01",   // MIN_TILE_PRICE
-            "0.0105"  // price + 1 week tax deposit
-          );
+          await tilesContract.claimTile(selectedTile.id, "0.01", "0.0105");
           break;
-        case "buyout":
-          // Simple buyout at 1.5x current price
-          const buyPrice = (selectedTile.price * 1.5).toFixed(6);
-          const totalCost = (selectedTile.price * 1.5 * 1.2).toFixed(6); // price + fees + deposit
+        case "buyout": {
+          const buyPrice = (selectedTile.price * 1.1).toFixed(6);
+          const totalCost = (selectedTile.price * 1.1 * 1.1).toFixed(6);
           await tilesContract.buyoutTile(selectedTile.id, buyPrice, totalCost);
           break;
+        }
         case "setprice":
-          if (newPrice) {
-            await tilesContract.setPrice(selectedTile.id, newPrice);
-          }
+          if (newPrice) await tilesContract.setPrice(selectedTile.id, newPrice);
           break;
         case "abandon":
           await tilesContract.abandonTile(selectedTile.id);
@@ -120,292 +560,116 @@ export default function TilesPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0" }}>
       <Header />
 
-      <main className="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full">
+      {/* 3-column layout */}
+      <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
 
-        {/* Back link + title */}
-        <div className="flex items-center gap-3 mb-6">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-xs transition-colors"
-            style={{ color: "#555", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#555")}
-          >
-            <ArrowLeft size={13} />
-            BACK
-          </Link>
-          <span style={{ color: "#333" }}>/</span>
-          <span
-            className="text-sm font-bold tracking-widest"
-            style={{ color: "#e0e0e0", fontFamily: "monospace" }}
-          >
-            TILES
-          </span>
-          {IS_DEMO_MODE && (
-            <span
-              className="text-xs px-2 py-0.5 rounded"
-              style={{ background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.3)", color: "#ffaa00", fontFamily: "monospace" }}
-            >
-              DEMO
-            </span>
-          )}
+        {/* Left Sidebar (25%) — hidden on mobile */}
+        <div className="hidden lg:flex" style={{ width: "25%", minWidth: 220 }}>
+          <LeftSidebar />
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {[
-            { label: "YOUR TILES", value: myTileCount, color: "#00ff88" },
-            { label: "PENDING FEES", value: `${totalPendingFees.toFixed(5)} ETH`, color: "#ffd700" },
-            { label: "ACTIVE TILES", value: activeTileCount, color: "#00aaff" },
-            { label: "TOTAL DISTRIBUTED", value: `${totalDistributed.toFixed(2)} ETH`, color: "#aaa" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="p-4 rounded"
-              style={{ background: "#111", border: "1px solid #1a1a1a" }}
-            >
-              <div
-                className="text-xs font-bold tracking-widest mb-1"
-                style={{ color: "#555", fontFamily: "monospace" }}
-              >
-                {stat.label}
-              </div>
-              <div
-                className="text-lg font-black tabular"
-                style={{ color: stat.color, fontFamily: "monospace" }}
-              >
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap gap-4 mb-4 text-xs" style={{ fontFamily: "monospace" }}>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,255,136,0.2)", border: "1px solid rgba(0,255,136,0.5)" }} />
-            <span style={{ color: "#666" }}>Your tiles</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,170,255,0.12)", border: "1px solid rgba(0,170,255,0.3)" }} />
-            <span style={{ color: "#666" }}>Owned by others</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: "#111", border: "1px solid #1a1a1a" }} />
-            <span style={{ color: "#666" }}>Empty — claim for 0.01 ETH</span>
-          </div>
-        </div>
-
-        {/* Claim fees button */}
-        {totalPendingFees > 0 && (
-          <div
-            className="flex items-center justify-between p-3 rounded mb-4 animate-fade-in-up"
-            style={{ background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)" }}
-          >
-            <div>
-              <span className="text-xs font-bold" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-                CLAIMABLE FEES
-              </span>
-              <span className="text-sm font-black ml-2" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-                {totalPendingFees.toFixed(5)} ETH
-              </span>
-            </div>
-            <button
-              onClick={() => handleClaimFees()}
-              disabled={isLoading || tilesContract.isLoading}
-              className="px-4 py-1.5 rounded text-xs font-bold transition-all"
-              style={{
-                background: "rgba(255,215,0,0.15)",
-                border: "1px solid rgba(255,215,0,0.4)",
-                color: "#ffd700",
-                fontFamily: "monospace",
-              }}
-            >
-              {isLoading || tilesContract.isLoading ? "CLAIMING..." : "CLAIM ALL FEES"}
-            </button>
-          </div>
-        )}
-
-        {/* Tx success */}
-        {tilesContract.txHash && tilesContract.isSuccess && (
-          <div
-            className="flex items-center justify-between p-3 rounded mb-4 animate-fade-in-up"
-            style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)" }}
-          >
-            <span className="text-xs font-bold" style={{ color: "#00ff88", fontFamily: "monospace" }}>
-              TRANSACTION CONFIRMED
-            </span>
-            <a
-              href={`${explorerUrl}/tx/${tilesContract.txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs flex items-center gap-1"
-              style={{ color: "#00ff88", fontFamily: "monospace" }}
-            >
-              View on Basescan <ExternalLink size={10} />
-            </a>
-          </div>
-        )}
-
-        {/* Grid */}
-        <div
-          className="p-4 rounded"
-          style={{ background: "#111", border: "1px solid #1a1a1a" }}
+        {/* Center (50%) */}
+        <main
+          className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"
+          style={{ maxWidth: "100%" }}
         >
-          <TilesGrid tiles={tiles} myAddress={myAddress} onTileClick={setSelectedTile} />
-        </div>
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-black tracking-widest" style={{ color: "#ffd700", fontFamily: "monospace" }}>
+                {activeTileCount}/{TOTAL_TILES} seats
+              </h1>
+              {IS_DEMO_MODE && (
+                <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.3)", color: "#ffaa00", fontFamily: "monospace" }}>
+                  DEMO
+                </span>
+              )}
+            </div>
+            <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
+              click to select
+            </span>
+          </div>
 
-        {/* Info */}
-        <div className="mt-4 text-xs" style={{ color: "#333", fontFamily: "monospace" }}>
-          <span style={{ color: "#00ff88" }}>TIP:</span>{" "}
-          Claim a tile to earn a share of every market fee. Tiles can be bought out by others at the effective price + 10% fee. Harberger tax: 5% per week.
-        </div>
-      </main>
-
-      {/* Tile detail modal */}
-      {selectedTile && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.7)" }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedTile(null);
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Tile ${selectedTile.id + 1} details`}
-        >
-          <div
-            className="w-full max-w-sm mx-4 rounded-lg p-5 animate-fade-in-up"
-            style={{ background: "#111", border: "1px solid #2a2a2a" }}
-          >
-            {/* Modal header */}
-            <div className="flex items-center justify-between mb-4">
-              <span
-                className="text-sm font-black tracking-widest"
-                style={{ color: "#e0e0e0", fontFamily: "monospace" }}
-              >
-                TILE #{selectedTile.id + 1}
-              </span>
+          {/* Claimable fees banner */}
+          {totalPendingFees > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between p-3 rounded mb-4"
+              style={{ background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)" }}
+            >
+              <div>
+                <span className="text-xs font-bold" style={{ color: "#ffd700", fontFamily: "monospace" }}>CLAIMABLE FEES</span>
+                <span className="text-sm font-black ml-2" style={{ color: "#ffd700", fontFamily: "monospace" }}>
+                  {totalPendingFees.toFixed(5)} ETH
+                </span>
+              </div>
               <button
-                onClick={() => setSelectedTile(null)}
-                style={{ color: "#555", background: "none", border: "none" }}
-                aria-label="Close modal"
+                onClick={handleClaimFees}
+                disabled={isLoading || tilesContract.isLoading}
+                className="px-4 py-1.5 rounded text-xs font-bold transition-all"
+                style={{ background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.4)", color: "#ffd700", fontFamily: "monospace" }}
               >
-                <X size={18} />
+                {isLoading || tilesContract.isLoading ? "CLAIMING..." : "CLAIM ALL FEES"}
               </button>
+            </motion.div>
+          )}
+
+          {/* 10x10 Grid */}
+          <div
+            className="p-4 rounded-lg"
+            style={{ background: "#111", border: "1px solid #1a1a1a" }}
+          >
+            <TilesGrid tiles={tiles} myAddress={myAddress} onTileClick={setSelectedTile} />
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 mt-4 text-xs" style={{ fontFamily: "monospace" }}>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(0,255,136,0.2)", border: "1px solid rgba(0,255,136,0.5)" }} />
+              <span style={{ color: "#666" }}>Your tiles</span>
             </div>
-
-            {/* Tile info */}
-            <div className="flex flex-col gap-2 mb-4">
-              <div className="flex justify-between text-xs">
-                <span style={{ color: "#555", fontFamily: "monospace" }}>STATUS</span>
-                <span
-                  style={{
-                    color: selectedTile.isMine ? "#00ff88" : selectedTile.isActive ? "#00aaff" : "#555",
-                    fontFamily: "monospace",
-                    fontWeight: 700,
-                  }}
-                >
-                  {selectedTile.isMine ? "YOURS" : selectedTile.isActive ? "OWNED" : "EMPTY"}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span style={{ color: "#555", fontFamily: "monospace" }}>PRICE</span>
-                <span style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-                  {selectedTile.price.toFixed(4)} ETH
-                </span>
-              </div>
-              {selectedTile.owner && (
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: "#555", fontFamily: "monospace" }}>OWNER</span>
-                  <span style={{ color: "#888", fontFamily: "monospace" }}>
-                    {selectedTile.owner.slice(0, 6)}...{selectedTile.owner.slice(-4)}
-                  </span>
-                </div>
-              )}
-              {selectedTile.isMine && selectedTile.pendingFees > 0 && (
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: "#555", fontFamily: "monospace" }}>PENDING FEES</span>
-                  <span style={{ color: "#ffd700", fontFamily: "monospace" }}>
-                    {selectedTile.pendingFees.toFixed(5)} ETH
-                  </span>
-                </div>
-              )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ background: "#1a1a1a", border: "1px solid #333" }} />
+              <span style={{ color: "#666" }}>Owned by others</span>
             </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
-              {!selectedTile.isActive && (
-                <button
-                  onClick={() => handleAction("claim")}
-                  disabled={isLoading || tilesContract.isLoading}
-                  className="w-full py-2.5 rounded text-sm font-bold transition-all btn-primary"
-                  style={{ fontFamily: "monospace" }}
-                >
-                  {isLoading || tilesContract.isLoading ? "CLAIMING..." : "CLAIM — 0.01 ETH"}
-                </button>
-              )}
-
-              {selectedTile.isActive && !selectedTile.isMine && (
-                <button
-                  onClick={() => handleAction("buyout")}
-                  disabled={isLoading || tilesContract.isLoading}
-                  className="w-full py-2.5 rounded text-sm font-bold transition-all"
-                  style={{
-                    background: "rgba(0,170,255,0.15)",
-                    border: "1px solid rgba(0,170,255,0.4)",
-                    color: "#00aaff",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {isLoading || tilesContract.isLoading ? "BUYING OUT..." : `BUYOUT — ${(selectedTile.price * 1.5).toFixed(4)} ETH`}
-                </button>
-              )}
-
-              {selectedTile.isMine && (
-                <>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="New price (ETH)"
-                      value={newPrice}
-                      onChange={(e) => setNewPrice(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded text-xs input-base"
-                      style={{ fontFamily: "monospace" }}
-                    />
-                    <button
-                      onClick={() => handleAction("setprice")}
-                      disabled={!newPrice || isLoading || tilesContract.isLoading}
-                      className="px-3 py-2 rounded text-xs font-bold transition-all"
-                      style={{
-                        background: newPrice ? "rgba(0,255,136,0.15)" : "#0d0d0d",
-                        border: `1px solid ${newPrice ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
-                        color: newPrice ? "#00ff88" : "#444",
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      SET
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleAction("abandon")}
-                    disabled={isLoading || tilesContract.isLoading}
-                    className="w-full py-2.5 rounded text-xs font-bold transition-all"
-                    style={{
-                      background: "rgba(255,68,68,0.08)",
-                      border: "1px solid rgba(255,68,68,0.2)",
-                      color: "#ff4444",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    ABANDON TILE
-                  </button>
-                </>
-              )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ background: "#0d0d0d", border: "1px solid #1a1a1a" }} />
+              <span style={{ color: "#666" }}>Empty — claim for 0.01 ETH</span>
             </div>
           </div>
+
+          {/* Info row */}
+          <div className="mt-4 p-3 rounded text-xs" style={{ color: "#555", fontFamily: "monospace", background: "#0d0d0d", border: "1px solid #1a1a1a" }}>
+            <span style={{ color: "#ffd700" }}>HOW IT WORKS</span>
+            {" — "}
+            Claim a seat for 0.01 ETH minimum. Earn a proportional share of every market fee. Anyone can buy out your seat at your listed price + 10%. Harberger tax: 5%/week on self-assessed value.
+          </div>
+        </main>
+
+        {/* Right Sidebar (25%) — hidden on mobile */}
+        <div className="hidden lg:flex" style={{ width: "25%", minWidth: 220 }}>
+          <RightSidebar />
         </div>
-      )}
+      </div>
+
+      {/* Tile modal */}
+      <AnimatePresence>
+        {selectedTile && (
+          <TileModal
+            tile={selectedTile}
+            onClose={() => { setSelectedTile(null); setNewPrice(""); }}
+            onAction={handleAction}
+            isLoading={isLoading}
+            newPrice={newPrice}
+            setNewPrice={setNewPrice}
+            txHash={tilesContract.txHash ?? undefined}
+            isSuccess={tilesContract.isSuccess}
+            explorerUrl={explorerUrl}
+            contractLoading={tilesContract.isLoading}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

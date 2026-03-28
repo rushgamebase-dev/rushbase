@@ -6,9 +6,13 @@ import { IS_DEMO_MODE } from "@/lib/mock";
 
 /**
  * Finds the currently active market from MarketFactory.
- * Returns the first active market address, or null.
- * Polls every 10 seconds.
- * Falls back to null if FACTORY_ADDRESS is empty (demo mode).
+ *
+ * States:
+ *  - IS_DEMO_MODE=true (FACTORY_ADDRESS empty): full mock data, no contract calls.
+ *  - IS_DEMO_MODE=false + no active markets: "waiting" — factory is real but oracle
+ *    has not started a round yet. UI should show "Waiting for next round..." instead
+ *    of mock market data.
+ *  - IS_DEMO_MODE=false + active market found: live contract data.
  */
 export function useActiveMarket() {
   const enabled = !IS_DEMO_MODE && !!FACTORY_ADDRESS;
@@ -26,6 +30,9 @@ export function useActiveMarket() {
   const activeMarkets = (data as `0x${string}`[] | undefined) ?? [];
   const marketAddress = activeMarkets.length > 0 ? activeMarkets[0] : null;
 
+  // "waiting" = factory is real, query has resolved, but no active market yet
+  const isWaiting = !IS_DEMO_MODE && !isLoading && activeMarkets.length === 0;
+
   return {
     marketAddress,
     activeMarkets,
@@ -33,5 +40,7 @@ export function useActiveMarket() {
     error,
     refetch,
     isDemoMode: IS_DEMO_MODE,
+    /** True when the factory is deployed but no round is currently active. */
+    isWaiting,
   };
 }

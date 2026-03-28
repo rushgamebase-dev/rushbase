@@ -5,120 +5,149 @@ import type { Tile } from "@/lib/mock";
 
 interface TilesGridProps {
   tiles: Tile[];
-  myAddress: string;
+  myAddress?: string;
   onTileClick: (tile: Tile) => void;
+}
+
+/** Deterministic color from an address string */
+function addressToColor(addr: string): string {
+  let hash = 0;
+  for (let i = 0; i < addr.length; i++) {
+    hash = (hash * 31 + addr.charCodeAt(i)) | 0;
+  }
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h}, 65%, 38%)`;
 }
 
 export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-  function getTileStyle(tile: Tile) {
-    if (tile.isMine) {
-      return {
-        background: "rgba(0,255,136,0.2)",
-        border: "1px solid rgba(0,255,136,0.5)",
-        boxShadow: "0 0 8px rgba(0,255,136,0.2)",
-      };
-    }
-    if (tile.isActive) {
-      return {
-        background: "rgba(0,170,255,0.12)",
-        border: "1px solid rgba(0,170,255,0.3)",
-      };
-    }
-    return {
-      background: "#111",
-      border: "1px solid #1a1a1a",
-    };
-  }
-
-  function getTileHoverStyle(tile: Tile) {
-    if (tile.isMine) {
-      return { background: "rgba(0,255,136,0.3)", border: "1px solid rgba(0,255,136,0.7)" };
-    }
-    if (tile.isActive) {
-      return { background: "rgba(0,170,255,0.22)", border: "1px solid rgba(0,170,255,0.5)" };
-    }
-    return { background: "#1a1a1a", border: "1px solid #2a2a2a" };
-  }
-
   return (
     <div
       className="grid gap-1"
-      style={{
-        gridTemplateColumns: "repeat(10, 1fr)",
-      }}
+      style={{ gridTemplateColumns: "repeat(10, 1fr)" }}
       role="grid"
-      aria-label="Tiles grid — 10x10"
+      aria-label="Tiles grid 10 by 10"
     >
       {tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
-        const base = getTileStyle(tile);
-        const hover = isHovered ? getTileHoverStyle(tile) : {};
-        const style = { ...base, ...hover, transition: "all 0.1s", cursor: "pointer" };
+
+        // Background color logic
+        let bg = "#1a1a1a"; // empty
+        let borderColor = "#222";
+        let shadow = "none";
+
+        if (tile.isMine) {
+          bg = "rgba(0,255,136,0.18)";
+          borderColor = "rgba(0,255,136,0.55)";
+          shadow = "0 0 6px rgba(0,255,136,0.25)";
+        } else if (tile.isActive && tile.owner) {
+          bg = addressToColor(tile.owner);
+          borderColor = "rgba(255,255,255,0.08)";
+        }
+
+        if (isHovered) {
+          borderColor = tile.isMine ? "rgba(0,255,136,0.9)" : "#444";
+          shadow = tile.isMine ? "0 0 10px rgba(0,255,136,0.4)" : "0 0 6px rgba(255,255,255,0.1)";
+        }
 
         return (
           <button
             key={tile.id}
-            className="aspect-square rounded-sm flex items-center justify-center relative"
-            style={style}
+            className="relative flex flex-col items-start justify-between rounded"
+            style={{
+              background: bg,
+              border: `1px solid ${borderColor}`,
+              boxShadow: shadow,
+              transition: "all 0.1s",
+              cursor: "pointer",
+              transform: isHovered ? "scale(1.1)" : "scale(1)",
+              zIndex: isHovered ? 10 : 1,
+              padding: "3px 3px 2px",
+              aspectRatio: "1",
+            }}
             onMouseEnter={() => setHoveredId(tile.id)}
             onMouseLeave={() => setHoveredId(null)}
             onClick={() => onTileClick(tile)}
-            aria-label={`Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}`}
+            aria-label={`Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}, ${tile.price.toFixed(4)} ETH`}
             role="gridcell"
           >
-            {/* Tile ID label (small) */}
+            {/* Number top-left */}
             <span
-              className="text-center"
               style={{
                 fontSize: 8,
-                color: tile.isMine ? "rgba(0,255,136,0.7)" : tile.isActive ? "rgba(0,170,255,0.5)" : "#222",
-                fontFamily: "monospace",
                 lineHeight: 1,
+                fontFamily: "monospace",
+                fontWeight: 700,
+                color: tile.isMine ? "rgba(0,255,136,0.9)" : tile.isActive ? "rgba(255,255,255,0.6)" : "#2a2a2a",
+                userSelect: "none",
               }}
             >
               {tile.id + 1}
             </span>
 
-            {/* My tile indicator */}
+            {/* Price bottom */}
+            <span
+              style={{
+                fontSize: 7,
+                lineHeight: 1,
+                fontFamily: "monospace",
+                color: tile.isMine ? "rgba(0,255,136,0.7)" : tile.isActive ? "rgba(255,255,255,0.35)" : "#2a2a2a",
+                userSelect: "none",
+                alignSelf: "flex-end",
+              }}
+            >
+              {tile.price.toFixed(3)}
+            </span>
+
+            {/* My tile indicator dot */}
             {tile.isMine && (
               <span
                 className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
-                style={{ background: "#00ff88" }}
+                style={{ background: "#00ff88", boxShadow: "0 0 4px rgba(0,255,136,0.8)" }}
+                aria-hidden="true"
               />
             )}
 
             {/* Hover tooltip */}
             {isHovered && (
               <div
-                className="absolute z-20 pointer-events-none animate-fade-in-up"
+                className="absolute z-20 pointer-events-none"
                 style={{
-                  bottom: "110%",
+                  bottom: "115%",
                   left: "50%",
                   transform: "translateX(-50%)",
                   whiteSpace: "nowrap",
+                  animation: "fadeInUp 0.12s ease-out forwards",
                 }}
               >
                 <div
-                  className="px-2 py-1 rounded text-xs"
+                  className="px-2.5 py-1.5 rounded text-xs"
                   style={{
                     background: "#1a1a1a",
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid #333",
                     color: "#e0e0e0",
                     fontFamily: "monospace",
                     fontSize: 10,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.7)",
                   }}
                 >
-                  {tile.isMine ? (
-                    <span style={{ color: "#00ff88" }}>YOURS</span>
-                  ) : tile.isActive ? (
-                    <span style={{ color: "#00aaff" }}>OWNED</span>
-                  ) : (
-                    <span style={{ color: "#555" }}>EMPTY</span>
+                  <div className="font-bold mb-0.5">
+                    {tile.isMine ? (
+                      <span style={{ color: "#00ff88" }}>YOURS</span>
+                    ) : tile.isActive ? (
+                      <span style={{ color: "#aaa" }}>OWNED</span>
+                    ) : (
+                      <span style={{ color: "#555" }}>EMPTY</span>
+                    )}
+                    <span style={{ color: "#444" }}> #{tile.id + 1}</span>
+                  </div>
+                  {tile.owner && (
+                    <div style={{ color: "#666" }}>
+                      {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
+                    </div>
                   )}
-                  {" · "}
-                  <span style={{ color: "#888" }}>{tile.price.toFixed(4)} ETH</span>
+                  <div style={{ color: "#888" }}>{tile.price.toFixed(4)} ETH</div>
                 </div>
               </div>
             )}

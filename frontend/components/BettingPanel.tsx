@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
 import { useAccount, useBalance } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useWalletModal } from "@/components/WalletButton";
 import { formatEther } from "viem";
 import type { Bet, LiveMarket } from "@/lib/mock";
 import { timeAgo, IS_DEMO_MODE } from "@/lib/mock";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
 import { BASE_MAINNET } from "@/lib/contracts";
+import ClaimSection from "@/components/ClaimSection";
 
 interface BettingPanelProps {
   market: LiveMarket;
@@ -26,7 +27,7 @@ function formatEth(n: number): string {
 
 export default function BettingPanel({ market, marketAddress }: BettingPanelProps) {
   const { address: walletAddress, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { openModal: openConnectModal, WalletModalComponent } = useWalletModal();
   const { data: balanceData } = useBalance({ address: walletAddress });
 
   const {
@@ -116,7 +117,7 @@ export default function BettingPanel({ market, marketAddress }: BettingPanelProp
 
   async function handleBet() {
     if (!isConnected && !IS_DEMO_MODE) {
-      openConnectModal?.();
+      openConnectModal();
       return;
     }
     if (!canBet) return;
@@ -154,6 +155,7 @@ export default function BettingPanel({ market, marketAddress }: BettingPanelProp
   const explorerUrl = BASE_MAINNET.blockExplorerUrls[0];
 
   return (
+    <>
     <div
       className="flex flex-col h-full overflow-y-auto"
       style={{
@@ -472,52 +474,60 @@ export default function BettingPanel({ market, marketAddress }: BettingPanelProp
         )}
       </div>
 
-      {/* BET button */}
-      <div className="px-4 py-3 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
-        <button
-          onClick={handleBet}
-          disabled={(!isConnected && !IS_DEMO_MODE) ? false : (!canBet || isPlacing || isBetLoading)}
-          className="w-full py-3.5 rounded font-black text-sm tracking-widest transition-all btn-primary"
-          style={{
-            fontFamily: "monospace",
-            letterSpacing: "0.12em",
-          }}
-          aria-label={
-            !isConnected && !IS_DEMO_MODE
-              ? "Connect Wallet"
-              : `Place ${selectedSide ? selectedSide.toUpperCase() : ""} bet`
-          }
-        >
-          {!isConnected && !IS_DEMO_MODE ? (
-            "CONNECT WALLET"
-          ) : isPlacing || isBetLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span
-                className="inline-block w-4 h-4 rounded-full border-2 border-black border-t-transparent"
-                style={{ animation: "spin 0.8s linear infinite" }}
-              />
-              CONFIRMING...
-            </span>
-          ) : !selectedSide ? (
-            "SELECT SIDE"
-          ) : !amountNum ? (
-            "ENTER AMOUNT"
-          ) : !isOpen ? (
-            "BETTING CLOSED"
-          ) : (
-            `BET ${selectedSide.toUpperCase()} — ${amountNum.toFixed(3)} ETH`
-          )}
-        </button>
+      {/* Claim winnings section — shown when market is RESOLVED and user has winnings */}
+      <ClaimSection
+        marketAddress={marketAddress ?? null}
+        marketState={market.status === "resolved" ? 2 : market.status === "locked" ? 1 : 0}
+      />
 
-        {!isOpen && (
-          <div
-            className="text-center text-xs mt-2"
-            style={{ color: "#555", fontFamily: "monospace" }}
+      {/* BET button — hidden when market is resolved (claim section takes over) */}
+      {market.status !== "resolved" && (
+        <div className="px-4 py-3 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
+          <button
+            onClick={handleBet}
+            disabled={(!isConnected && !IS_DEMO_MODE) ? false : (!canBet || isPlacing || isBetLoading)}
+            className="w-full py-3.5 rounded font-black text-sm tracking-widest transition-all btn-primary"
+            style={{
+              fontFamily: "monospace",
+              letterSpacing: "0.12em",
+            }}
+            aria-label={
+              !isConnected && !IS_DEMO_MODE
+                ? "Connect Wallet"
+                : `Place ${selectedSide ? selectedSide.toUpperCase() : ""} bet`
+            }
           >
-            Betting locked — awaiting oracle resolution
-          </div>
-        )}
-      </div>
+            {!isConnected && !IS_DEMO_MODE ? (
+              "CONNECT WALLET"
+            ) : isPlacing || isBetLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span
+                  className="inline-block w-4 h-4 rounded-full border-2 border-black border-t-transparent"
+                  style={{ animation: "spin 0.8s linear infinite" }}
+                />
+                CONFIRMING...
+              </span>
+            ) : !selectedSide ? (
+              "SELECT SIDE"
+            ) : !amountNum ? (
+              "ENTER AMOUNT"
+            ) : !isOpen ? (
+              "BETTING CLOSED"
+            ) : (
+              `BET ${selectedSide.toUpperCase()} — ${amountNum.toFixed(3)} ETH`
+            )}
+          </button>
+
+          {!isOpen && (
+            <div
+              className="text-center text-xs mt-2"
+              style={{ color: "#555", fontFamily: "monospace" }}
+            >
+              Betting locked — awaiting oracle resolution
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent bets */}
       <div className="px-4 py-3 flex flex-col gap-2 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
@@ -569,7 +579,7 @@ export default function BettingPanel({ market, marketAddress }: BettingPanelProp
                       className="text-xs font-bold w-3 text-center"
                       style={{ color: bet.side === "over" ? "#00ff88" : "#ff4444" }}
                     >
-                      {bet.side === "over" ? "&#9650;" : "&#9660;"}
+                      {bet.side === "over" ? "\u25B2" : "\u25BC"}
                     </span>
                     <span
                       className="text-xs font-mono"
@@ -641,5 +651,7 @@ export default function BettingPanel({ market, marketAddress }: BettingPanelProp
         </div>
       </div>
     </div>
+    <WalletModalComponent />
+    </>
   );
 }

@@ -1,21 +1,71 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
+
 interface CountdownProps {
-  timeLeft: number;
-  totalDuration: number;
+  // Real-contract mode: unix timestamp (seconds) when betting closes
+  lockTime?: number;
+  // Mock mode: seconds remaining (legacy)
+  timeLeft?: number;
+  totalDuration?: number;
   status: "open" | "locked" | "resolving" | "resolved";
+  roundNumber?: number;
 }
 
-export default function Countdown({ timeLeft, totalDuration, status }: CountdownProps) {
+export default function Countdown({
+  lockTime,
+  timeLeft: timeLeftProp,
+  totalDuration = 300,
+  status,
+  roundNumber,
+}: CountdownProps) {
+  // Computed time left from lockTime when available
+  const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
+    if (lockTime && lockTime > 0) {
+      return Math.max(0, Math.floor(lockTime - Date.now() / 1000));
+    }
+    return timeLeftProp ?? 0;
+  });
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // When lockTime is provided, derive remaining from it (real contract mode)
+  useEffect(() => {
+    if (!lockTime || lockTime <= 0) {
+      // Fall back to prop-driven time
+      setDerivedTimeLeft(timeLeftProp ?? 0);
+      return;
+    }
+
+    function tick() {
+      const remaining = Math.max(0, Math.floor(lockTime! - Date.now() / 1000));
+      setDerivedTimeLeft(remaining);
+    }
+
+    tick();
+    intervalRef.current = setInterval(tick, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [lockTime, timeLeftProp]);
+
+  const timeLeft = derivedTimeLeft;
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const mm = String(minutes).padStart(2, "0");
   const ss = String(seconds).padStart(2, "0");
+
+  // Determine effective status: if lockTime-driven and time expired, override to locked
+  const effectiveStatus =
+    lockTime && lockTime > 0 && timeLeft <= 0 && status === "open"
+      ? "locked"
+      : status;
+
   const progress = totalDuration > 0 ? Math.max(0, timeLeft / totalDuration) : 0;
-  const isUrgent = timeLeft <= 30 && status === "open";
+  const isUrgent = timeLeft <= 30 && effectiveStatus === "open";
   const pct = Math.round((1 - progress) * 100);
 
-  if (status === "resolving") {
+  if (effectiveStatus === "resolving") {
     return (
       <div
         className="flex items-center gap-2 px-3 py-1.5 rounded"
@@ -39,7 +89,27 @@ export default function Countdown({ timeLeft, totalDuration, status }: Countdown
     );
   }
 
-  if (status === "locked") {
+  if (effectiveStatus === "resolved") {
+    return (
+      <div
+        className="flex items-center gap-2 px-3 py-1.5 rounded"
+        style={{ background: "rgba(0,170,255,0.1)", border: "1px solid rgba(0,170,255,0.2)" }}
+      >
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{ background: "#00aaff", boxShadow: "0 0 8px rgba(0,170,255,0.8)" }}
+        />
+        <span
+          className="text-sm font-bold tracking-widest"
+          style={{ color: "#00aaff", fontFamily: "monospace" }}
+        >
+          RESOLVED
+        </span>
+      </div>
+    );
+  }
+
+  if (effectiveStatus === "locked") {
     return (
       <div
         className="flex items-center gap-2 px-3 py-1.5 rounded"
@@ -63,7 +133,7 @@ export default function Countdown({ timeLeft, totalDuration, status }: Countdown
           className="text-xs font-medium tracking-widest"
           style={{ color: "#666", fontFamily: "monospace" }}
         >
-          ROUND ENDS IN
+          {roundNumber !== undefined ? `ROUND #${roundNumber} ENDS IN` : "ROUND ENDS IN"}
         </span>
         <span
           className="text-xs tabular"
