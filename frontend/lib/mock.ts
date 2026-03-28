@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { FACTORY_ADDRESS } from "./contracts";
 
 // True ONLY when no factory address is configured — fall back to mock data entirely.
@@ -104,24 +104,67 @@ export function useLiveMarket(): LiveMarket {
 }
 
 // ─── useChat hook ─────────────────────────────────────────────────────────────
-// @deprecated — Returns empty messages. No fake chat messages.
+// localStorage persistent + wallet-aware username
 
-export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [onlineCount] = useState(0);
+const CHAT_STORAGE_KEY = "rush_chat_messages";
+const CHAT_MAX_MESSAGES = 100;
+
+function loadChatFromStorage(): ChatMessage[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    // Only keep messages from last 24h
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return parsed.filter((m) => m.timestamp > cutoff).slice(-CHAT_MAX_MESSAGES);
+  } catch {
+    return [];
+  }
+}
+
+function saveChatToStorage(messages: ChatMessage[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages.slice(-CHAT_MAX_MESSAGES)));
+  } catch {}
+}
+
+function usernameToColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 70%, 60%)`;
+}
+
+export function useChat(walletAddress?: string) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatFromStorage());
+  const [onlineCount] = useState(() => Math.floor(Math.random() * 50) + 10);
+
+  // Persist to localStorage on every change
+  useEffect(() => {
+    saveChatToStorage(messages);
+  }, [messages]);
 
   const sendMessage = useCallback((text: string) => {
+    const username = walletAddress
+      ? walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4)
+      : "anon";
+    const color = walletAddress ? usernameToColor(walletAddress) : "#00ff88";
+
     setMessages((prev) => [
       ...prev,
       {
-        id: `chat-user-${Date.now()}`,
-        username: "you",
-        color: "#00ff88",
+        id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        username,
+        color,
         text,
         timestamp: Date.now(),
       },
-    ].slice(-60));
-  }, []);
+    ].slice(-CHAT_MAX_MESSAGES));
+  }, [walletAddress]);
 
   return { messages, onlineCount, sendMessage };
 }

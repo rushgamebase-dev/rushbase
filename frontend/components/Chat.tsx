@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, ChevronRight, ChevronLeft } from "lucide-react";
+import { useAccount } from "wagmi";
 import { useChat } from "@/lib/mock";
 import type { ChatMessage } from "@/lib/mock";
 
@@ -20,7 +21,8 @@ function formatTime(ts: number): string {
 }
 
 export default function Chat({ onCollapse }: ChatProps) {
-  const { messages, onlineCount, sendMessage } = useChat();
+  const { address } = useAccount();
+  const { messages, onlineCount, sendMessage } = useChat(address);
   const [input, setInput] = useState("");
   const [lastSent, setLastSent] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
