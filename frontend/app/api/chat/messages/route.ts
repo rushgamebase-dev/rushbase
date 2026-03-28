@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, message: msg });
-  } catch {
-    return NextResponse.json({ error: "invalid request" }, { status: 400 });
+  } catch (err) {
+    console.error("POST /api/chat/messages error:", err);
+    return NextResponse.json({ error: "invalid request", detail: String(err) }, { status: 400 });
   }
 }
