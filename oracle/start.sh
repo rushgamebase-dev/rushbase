@@ -51,7 +51,7 @@ echo "════════════════════════�
 
 # ── Start cloudflared quick tunnel ──────────────────────────────────────────
 TUNNEL_LOG="/tmp/rush_tunnel.log"
-cloudflared tunnel --url "http://localhost:$WS_PORT" > "$TUNNEL_LOG" 2>&1 &
+cloudflared tunnel --url "http://0.0.0.0:$WS_PORT" --no-chunked-encoding > "$TUNNEL_LOG" 2>&1 &
 TUNNEL_PID=$!
 echo "[Launcher] Cloudflared PID: $TUNNEL_PID"
 
