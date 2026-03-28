@@ -177,8 +177,8 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-start pt-20 md:items-center md:pt-0 justify-center p-4 overflow-y-auto"
-            style={{ background: "rgba(0,0,0,0.75)" }}
+            className="fixed inset-0 z-50 overflow-y-auto"
+            style={{ background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, minHeight: "100vh" }}
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
@@ -197,6 +197,8 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 background: "#111",
                 border: "1px solid rgba(0,255,136,0.25)",
                 boxShadow: "0 0 40px rgba(0,255,136,0.08), 0 24px 48px rgba(0,0,0,0.6)",
+                margin: "auto",
+                position: "relative",
               }}
             >
               {/* Header */}
