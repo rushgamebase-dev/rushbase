@@ -338,30 +338,10 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
       color: "#aaa",
     },
     {
-      label: "Add $RUSH Token",
+      label: "$RUSH Token — Coming Soon",
       icon: <Plus size={13} />,
-      onClick: async () => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const wp: any = typeof window !== "undefined" ? window : {};
-          const provider = wp.ethereum;
-          if (provider) {
-            await provider.request({
-              method: "wallet_watchAsset",
-              params: [{
-                type: "ERC20",
-                options: {
-                  address: "0x0000000000000000000000000000000000000000", // Replace with $RUSH token address after Flaunch
-                  symbol: "RUSH",
-                  decimals: 18,
-                  image: "https://rushgame.vip/logo.png",
-                },
-              }],
-            });
-          }
-        } catch {}
-      },
-      color: "#ffd700",
+      onClick: () => {},
+      color: "#555",
     },
     {
       label: "Switch Wallet",

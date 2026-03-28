@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
+import { useStats } from "@/hooks/useStats";
+import { useRoundHistory } from "@/hooks/useRoundHistory";
 import Header from "@/components/Header";
 import VideoPlayer from "@/components/VideoPlayer";
 import BettingPanel from "@/components/BettingPanel";
@@ -18,12 +20,14 @@ import type { LiveMarket } from "@/lib/mock";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
-const PLATFORM_STAT_CARDS = [
-  { label: "Total Volume", value: "0.00 ETH", color: "#00ff88" },
-  { label: "Markets Resolved", value: "0", color: "#ffd700" },
-  { label: "Distributed to Holders", value: "0.00 ETH", color: "#aa88ff" },
-  { label: "Unique Bettors", value: "0", color: "#00aaff" },
-];
+function usePlatformStatCards(stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }) {
+  return [
+    { label: "Total Volume", value: `${stats.totalVolume.toFixed(2)} ETH`, color: "#00ff88" },
+    { label: "Markets Resolved", value: String(stats.marketsResolved), color: "#ffd700" },
+    { label: "Distributed to Holders", value: `${stats.feesDistributed.toFixed(2)} ETH`, color: "#aa88ff" },
+    { label: "Unique Bettors", value: String(stats.uniqueBettors), color: "#00aaff" },
+  ];
+}
 
 const HOW_IT_WORKS = [
   {
@@ -121,6 +125,8 @@ export default function Home() {
   const { marketAddress, isDemoMode, isWaiting } = useActiveMarket();
   const contractData = useMarketContract(marketAddress);
   const [liveCount, setLiveCount] = useState(0);
+  const { stats } = useStats();
+  const { history: roundHistory } = useRoundHistory();
 
   const market = buildMarketFromContract(contractData, isWaiting);
 
@@ -135,7 +141,12 @@ export default function Home() {
   return (
     <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
       <Header />
-      <StatsBar />
+      <StatsBar
+        volume24h={stats.volume24h}
+        totalDistributed={stats.feesDistributed}
+        activeBettors={stats.uniqueBettors}
+        marketsResolved={stats.marketsResolved}
+      />
 
       {/* Main 3-column layout */}
       <div className="flex flex-col lg:flex-row" style={{ flex: "1 1 auto" }}>
@@ -346,11 +357,11 @@ export default function Home() {
             className="p-4 rounded"
             style={{ background: "#111", border: "1px solid #1a1a1a" }}
           >
-            <RoundHistory history={[]} />
+            <RoundHistory history={roundHistory} />
           </div>
 
           {/* Platform Stats */}
-          <PlatformStats />
+          <PlatformStatsSection stats={stats} />
 
           {/* How It Works */}
           <HowItWorks />
@@ -408,7 +419,8 @@ export default function Home() {
 
 // ─── Platform Stats section ───────────────────────────────────────────────────
 
-function PlatformStats() {
+function PlatformStatsSection({ stats }: { stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number } }) {
+  const cards = usePlatformStatCards(stats);
   return (
     <section aria-label="Platform statistics">
       <div
@@ -418,7 +430,7 @@ function PlatformStats() {
         PLATFORM STATS
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {PLATFORM_STAT_CARDS.map((stat, i) => (
+        {cards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 12 }}

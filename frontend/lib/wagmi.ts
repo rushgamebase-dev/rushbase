@@ -6,9 +6,9 @@ import { injected, coinbaseWallet } from "wagmi/connectors";
 // MetaMask and Phantom both inject as window.ethereum on EVM chains.
 // Coinbase Wallet has its own connector.
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236";
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.base.org";
 
-export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "wss://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236";
+export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "";
 
 export const wagmiConfig = createConfig({
   chains: [base],
@@ -24,4 +24,3 @@ export const wagmiConfig = createConfig({
 });
 
 export { base };
-// deploy trigger 1774683268

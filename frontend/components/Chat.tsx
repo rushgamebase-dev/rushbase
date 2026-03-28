@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, ChevronRight, ChevronLeft } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useChat } from "@/lib/mock";
-import type { ChatMessage } from "@/lib/mock";
+import { useChat } from "@/lib/chat";
+import type { ChatMessage } from "@/lib/chat";
 
 const EMOJIS = ["🔥", "🚗", "💰", "📈", "📉", "👀", "🎯", "💎", "🤑", "gg"];
 

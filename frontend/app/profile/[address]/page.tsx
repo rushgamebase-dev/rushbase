@@ -1,23 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Copy, Check, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
-import { useMockProfile } from "@/lib/mock";
-import type { ProfileBet } from "@/lib/mock";
 
-interface PageProps {
-  params: { address: string };
+interface ProfileBet {
+  user: string;
+  rangeIndex: number;
+  rangeLabel: string;
+  amount: string;
+  txHash: string;
+  timestamp: number;
+  claimed: boolean;
+  claimAmount: string | null;
+  marketAddress: string;
+  marketDescription: string;
+  threshold: number;
+  actualCount: number | null;
+  marketState: string;
 }
 
+interface ProfileData {
+  address: string;
+  shortAddress: string;
+  totalBets: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  totalPnl: number;
+  tilesOwned: number;
+  bets: ProfileBet[];
+}
 
-export default function ProfilePage({ params }: PageProps) {
-  const profile = useMockProfile(params.address);
+const EMPTY_PROFILE: ProfileData = {
+  address: "",
+  shortAddress: "",
+  totalBets: 0,
+  wins: 0,
+  losses: 0,
+  winRate: 0,
+  totalPnl: 0,
+  tilesOwned: 0,
+  bets: [],
+};
+
+export default function ProfilePage({ params }: { params: Promise<{ address: string }> }) {
+  const { address } = use(params);
+  const [profile, setProfile] = useState<ProfileData>({ ...EMPTY_PROFILE, address, shortAddress: `${address.slice(0, 6)}...${address.slice(-4)}` });
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch(`/api/profile/${address}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+        }
+      } catch {
+        // Keep empty profile
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfile();
+  }, [address]);
 
   function copyAddress() {
-    navigator.clipboard.writeText(params.address).catch(() => {});
+    navigator.clipboard.writeText(address).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -82,7 +134,7 @@ export default function ProfilePage({ params }: PageProps) {
                 {copied ? <Check size={13} /> : <Copy size={13} />}
               </button>
               <a
-                href={`https://basescan.org/address/${params.address}`}
+                href={`https://basescan.org/address/${address}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center w-6 h-6"
@@ -170,7 +222,16 @@ export default function ProfilePage({ params }: PageProps) {
             <span className="text-right">TX</span>
           </div>
 
-          {profile.bets.length === 0 && (
+          {loading && (
+            <div
+              className="px-4 py-8 text-center text-xs"
+              style={{ color: "#555", fontFamily: "monospace", background: "#111" }}
+            >
+              Loading...
+            </div>
+          )}
+
+          {!loading && profile.bets.length === 0 && (
             <div
               className="px-4 py-8 text-center text-xs"
               style={{ color: "#444", fontFamily: "monospace", background: "#111" }}
@@ -178,61 +239,72 @@ export default function ProfilePage({ params }: PageProps) {
               No predictions yet
             </div>
           )}
-          {profile.bets.map((bet: ProfileBet, i: number) => (
-            <div
-              key={bet.id}
-              className="grid px-4 py-3 text-xs items-center"
-              style={{
-                gridTemplateColumns: "1fr 60px 80px 80px 90px 40px",
-                background: i % 2 === 0 ? "#111" : "#0e0e0e",
-                borderBottom: i < profile.bets.length - 1 ? "1px solid #1a1a1a" : "none",
-                color: "#666",
-                fontFamily: "monospace",
-              }}
-            >
-              <span style={{ color: "#aaa" }}>{bet.market}</span>
-              <span
-                className="font-bold"
-                style={{ color: bet.side === "over" ? "#00ff88" : "#ff4444" }}
-              >
-                {bet.side === "over" ? "▲ OVER" : "▼ UNDER"}
-              </span>
-              <span style={{ color: "#888" }}>{bet.amount.toFixed(3)} ETH</span>
-              <span
-                className="font-bold"
+          {profile.bets.map((bet: ProfileBet, i: number) => {
+            const amount = parseFloat(bet.amount) || 0;
+            const isOver = bet.rangeIndex === 1;
+            const isResolved = bet.marketState === "resolved";
+            const won = bet.claimed && !!bet.claimAmount;
+            const lost = isResolved && !won;
+            const claimAmt = parseFloat(bet.claimAmount || "0");
+            const pnl = won ? claimAmt - amount : lost ? -amount : 0;
+            const result = won ? "win" : lost ? "loss" : "pending";
+
+            return (
+              <div
+                key={`${bet.txHash}-${i}`}
+                className="grid px-4 py-3 text-xs items-center"
                 style={{
-                  color:
-                    bet.result === "win"
-                      ? "#00ff88"
-                      : bet.result === "loss"
-                      ? "#ff4444"
-                      : "#888",
+                  gridTemplateColumns: "1fr 60px 80px 80px 90px 40px",
+                  background: i % 2 === 0 ? "#111" : "#0e0e0e",
+                  borderBottom: i < profile.bets.length - 1 ? "1px solid #1a1a1a" : "none",
+                  color: "#666",
+                  fontFamily: "monospace",
                 }}
               >
-                {bet.result.toUpperCase()}
-              </span>
-              <span
-                className="text-right font-bold"
-                style={{
-                  color: bet.pnl > 0 ? "#00ff88" : bet.pnl < 0 ? "#ff4444" : "#888",
-                }}
-              >
-                {bet.pnl > 0 ? "+" : ""}{bet.pnl.toFixed(4)}
-              </span>
-              <div className="flex justify-end">
-                <a
-                  href={`https://basescan.org/tx/${bet.txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#333" }}
-                  className="hover:text-[#00ff88] transition-colors"
-                  aria-label="View on Basescan"
+                <span style={{ color: "#aaa" }}>{bet.marketDescription || bet.marketAddress?.slice(0, 10)}</span>
+                <span
+                  className="font-bold"
+                  style={{ color: isOver ? "#00ff88" : "#ff4444" }}
                 >
-                  <ExternalLink size={11} />
-                </a>
+                  {isOver ? "▲ OVER" : "▼ UNDER"}
+                </span>
+                <span style={{ color: "#888" }}>{amount.toFixed(3)} ETH</span>
+                <span
+                  className="font-bold"
+                  style={{
+                    color:
+                      result === "win"
+                        ? "#00ff88"
+                        : result === "loss"
+                        ? "#ff4444"
+                        : "#888",
+                  }}
+                >
+                  {result.toUpperCase()}
+                </span>
+                <span
+                  className="text-right font-bold"
+                  style={{
+                    color: pnl > 0 ? "#00ff88" : pnl < 0 ? "#ff4444" : "#888",
+                  }}
+                >
+                  {pnl > 0 ? "+" : ""}{pnl.toFixed(4)}
+                </span>
+                <div className="flex justify-end">
+                  <a
+                    href={`https://basescan.org/tx/${bet.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#333" }}
+                    className="hover:text-[#00ff88] transition-colors"
+                    aria-label="View on Basescan"
+                  >
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Tiles link */}

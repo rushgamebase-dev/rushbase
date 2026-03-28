@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
-import { PLATFORM_STATS } from "@/lib/mock";
+import { useStats } from "@/hooks/useStats";
 
 // ─── Contract addresses ───────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ const FEE_STRUCTURE = [
 // ─── Stats page ───────────────────────────────────────────────────────────────
 
 export default function StatsPage() {
+  const { stats: PLATFORM_STATS } = useStats();
   const overview = [
     {
       label: "Total Volume Wagered",

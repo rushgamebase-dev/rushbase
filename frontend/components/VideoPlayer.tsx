@@ -36,7 +36,7 @@ const YOUTUBE_EMBED_URL =
 
 const ORACLE_WS_URL =
   typeof window !== "undefined"
-    ? process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? "ws://localhost:8765"
+    ? process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? ""
     : "";
 
 export default function VideoPlayer({
