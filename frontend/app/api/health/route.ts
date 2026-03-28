@@ -84,5 +84,6 @@ export async function GET() {
     lastRound,
     uptime: formatDuration(uptimeMs),
     version: "1.0.0",
+    serverTime: Date.now(),
   });
 }

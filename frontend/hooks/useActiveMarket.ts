@@ -1,6 +1,7 @@
 "use client";
 
-import { useReadContract } from "wagmi";
+import { useReadContract, useWatchContractEvent } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/contracts";
 import { IS_DEMO_MODE } from "@/lib/mock";
 
@@ -16,6 +17,18 @@ import { IS_DEMO_MODE } from "@/lib/mock";
  */
 export function useActiveMarket() {
   const enabled = !IS_DEMO_MODE && !!FACTORY_ADDRESS;
+  const queryClient = useQueryClient();
+
+  // Instant detection of new rounds via MarketCreated event (WebSocket or poll)
+  useWatchContractEvent({
+    address: FACTORY_ADDRESS || undefined,
+    abi: FACTORY_ABI,
+    eventName: "MarketCreated",
+    enabled,
+    onLogs() {
+      queryClient.invalidateQueries({ queryKey: ["readContract"] });
+    },
+  });
 
   const { data, isLoading, error, refetch } = useReadContract({
     address: FACTORY_ADDRESS || undefined,

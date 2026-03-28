@@ -39,10 +39,19 @@ WS_PORT="${WS_PORT:-8765}"
 API_URL="${API_URL:-https://www.rushgame.vip/api/oracle-url}"
 LEDGER_API_KEY="${LEDGER_API_KEY:-}"
 
-# ── Clean slate ──────────────────────────────────────────────────────────────
-kill $(lsof -ti :"$WS_PORT") 2>/dev/null || true
+# ── Clean slate: kill ALL previous oracle instances ─────────────────────────
+echo "[Launcher] Cleaning previous instances..."
+pkill -f "round_manager_rush.py" 2>/dev/null || true
+pkill -f "watchdog.py --rounds" 2>/dev/null || true
+pkill -f "stream_server.py" 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
-sleep 1
+kill $(lsof -ti :"$WS_PORT") 2>/dev/null || true
+sleep 2
+# Force-kill any survivors
+pkill -9 -f "round_manager_rush.py" 2>/dev/null || true
+pkill -9 -f "watchdog.py --rounds" 2>/dev/null || true
+# Remove stale lockfile
+rm -f /tmp/rush_oracle.lock 2>/dev/null || true
 
 echo "═══════════════════════════════════════════════════"
 echo "  Rush Oracle Launcher"

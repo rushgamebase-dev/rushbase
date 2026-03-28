@@ -3,7 +3,7 @@
 import { useReadContract, useWatchContractEvent } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatEther } from "viem";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
 import { IS_DEMO_MODE } from "@/lib/mock";
 
@@ -31,9 +31,10 @@ export interface MarketData {
   error: Error | null;
 }
 
-// Real-time polling interval — fast enough for live odds, with WebSocket
-// events triggering immediate refetches for instant updates.
-const FAST_POLL = 2_000;
+// Primary updates come from WebSocket events (BetPlaced, MarketResolved)
+// and Ably broadcasts (market_created, market_resolved, market_cancelled).
+// Polling is just a safety net — 30s is enough to catch anything missed.
+const SAFETY_POLL = 30_000;
 
 /**
  * Reads all data from a specific PredictionMarket contract.
@@ -45,15 +46,18 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
   const queryClient = useQueryClient();
 
   const [realtimeBets, setRealtimeBets] = useState<
-    { user: string; rangeIndex: number; amount: bigint }[]
+    { user: string; rangeIndex: number; amount: bigint; txHash: string; timestamp: number }[]
   >([]);
+
+  // Reset bets when market address changes (new round)
+  useEffect(() => { setRealtimeBets([]); }, [marketAddress]);
 
   // State
   const { data: stateData } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "state",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: SAFETY_POLL },
   });
 
   // Total pool
@@ -61,7 +65,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalPool",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: SAFETY_POLL },
   });
 
   // Lock time
@@ -69,7 +73,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "lockTime",
-    query: { enabled },
+    query: { enabled, refetchInterval: 10_000 },
   });
 
   // Total bettors
@@ -77,7 +81,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalBettors",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: SAFETY_POLL },
   });
 
   // Actual car count
@@ -85,7 +89,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "actualCarCount",
-    query: { enabled },
+    query: { enabled, refetchInterval: SAFETY_POLL },
   });
 
   // Winning range index
@@ -93,7 +97,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "winningRangeIndex",
-    query: { enabled },
+    query: { enabled, refetchInterval: SAFETY_POLL },
   });
 
   // All ranges
@@ -127,28 +131,28 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(0)],
-    query: { enabled: enabled && rangeCount > 0, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 0, refetchInterval: SAFETY_POLL },
   });
   const { data: pool1 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(1)],
-    query: { enabled: enabled && rangeCount > 1, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 1, refetchInterval: SAFETY_POLL },
   });
   const { data: pool2 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(2)],
-    query: { enabled: enabled && rangeCount > 2, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 2, refetchInterval: SAFETY_POLL },
   });
   const { data: pool3 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(3)],
-    query: { enabled: enabled && rangeCount > 3, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 3, refetchInterval: SAFETY_POLL },
   });
 
   // Watch BetPlaced events — instant detection via WebSocket
@@ -162,15 +166,23 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
       for (const log of logs) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const args = (log as any).args as { user?: string; rangeIndex?: bigint; amount?: bigint } | undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txHash = ((log as any).transactionHash as string) ?? "";
         if (args?.user && args.rangeIndex !== undefined && args.amount !== undefined) {
-          setRealtimeBets((prev) => [
-            {
-              user: args.user!,
-              rangeIndex: Number(args.rangeIndex),
-              amount: args.amount!,
-            },
-            ...prev.slice(0, 49),
-          ]);
+          setRealtimeBets((prev) => {
+            // Dedup by txHash to prevent double-counting
+            if (txHash && prev.some((b) => b.txHash === txHash)) return prev;
+            return [
+              {
+                user: args.user!,
+                rangeIndex: Number(args.rangeIndex),
+                amount: args.amount!,
+                txHash,
+                timestamp: Date.now(),
+              },
+              ...prev.slice(0, 49),
+            ];
+          });
         }
       }
 

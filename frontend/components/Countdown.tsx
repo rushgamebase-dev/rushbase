@@ -23,6 +23,30 @@ export default function Countdown({
   finalCount,
   winningRangeIndex = -1,
 }: CountdownProps) {
+  // Clock offset: server time minus client time (ms). Corrects device clock skew.
+  const clockOffsetRef = useRef(0);
+
+  useEffect(() => {
+    async function syncClock() {
+      try {
+        const before = Date.now();
+        const res = await fetch("/api/health");
+        const after = Date.now();
+        const data = await res.json();
+        if (data.serverTime) {
+          const rtt = after - before;
+          clockOffsetRef.current = data.serverTime + rtt / 2 - after;
+        }
+      } catch { /* use raw client clock */ }
+    }
+    syncClock();
+  }, []);
+
+  // Corrected "now" accounting for clock skew
+  function correctedNow() {
+    return Date.now() + clockOffsetRef.current;
+  }
+
   const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
     if (lockTime && lockTime > 0) {
       return Math.max(0, Math.floor(lockTime - Date.now() / 1000));
@@ -38,7 +62,7 @@ export default function Countdown({
       return;
     }
     function tick() {
-      setDerivedTimeLeft(Math.max(0, Math.floor(lockTime! - Date.now() / 1000)));
+      setDerivedTimeLeft(Math.max(0, Math.floor(lockTime! - correctedNow() / 1000)));
     }
     tick();
     intervalRef.current = setInterval(tick, 1000);

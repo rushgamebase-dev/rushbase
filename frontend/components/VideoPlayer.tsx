@@ -74,6 +74,7 @@ export default function VideoPlayer({
   const [oracleCount, setOracleCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
   const prevBlobUrlRef = useRef<string | null>(null);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -133,6 +134,7 @@ export default function VideoPlayer({
 
     ws.onopen = () => {
       setOracleConnected(true);
+      retryCountRef.current = 0; // Reset backoff on successful connect
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -177,10 +179,12 @@ export default function VideoPlayer({
       oracleImageRef.current = null;
       wsRef.current = null;
 
-      // Auto-retry after 10 seconds
+      // Exponential backoff: 2s, 4s, 8s, 16s, 30s max
+      const delay = Math.min(2000 * Math.pow(2, retryCountRef.current), 30_000);
+      retryCountRef.current++;
       retryTimerRef.current = setTimeout(() => {
         connectOracle();
-      }, 10_000);
+      }, delay);
     };
   }, [oracleWsUrl]);
 
@@ -219,76 +223,7 @@ export default function VideoPlayer({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    function drawHUD(
-      ctx: CanvasRenderingContext2D,
-      W: number,
-      H: number,
-      count: number,
-      frame: number,
-    ) {
-      // Vehicle count (top left)
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillRect(8, 8, 90, 44);
-      ctx.strokeStyle = "rgba(0,255,136,0.2)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(8, 8, 90, 44);
-
-      ctx.fillStyle = "#00ff88";
-      ctx.font = "bold 28px monospace";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(count).padStart(3, "0"), 18, 30);
-
-      ctx.fillStyle = "rgba(0,255,136,0.5)";
-      ctx.font = "7px monospace";
-      ctx.textBaseline = "middle";
-      ctx.fillText("VEHICLES", 18, 44);
-
-      // LIVE badge (top right)
-      const badgeX = W - 62;
-      ctx.fillStyle = "rgba(255,68,68,0.15)";
-      ctx.fillRect(badgeX, 10, 54, 18);
-      ctx.strokeStyle = "rgba(255,68,68,0.5)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(badgeX, 10, 54, 18);
-
-      const alpha = 0.5 + 0.5 * Math.sin(frame * 0.12);
-      ctx.fillStyle = `rgba(255,68,68,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(badgeX + 8, 19, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "rgb(255,68,68)";
-      ctx.font = "bold 9px monospace";
-      ctx.textBaseline = "middle";
-      ctx.fillText("LIVE", badgeX + 16, 19);
-
-      // Camera name + timestamp (bottom)
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
-      const dateStr = now.toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      });
-
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(6, H - 30, W - 12, 24);
-
-      ctx.fillStyle = "rgba(0,255,136,0.7)";
-      ctx.font = "9px monospace";
-      ctx.textBaseline = "middle";
-      ctx.fillText(cameraName, 12, H - 18);
-
-      ctx.fillStyle = "rgba(200,200,200,0.6)";
-      ctx.textAlign = "right";
-      ctx.fillText(`${dateStr}  ${timeStr}`, W - 12, H - 18);
-      ctx.textAlign = "left";
-    }
+    // HUD removed — all count/timer/status displayed by frontend components outside the video
 
     function draw() {
       if (!canvas || !ctx) return;
@@ -315,7 +250,7 @@ export default function VideoPlayer({
         ctx.fillStyle = sweepGrad;
         ctx.fillRect(0, sweepY - 8, W, 16);
 
-        drawHUD(ctx, W, H, vehicleCount, currentFrame);
+        // Clean video — no HUD overlay
       }
 
       animRef.current = requestAnimationFrame(draw);

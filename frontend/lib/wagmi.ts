@@ -27,6 +27,9 @@ export const wagmiConfig = createConfig({
   transports: {
     [base.id]: transport,
   },
+  // 2s polling for HTTP fallback — ensures contract reads + event detection
+  // stay responsive even when WSS is unavailable.
+  pollingInterval: 2_000,
 });
 
 export { base };

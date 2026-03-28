@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAccount } from "wagmi";
+import { formatEther } from "viem";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useStats } from "@/hooks/useStats";
@@ -18,7 +19,8 @@ import WelcomeOverlay from "@/components/WelcomeOverlay";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Shield, Zap, Brain, Coins } from "lucide-react";
-import type { LiveMarket } from "@/lib/mock";
+import { timeAgo, type LiveMarket } from "@/lib/mock";
+import { useMarketStream } from "@/hooks/useMarketStream";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
@@ -115,7 +117,16 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
     overPct,
     underPct,
     bettors: contractData.totalBettors,
-    recentBets: [],
+    recentBets: contractData.realtimeBets.map((b) => ({
+      id: b.txHash || `${b.user}-${b.timestamp}`,
+      wallet: b.user,
+      shortWallet: `${b.user.slice(0, 6)}...${b.user.slice(-4)}`,
+      side: (b.rangeIndex === 1 ? "over" : "under") as "over" | "under",
+      amount: parseFloat(formatEther(b.amount)),
+      txHash: b.txHash,
+      timestamp: b.timestamp,
+      timeAgo: timeAgo(b.timestamp),
+    })),
     roundHistory: [],
   };
 }
@@ -130,9 +141,15 @@ export default function Home() {
   const { history: roundHistory } = useRoundHistory();
   const { isConnected } = useAccount();
 
+  // Subscribe to Ably market events for instant oracle broadcasts
+  useMarketStream();
+
+  // Reset live count when market changes (new round starts)
+  useEffect(() => { setLiveCount(0); }, [marketAddress]);
+
   const market = buildMarketFromContract(contractData, isWaiting, marketCount);
 
-  // Use live oracle count if available, otherwise contract data
+  // Use live oracle count if available; fallback to contract data but never jump backwards
   const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;

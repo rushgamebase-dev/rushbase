@@ -597,6 +597,32 @@ class RushRoundManager:
         except Exception as exc:
             log.warning("Ledger POST failed (non-fatal): %s", exc)
 
+    # ── Ably publish ──────────────────────────────────────────────────────────
+
+    def _publish_ably(self, event: str, data: dict) -> None:
+        """Publish an event to Ably rush:market channel (best-effort, never blocks the loop)."""
+        api_key = os.environ.get("ABLY_API_KEY", "")
+        if not api_key:
+            return
+        try:
+            import base64
+            url = "https://rest.ably.io/channels/rush%3Amarket/messages"
+            payload = json.dumps({"name": event, "data": json.dumps(data)}).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Basic {base64.b64encode(api_key.encode()).decode()}",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resp.read()
+            log.info("Ably publish OK: %s", event)
+        except Exception as exc:
+            log.warning("Ably publish failed (non-fatal): %s", exc)
+
     # ── Graceful shutdown ─────────────────────────────────────────────────────
 
     def request_shutdown(self) -> None:
@@ -643,6 +669,10 @@ class RushRoundManager:
                     for addr in active:
                         log.info("Cancelling orphan market: %s", addr)
                         self.chain.cancel_market(addr)
+                        self._publish_ably("market_cancelled", {
+                            "marketAddress": addr,
+                            "ts": int(time.time() * 1000),
+                        })
                     log.info("Cancelled %d orphan market(s) — proceeding to create new one", len(active))
                 else:
                     log.warning(
@@ -670,6 +700,24 @@ class RushRoundManager:
                     market_address,
                     create_tx,
                 )
+                # Broadcast to all connected frontends via Ably
+                lock_time_val = 0
+                try:
+                    mc = self.chain.w3.eth.contract(
+                        address=Web3.to_checksum_address(market_address),
+                        abi=MARKET_ABI,
+                    )
+                    lock_time_val = mc.functions.lockTime().call()
+                except Exception:
+                    pass
+                self._publish_ably("market_created", {
+                    "marketAddress": market_address,
+                    "txHash": create_tx,
+                    "threshold": threshold,
+                    "lockTime": lock_time_val,
+                    "description": description,
+                    "ts": int(time.time() * 1000),
+                })
                 break
             except Exception as exc:
                 log.error(
@@ -717,12 +765,20 @@ class RushRoundManager:
             log.warning("Round cancelled — terminating stream subprocess")
             await stream.terminate()
             self.chain.cancel_market(market_address)
+            self._publish_ably("market_cancelled", {
+                "marketAddress": market_address,
+                "ts": int(time.time() * 1000),
+            })
             raise
 
         except Exception as exc:
             log.error("Stream/counter error: %s — cancelling market", exc)
             await stream.terminate()
             self.chain.cancel_market(market_address)
+            self._publish_ably("market_cancelled", {
+                "marketAddress": market_address,
+                "ts": int(time.time() * 1000),
+            })
             return
 
         # ── Step 2.5: Check pool before resolving ─────────────────────────────
@@ -740,6 +796,10 @@ class RushRoundManager:
             if total_pool == 0:
                 log.info("No bets placed — cancelling market (no gas wasted on resolve)")
                 self.chain.cancel_market(market_address)
+                self._publish_ably("market_cancelled", {
+                    "marketAddress": market_address,
+                    "ts": int(time.time() * 1000),
+                })
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,
@@ -772,6 +832,10 @@ class RushRoundManager:
                     empty_side,
                 )
                 self.chain.cancel_market(market_address)
+                self._publish_ably("market_cancelled", {
+                    "marketAddress": market_address,
+                    "ts": int(time.time() * 1000),
+                })
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,
@@ -822,6 +886,13 @@ class RushRoundManager:
                     "resolveMarket confirmed (tx: %s)",
                     resolve_tx,
                 )
+                self._publish_ably("market_resolved", {
+                    "marketAddress": market_address,
+                    "actualCount": count,
+                    "winningRangeIndex": 0 if count <= threshold else 1,
+                    "txHash": resolve_tx,
+                    "ts": int(time.time() * 1000),
+                })
                 break
             except Exception as exc:
                 log.error(

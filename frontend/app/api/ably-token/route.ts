@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
     const ably = new Ably.Rest({ key: apiKey });
     const token = await ably.auth.createTokenRequest({
       clientId,
-      capability: { "rush:chat": ["publish", "subscribe", "history"] },
+      capability: {
+        "rush:chat": ["publish", "subscribe", "history"],
+        "rush:market": ["subscribe"],
+      },
       ttl: 3600 * 1000, // 1 hour
     });
     return NextResponse.json(token);
