@@ -23,7 +23,7 @@ export function useActiveMarket() {
     functionName: "getActiveMarkets",
     query: {
       enabled,
-      refetchInterval: 10_000,
+      refetchInterval: 5_000,
     },
   });
 

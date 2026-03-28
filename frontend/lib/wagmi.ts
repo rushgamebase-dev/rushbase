@@ -1,4 +1,4 @@
-import { http, createConfig } from "wagmi";
+import { http, webSocket, fallback, createConfig } from "wagmi";
 import { base } from "wagmi/chains";
 import { injected, coinbaseWallet } from "wagmi/connectors";
 
@@ -10,6 +10,12 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.base.org";
 
 export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "";
 
+// Use WebSocket transport for real-time event subscriptions (BetPlaced, etc.)
+// Falls back to HTTP if WSS unavailable.
+const transport = WSS_URL
+  ? fallback([webSocket(WSS_URL), http(RPC_URL)])
+  : http(RPC_URL);
+
 export const wagmiConfig = createConfig({
   chains: [base],
   connectors: [
@@ -19,7 +25,7 @@ export const wagmiConfig = createConfig({
     }),
   ],
   transports: {
-    [base.id]: http(RPC_URL),
+    [base.id]: transport,
   },
 });
 

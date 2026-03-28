@@ -1,8 +1,9 @@
 "use client";
 
 import { useReadContract, useWatchContractEvent } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatEther } from "viem";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
 import { IS_DEMO_MODE } from "@/lib/mock";
 
@@ -30,13 +31,18 @@ export interface MarketData {
   error: Error | null;
 }
 
+// Real-time polling interval — fast enough for live odds, with WebSocket
+// events triggering immediate refetches for instant updates.
+const FAST_POLL = 2_000;
+
 /**
  * Reads all data from a specific PredictionMarket contract.
- * Falls back to empty data if no market address (demo mode).
+ * Uses WebSocket events for instant bet detection + polling as safety net.
  */
 export function useMarketContract(marketAddress: `0x${string}` | null) {
   const enabled = !IS_DEMO_MODE && !!marketAddress;
   const addr = marketAddress || undefined;
+  const queryClient = useQueryClient();
 
   const [realtimeBets, setRealtimeBets] = useState<
     { user: string; rangeIndex: number; amount: bigint }[]
@@ -47,7 +53,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "state",
-    query: { enabled, refetchInterval: 5_000 },
+    query: { enabled, refetchInterval: FAST_POLL },
   });
 
   // Total pool
@@ -55,7 +61,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalPool",
-    query: { enabled, refetchInterval: 5_000 },
+    query: { enabled, refetchInterval: FAST_POLL },
   });
 
   // Lock time
@@ -71,7 +77,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalBettors",
-    query: { enabled, refetchInterval: 5_000 },
+    query: { enabled, refetchInterval: FAST_POLL },
   });
 
   // Actual car count
@@ -114,38 +120,39 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     query: { enabled },
   });
 
-  // Pool by range 0
+  // Pool by range
   const rangeCount = rangeCountData ? Number(rangeCountData) : 0;
   const { data: pool0 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(0)],
-    query: { enabled: enabled && rangeCount > 0, refetchInterval: 5_000 },
+    query: { enabled: enabled && rangeCount > 0, refetchInterval: FAST_POLL },
   });
   const { data: pool1 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(1)],
-    query: { enabled: enabled && rangeCount > 1, refetchInterval: 5_000 },
+    query: { enabled: enabled && rangeCount > 1, refetchInterval: FAST_POLL },
   });
   const { data: pool2 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(2)],
-    query: { enabled: enabled && rangeCount > 2, refetchInterval: 5_000 },
+    query: { enabled: enabled && rangeCount > 2, refetchInterval: FAST_POLL },
   });
   const { data: pool3 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(3)],
-    query: { enabled: enabled && rangeCount > 3, refetchInterval: 5_000 },
+    query: { enabled: enabled && rangeCount > 3, refetchInterval: FAST_POLL },
   });
 
-  // Watch BetPlaced events for real-time updates
+  // Watch BetPlaced events — instant detection via WebSocket
+  // On event: update realtimeBets AND force-refetch all pool data
   useWatchContractEvent({
     address: addr,
     abi: MARKET_ABI,
@@ -166,6 +173,21 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
           ]);
         }
       }
+
+      // Force immediate refetch of ALL contract reads (pool, bettors, state)
+      // This is the key to real-time odds: event fires → data refetches → odds recalculate
+      queryClient.invalidateQueries({ queryKey: ["readContract"] });
+    },
+  });
+
+  // Also watch MarketResolved for instant resolution detection
+  useWatchContractEvent({
+    address: addr,
+    abi: MARKET_ABI,
+    eventName: "MarketResolved",
+    enabled,
+    onLogs() {
+      queryClient.invalidateQueries({ queryKey: ["readContract"] });
     },
   });
 
