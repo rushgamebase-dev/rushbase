@@ -86,7 +86,6 @@ export async function POST(req: NextRequest) {
 
     // Idempotency: check if this market was already recorded with same state
     const existing = await kv.hgetall<Record<string, string>>(KEYS.ledgerMarket(addr));
-    const isUpdate = !!existing && !!existing.address;
     const alreadyResolved = existing?.state === "resolved";
 
     // If already resolved, don't re-increment stats (idempotent)
