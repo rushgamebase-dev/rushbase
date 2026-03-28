@@ -219,7 +219,7 @@ def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     Falls back to the first two cameras in the file.
     """
     by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["netherlands-highway", "peace-bridge"]
+    primary_ids = ["peace-bridge"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
     if len(result) < 2:
         result = cameras[:2]

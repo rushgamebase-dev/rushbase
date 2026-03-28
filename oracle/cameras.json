@@ -20,8 +20,8 @@
       "type": "youtube",
       "resolution": "1280x720",
       "primary": true,
-      "linePoints": "0.18,0.55,0.78,0.55",
-      "notes": "Single horizontal line across all 3 lanes at 55% Y. Line crossing mode."
+      "linePoints": "0.24,0.55,0.73,0.55",
+      "notes": "Single horizontal line across all 3 lanes at 55% Y. Tightened to road surface only (x=0.24 to 0.73), avoids counting outside bridge rails."
     },
     {
       "id": "peace-bridge-qew",
