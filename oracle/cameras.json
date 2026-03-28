@@ -20,27 +20,8 @@
       "type": "youtube",
       "resolution": "1280x720",
       "primary": true,
-      "lanes": [
-        {
-          "name": "Lane 1 (left, inbound)",
-          "direction": "toward",
-          "zone": [0.18, 0.25, 0.42, 0.25, 0.42, 0.95, 0.18, 0.95],
-          "line": "0.18,0.55,0.42,0.55"
-        },
-        {
-          "name": "Lane 2 (center, inbound)",
-          "direction": "toward",
-          "zone": [0.42, 0.25, 0.56, 0.25, 0.56, 0.95, 0.42, 0.95],
-          "line": "0.42,0.55,0.56,0.55"
-        },
-        {
-          "name": "Lane 3 (right, outbound)",
-          "direction": "away",
-          "zone": [0.56, 0.25, 0.78, 0.25, 0.78, 0.95, 0.56, 0.95],
-          "line": "0.56,0.50,0.78,0.50"
-        }
-      ],
-      "notes": "3 lanes: 2 inbound (toward camera, left+center), 1 outbound (away, right). Line at ~55% Y for inbound, ~50% for outbound."
+      "linePoints": "0.18,0.55,0.78,0.55",
+      "notes": "Single horizontal line across all 3 lanes at 55% Y. Line crossing mode."
     },
     {
       "id": "peace-bridge-qew",
