@@ -12,23 +12,20 @@ import { motion, AnimatePresence } from "framer-motion";
 
 function MetaMaskIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M36.1 3L22.1 13.3l2.6-6.1L36.1 3z" fill="#E17726" stroke="#E17726" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M3.9 3l13.8 10.4-2.5-6.1L3.9 3z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M31 27.5l-3.7 5.7 7.9 2.2 2.3-7.7-6.5-.2zM2.5 27.7l2.2 7.7 7.9-2.2-3.7-5.7-6.4.2z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M12.2 17.8l-2.2 3.3 7.8.4-.3-8.4-5.3 4.7zm15.6 0l-5.4-4.8-.3 8.5 7.8-.4-2.1-3.3z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M12.6 33.2l4.7-2.3-4-3.1-.7 5.4zm10.1-2.3l4.7 2.3-.8-5.4-3.9 3.1z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M27.4 33.2l-4.7-2.3.4 3.2-.1 1.9 4.4-2.8zm-14.8 0l4.4 2.8-.1-1.9.4-3.2-4.7 2.3z" fill="#D5BFB2" stroke="#D5BFB2" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M17.1 24.5l-3.9-1.1 2.7-1.3 1.2 2.4zm5.8 0l1.2-2.4 2.7 1.3-3.9 1.1z" fill="#233447" stroke="#233447" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M12.6 33.2l.7-5.7-4.4.2 3.7 5.5zm14.1-5.7l.7 5.7 3.7-5.5-4.4-.2zm3.3-10.4l-7.8.4.7 4.1 1.2-2.4 2.7 1.3 3.2-3.4zm-18.4 3.4l2.7-1.3 1.2 2.4.7-4.1-7.8-.4 3.2 3.4z" fill="#CC6228" stroke="#CC6228" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M10 17.1l3.3 6.4-.1-3.2L10 17.1zm16.8 3.2l-.1 3.2 3.3-6.4-3.2 3.2zm-9 .8l-.7 4.1.9 4.6.2-6.1-.4-2.6zm4.4 0l-.4 2.6.2 6.1.9-4.6-.7-4.1z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M22.9 24.5l-.9 4.6.6.5 3.9-3.1.1-3.2-3.7 1.2zm-9.7-1.1l.1 3.2 3.9 3.1.6-.5-.9-4.6-3.7-1.2z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M23 36l.1-1.9-.3-.3h-5.5l-.3.3.1 1.9-4.4-2.8 1.5 1.3 3.1 2.1h5.3l3.1-2.1 1.5-1.3L23 36z" fill="#C0AC9D" stroke="#C0AC9D" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M22.7 30.9l-.6-.5h-4.2l-.6.5-.4 3.2.3-.3h5.5l.3.3-.3-3.2z" fill="#161616" stroke="#161616" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M36.8 13.8L38 7.5l-1.9-4.5L22.7 13.6l5 4.2 7.1 2.1 1.6-1.8-.7-.5 1.1-1-.8-.6 1.1-.9-.3-.8zm-33.6 0l-1.2-6.3L3.9 3 17.3 13.6l5 4.2-7.1 2.1-1.6-1.8.7-.5-1.1-1 .8-.6-1.1-.9.3-.8z" fill="#763E1A" stroke="#763E1A" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M34.8 20l-7.1-2.1 2.1 3.2-3.3 6.4 4.4-.1h6.5L34.8 20zm-22.6-2.1L5 20l-2.6 7.4h6.5l4.4.1-3.3-6.4 2.2-3.2z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M17.1 21.1l-.7 4.1 2.9 5.7.4-8.4-2.6-1.4zm5.8 0l-2.5 1.4.4 8.4 2.9-5.7-.8-4.1z" fill="#C0AC9D" stroke="#C0AC9D" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M22.3 25.2l-2.9 5.7.6.5h4.2l.6-.5-2.9-5.7h.4z" fill="#161616" stroke="#161616" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width={size} height={size} viewBox="0 0 318.6 318.6" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path fill="#E2761B" stroke="#E2761B" strokeLinecap="round" strokeLinejoin="round" d="m274.1 35.5-99.5 73.9L193 65.8z"/>
+      <path fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round" d="m44.4 35.5 98.7 74.6-17.5-44.3zm193.9 171.3-26.5 40.6 56.7 15.6 16.3-55.3zm-204.4.9L50.1 263l56.7-15.6-26.5-40.6z"/>
+      <path fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round" d="m103.6 138.2-15.8 23.9 56.3 2.5-2-60.5zm111.3 0-39-34.8-1.3 61.2 56.2-2.5zM106.8 247.4l33.8-16.5-29.2-22.8zm71.1-16.5 33.9 16.5-4.7-39.3z"/>
+      <path fill="#D7C1B3" stroke="#D7C1B3" strokeLinecap="round" strokeLinejoin="round" d="m211.8 247.4-33.9-16.5 2.7 22.1-.3 9.3zm-105 0 31.5 14.9-.2-9.3 2.5-22.1z"/>
+      <path fill="#233447" stroke="#233447" strokeLinecap="round" strokeLinejoin="round" d="m138.8 193.5-28.2-8.3 19.9-9.1zm40.9 0 8.3-17.4 20 9.1z"/>
+      <path fill="#CD6116" stroke="#CD6116" strokeLinecap="round" strokeLinejoin="round" d="m106.8 247.4 4.8-40.6-31.3.9zM207 206.8l4.8 40.6 26.5-39.7zm23.8-44.7-56.2 2.5 5.2 28.9 8.3-17.4 20 9.1zm-120.2 23.1 20-9.1 8.2 17.4 5.3-28.9-56.3-2.5z"/>
+      <path fill="#E4751F" stroke="#E4751F" strokeLinecap="round" strokeLinejoin="round" d="m87.8 162.1 23.6 46-.8-22.9zm120.3 23.1-1 22.9 23.7-46zm-64-20.6-5.3 28.9 6.6 34.1 1.5-44.9zm30.5 0-2.7 18 1.2 45 6.7-34.1z"/>
+      <path fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round" d="m179.8 193.5-6.7 34.1 4.8 3.3 29.2-22.8 1-22.9zm-69.2-8.3.8 22.9 29.2 22.8 4.8-3.3-6.6-34.1z"/>
+      <path fill="#C0AD9E" stroke="#C0AD9E" strokeLinecap="round" strokeLinejoin="round" d="m180.3 262.3.3-9.3-2.5-2.2h-37.7l-2.3 2.2.2 9.3-31.5-14.9 11 9 22.3 15.5h38.3l22.4-15.5 11-9z"/>
+      <path fill="#161616" stroke="#161616" strokeLinecap="round" strokeLinejoin="round" d="m177.9 230.9-4.8-3.3h-27.7l-4.8 3.3-2.5 22.1 2.3-2.2h37.7l2.5 2.2z"/>
+      <path fill="#763D16" stroke="#763D16" strokeLinecap="round" strokeLinejoin="round" d="m278.3 114.2 8.5-40.8-12.7-37.9-96.2 71.4 37 31.3 52.3 15.3 11.6-13.5-5-3.6 8-7.3-6.2-4.8 8-6.1zM31.8 73.4l8.5 40.8-5.4 4 8 6.1-6.1 4.8 8 7.3-5 3.6 11.5 13.5 52.3-15.3 37-31.3-96.2-71.4z"/>
+      <path fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round" d="m267.2 153.5-52.3-15.3 15.9 23.9-23.7 46 31.2-.4h46.5zm-163.6-15.3-52.3 15.3-17.4 54.2h46.4l31.1.4-23.6-46z"/>
+      <path fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round" d="m174.6 164.6-3.3-57.7-15.2 41.1h-30.8l-15-41.1-3.5 57.7-6.6 34.1 6.7-34.1 5.3-28.9 56.3 2.5 5.2 28.9z" opacity=".6"/>
     </svg>
   );
 }
