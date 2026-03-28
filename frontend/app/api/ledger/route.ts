@@ -7,26 +7,31 @@ export const dynamic = "force-dynamic";
 // GET /api/ledger?limit=<n>&offset=<n>
 // Returns all market records (most recent first).
 export async function GET(req: NextRequest) {
-  const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 200);
-  const offset = Number(req.nextUrl.searchParams.get("offset") || "0");
+  try {
+    const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 200);
+    const offset = Number(req.nextUrl.searchParams.get("offset") || "0");
 
-  // Get market addresses from sorted set (newest first)
-  const addresses = await kv.zrevrange(KEYS.ledgerMarkets, offset, offset + limit - 1);
+    // Get market addresses from sorted set (newest first)
+    const addresses = await kv.zrevrange(KEYS.ledgerMarkets, offset, offset + limit - 1);
 
-  // Fetch each market record
-  const markets: MarketRecord[] = [];
-  for (const addr of addresses) {
-    const record = await kv.hgetall<MarketRecord>(KEYS.ledgerMarket(addr));
-    if (record) {
-      // Parse bets if stored as string
-      if (typeof record.bets === "string") {
-        try { record.bets = JSON.parse(record.bets as unknown as string); } catch { record.bets = []; }
+    // Fetch each market record
+    const markets: MarketRecord[] = [];
+    for (const addr of addresses) {
+      const record = await kv.hgetall<MarketRecord>(KEYS.ledgerMarket(addr));
+      if (record) {
+        // Parse bets if stored as string
+        if (typeof record.bets === "string") {
+          try { record.bets = JSON.parse(record.bets as unknown as string); } catch { record.bets = []; }
+        }
+        markets.push(record);
       }
-      markets.push(record);
     }
-  }
 
-  return NextResponse.json({ markets, total: await kv.zcard(KEYS.ledgerMarkets) });
+    return NextResponse.json({ markets, total: await kv.zcard(KEYS.ledgerMarkets) });
+  } catch (error) {
+    console.error("GET /api/ledger error:", error);
+    return NextResponse.json({ markets: [], total: 0 });
+  }
 }
 
 // POST /api/ledger — Called by oracle round_manager after resolving a market.

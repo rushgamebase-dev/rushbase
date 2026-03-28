@@ -17,18 +17,23 @@ interface ChatMsg {
 
 // GET /api/chat/messages?after=<timestamp>&limit=<n>
 export async function GET(req: NextRequest) {
-  const after = Number(req.nextUrl.searchParams.get("after") || "0");
-  const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 100);
+  try {
+    const after = Number(req.nextUrl.searchParams.get("after") || "0");
+    const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 100);
 
-  const messages = await kv.lrange<ChatMsg>(KEYS.chatMessages, 0, MAX_MESSAGES - 1);
+    const messages = await kv.lrange<ChatMsg>(KEYS.chatMessages, 0, MAX_MESSAGES - 1);
 
-  // Filter messages after timestamp if provided
-  const filtered = after > 0
-    ? messages.filter((m) => m.timestamp > after)
-    : messages;
+    // Filter messages after timestamp if provided
+    const filtered = after > 0
+      ? messages.filter((m) => m.timestamp > after)
+      : messages;
 
-  // Messages are stored newest-first, reverse for chronological order
-  return NextResponse.json({ messages: filtered.slice(0, limit).reverse() });
+    // Messages are stored newest-first, reverse for chronological order
+    return NextResponse.json({ messages: filtered.slice(0, limit).reverse() });
+  } catch (error) {
+    console.error("GET /api/chat/messages error:", error);
+    return NextResponse.json({ messages: [] });
+  }
 }
 
 // POST /api/chat/messages
