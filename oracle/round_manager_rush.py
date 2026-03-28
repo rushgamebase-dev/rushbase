@@ -38,6 +38,8 @@ import os
 import signal
 import sys
 import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Optional
 
@@ -152,6 +154,10 @@ class Config:
         self.round_duration: int = int(os.environ.get("ROUND_DURATION", "300"))
         self.betting_window: int = int(os.environ.get("BETTING_WINDOW", "150"))
         self.ws_port: int = int(os.environ.get("WS_PORT", "8765"))
+        self.ledger_url: str = os.environ.get(
+            "LEDGER_URL", "https://www.rushgame.vip/api/ledger"
+        )
+        self.ledger_api_key: str = os.environ.get("LEDGER_API_KEY", "")
 
     @staticmethod
     def _require(name: str) -> str:
@@ -532,6 +538,27 @@ class RushRoundManager:
         self.round_number = 0
         self._shutdown = False
 
+    # ── Ledger POST ────────────────────────────────────────────────────────────
+
+    def _post_ledger(self, record: dict) -> None:
+        """POST market record to the ledger API (best-effort, never blocks the loop)."""
+        try:
+            data = json.dumps(record).encode("utf-8")
+            req = urllib.request.Request(
+                self.cfg.ledger_url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Api-Key": self.cfg.ledger_api_key,
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                body = resp.read().decode()
+                log.info("Ledger POST OK: %s", body)
+        except Exception as exc:
+            log.warning("Ledger POST failed (non-fatal): %s", exc)
+
     # ── Graceful shutdown ─────────────────────────────────────────────────────
 
     def request_shutdown(self) -> None:
@@ -632,6 +659,7 @@ class RushRoundManager:
             winning_label,
         )
 
+        resolve_tx: Optional[str] = None
         for attempt in range(1, MAX_TX_RETRIES + 1):
             try:
                 resolve_tx = self.chain.resolve_market(market_address, count)
@@ -652,7 +680,31 @@ class RushRoundManager:
                 else:
                     log.error("All resolveMarket attempts exhausted — market left unresolved")
 
-        # ── Step 4: Update adaptive threshold ─────────────────────────────────
+        # ── Step 4: Post to ledger API ────────────────────────────────────────
+        self._post_ledger({
+            "address": market_address,
+            "createdAt": int(time.time()) - self.cfg.round_duration,
+            "resolvedAt": int(time.time()),
+            "state": "resolved",
+            "streamUrl": stream_url,
+            "description": description,
+            "cameraName": cam_name,
+            "threshold": threshold,
+            "actualCount": count,
+            "winningRange": winning_label,
+            "winningRangeIndex": 0 if count <= threshold else 1,
+            "totalPool": "0",       # read from chain if needed
+            "overPool": "0",
+            "underPool": "0",
+            "totalBettors": 0,
+            "feeCollected": "0",
+            "txHashCreate": create_tx,
+            "txHashResolve": resolve_tx,
+            "roundNumber": self.round_number,
+            "bets": [],
+        })
+
+        # ── Step 5: Update adaptive threshold ─────────────────────────────────
         self.threshold.update(count)
 
     # ── Main loop ─────────────────────────────────────────────────────────────
