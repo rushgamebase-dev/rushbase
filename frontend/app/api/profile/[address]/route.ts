@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { validateAddress } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
+
+const limiter = createRateLimiter({ max: 10, windowMs: 60_000, route: "profile:get" });
 
 interface ProfileBet {
   user: string;
@@ -25,10 +29,21 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ address: string }> },
 ) {
+  const rl = await limiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
     const { address } = await params;
 
-    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    if (!address || !validateAddress(address)) {
       return NextResponse.json({ error: "invalid address" }, { status: 400 });
     }
 
@@ -74,6 +89,11 @@ export async function GET(
       totalPnl: Math.round(totalPnl * 10000) / 10000,
       tilesOwned: 0, // Read from contract on frontend
       bets,
+    }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
     });
   } catch (error) {
     console.error("GET /api/profile/[address] error:", error);

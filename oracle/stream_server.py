@@ -17,6 +17,7 @@ Frontend connects to ws://localhost:8765
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import sys
@@ -459,6 +460,13 @@ def get_stream_url(youtube_url):
 class StreamServer:
     """WebSocket server that streams processed video frames."""
 
+    # Maximum number of evidence frame sets to keep on disk
+    MAX_EVIDENCE_DIRS = 100
+    # Interval (seconds) between evidence frame captures
+    EVIDENCE_INTERVAL = 30
+    # JPEG quality for evidence frames
+    EVIDENCE_JPEG_QUALITY = 80
+
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.15, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
@@ -478,6 +486,13 @@ class StreamServer:
         self.clients = set()
         self.running = False
         self.start_time = None
+
+        # Evidence frame tracking
+        self._evidence_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "evidence")
+        self._evidence_frames: list[str] = []
+        self._evidence_hashes: list[str] = []
+        self._evidence_final: str | None = None
+        self._last_evidence_time: float = 0.0
 
     async def register(self, ws):
         self.clients.add(ws)
@@ -519,6 +534,72 @@ class StreamServer:
         await asyncio.gather(*(send_to(ws) for ws in self.clients))
         self.clients -= dead
 
+    def _ensure_evidence_dir(self) -> None:
+        """Create evidence/ directory and clean up old evidence if needed."""
+        os.makedirs(self._evidence_dir, exist_ok=True)
+        # Clean up oldest evidence files if we exceed MAX_EVIDENCE_DIRS sets.
+        # Evidence files are named {timestamp}_{elapsed}s.jpg or {timestamp}_final.jpg
+        # Group by timestamp prefix and remove oldest groups.
+        try:
+            files = sorted(os.listdir(self._evidence_dir))
+            if not files:
+                return
+            # Extract unique timestamp prefixes
+            prefixes: list[str] = []
+            seen: set[str] = set()
+            for f in files:
+                prefix = f.split("_")[0]
+                if prefix not in seen:
+                    seen.add(prefix)
+                    prefixes.append(prefix)
+            # Remove oldest groups if over limit
+            while len(prefixes) > self.MAX_EVIDENCE_DIRS:
+                old_prefix = prefixes.pop(0)
+                for f in files:
+                    if f.startswith(old_prefix):
+                        try:
+                            os.remove(os.path.join(self._evidence_dir, f))
+                        except OSError:
+                            pass
+        except OSError:
+            pass
+
+    def _save_evidence_frame(self, annotated_frame, timestamp: int, elapsed: float, is_final: bool = False) -> None:
+        """Save an annotated frame as JPEG evidence and record its SHA-256 hash."""
+        if is_final:
+            filename = f"{timestamp}_final.jpg"
+        else:
+            filename = f"{timestamp}_{int(elapsed)}s.jpg"
+
+        filepath = os.path.join(self._evidence_dir, filename)
+        rel_path = f"evidence/{filename}"
+
+        success, jpeg_buf = cv2.imencode(
+            '.jpg', annotated_frame,
+            [cv2.IMWRITE_JPEG_QUALITY, self.EVIDENCE_JPEG_QUALITY]
+        )
+        if not success:
+            print(f"[Evidence] Failed to encode frame: {rel_path}")
+            return
+
+        jpeg_bytes = jpeg_buf.tobytes()
+
+        # Write file
+        with open(filepath, 'wb') as f:
+            f.write(jpeg_bytes)
+
+        # Compute SHA-256
+        sha = hashlib.sha256(jpeg_bytes).hexdigest()
+        frame_hash = f"sha256:{sha}"
+
+        if is_final:
+            self._evidence_final = rel_path
+        else:
+            self._evidence_frames.append(rel_path)
+
+        self._evidence_hashes.append(frame_hash)
+        print(f"[Evidence] Saved {rel_path} ({len(jpeg_bytes)} bytes, {frame_hash[:20]}...)")
+
     async def process_video(self):
         """Main video processing loop."""
         direct_url = get_stream_url(self.stream_url)
@@ -542,6 +623,14 @@ class StreamServer:
         self.start_time = time.time()
         frame_idx = 0
         frame_interval = 1.0 / self.target_fps
+        round_timestamp = int(self.start_time)
+
+        # Prepare evidence directory
+        self._evidence_frames = []
+        self._evidence_hashes = []
+        self._evidence_final = None
+        self._last_evidence_time = 0.0
+        self._ensure_evidence_dir()
 
         try:
             while self.running:
@@ -564,13 +653,25 @@ class StreamServer:
                         except Exception:
                             pass
 
+                    # Save final evidence frame (the last annotated frame
+                    # is from the previous iteration; we'll capture it below
+                    # after the break — but since we break here, capture now
+                    # using the last read frame if available)
+                    # Note: we haven't read a new frame yet in this iteration,
+                    # but _last_annotated is set from the previous loop pass.
+
                     result = {
                         "count": self.counter.total_count,
                         "in_count": self.counter.class_counts.get(2, 0),
                         "out_count": self.counter.class_counts.get(7, 0),
                         "duration": self.duration,
                         "stream": self.stream_url,
-                        "timestamp": int(time.time())
+                        "timestamp": int(time.time()),
+                        "evidence": {
+                            "frames": list(self._evidence_frames),
+                            "final_frame": self._evidence_final,
+                            "frame_hashes": list(self._evidence_hashes),
+                        },
                     }
                     with open("result.json", "w") as f:
                         json.dump(result, f, indent=2)
@@ -608,6 +709,17 @@ class StreamServer:
 
                 # Broadcast binary frame
                 await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
+
+                # ── Evidence frame capture ───────────────────────────
+                # Save a frame every EVIDENCE_INTERVAL seconds
+                if elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
+                    self._save_evidence_frame(annotated, round_timestamp, elapsed)
+                    self._last_evidence_time = elapsed
+
+                # If this is the last frame before duration expires,
+                # save it as the final proof frame
+                if self.duration - elapsed < frame_interval * 2:
+                    self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
                 # Yield to event loop (send frames to clients)
                 await asyncio.sleep(0)

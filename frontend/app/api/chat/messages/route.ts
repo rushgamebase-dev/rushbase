@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { validateAddress, sanitizeText } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 const MAX_MESSAGES = 200;
 const MAX_TEXT_LENGTH = 200;
+
+const getLimiter = createRateLimiter({ max: 30, windowMs: 60_000, route: "chat:messages:get" });
+const postLimiter = createRateLimiter({ max: 5, windowMs: 60_000, route: "chat:messages:post" });
 
 interface ChatMsg {
   id: string;
@@ -17,6 +22,17 @@ interface ChatMsg {
 
 // GET /api/chat/messages?after=<timestamp>&limit=<n>
 export async function GET(req: NextRequest) {
+  const rl = await getLimiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
     const after = Number(req.nextUrl.searchParams.get("after") || "0");
     const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 100);
@@ -29,7 +45,12 @@ export async function GET(req: NextRequest) {
       : messages;
 
     // Messages are stored newest-first, reverse for chronological order
-    return NextResponse.json({ messages: filtered.slice(0, limit).reverse() });
+    return NextResponse.json({ messages: filtered.slice(0, limit).reverse() }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
   } catch (error) {
     console.error("GET /api/chat/messages error:", error);
     return NextResponse.json({ messages: [] });
@@ -38,6 +59,17 @@ export async function GET(req: NextRequest) {
 
 // POST /api/chat/messages
 export async function POST(req: NextRequest) {
+  const rl = await postLimiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
     const body = await req.json();
     const { text, address } = body as { text?: string; address?: string };
@@ -46,7 +78,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "text required" }, { status: 400 });
     }
 
-    const cleanText = text.trim().slice(0, MAX_TEXT_LENGTH);
+    // Validate address format if provided
+    if (address && !validateAddress(address)) {
+      return NextResponse.json({ error: "invalid address format" }, { status: 400 });
+    }
+
+    // Sanitize text input
+    const cleanText = sanitizeText(text, MAX_TEXT_LENGTH);
+    if (cleanText.length === 0) {
+      return NextResponse.json({ error: "text required" }, { status: 400 });
+    }
+
     const username = address
       ? `${address.slice(0, 6)}...${address.slice(-4)}`
       : "anon";
@@ -79,7 +121,12 @@ export async function POST(req: NextRequest) {
       await kv.zadd(KEYS.chatOnline, Date.now(), address.toLowerCase());
     }
 
-    return NextResponse.json({ ok: true, message: msg });
+    return NextResponse.json({ ok: true, message: msg }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
   } catch (err) {
     console.error("POST /api/chat/messages error:", err);
     return NextResponse.json({ error: "invalid request" }, { status: 400 });

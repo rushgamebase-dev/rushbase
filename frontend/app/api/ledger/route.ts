@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { requireApiKey } from "@/lib/api-auth";
+import { logAudit } from "@/lib/audit";
 import type { MarketRecord } from "@/lib/ledger";
 
 export const dynamic = "force-dynamic";
 
+const getLimiter = createRateLimiter({ max: 10, windowMs: 60_000, route: "ledger:get" });
+const postLimiter = createRateLimiter({ max: 5, windowMs: 60_000, route: "ledger:post" });
+
 // GET /api/ledger?limit=<n>&offset=<n>
 // Returns all market records (most recent first).
 export async function GET(req: NextRequest) {
+  const rl = await getLimiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
     const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || "50"), 200);
     const offset = Number(req.nextUrl.searchParams.get("offset") || "0");
@@ -27,7 +44,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ markets, total: await kv.zcard(KEYS.ledgerMarkets) });
+    return NextResponse.json({ markets, total: await kv.zcard(KEYS.ledgerMarkets) }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
   } catch (error) {
     console.error("GET /api/ledger error:", error);
     return NextResponse.json({ markets: [], total: 0 });
@@ -37,15 +59,23 @@ export async function GET(req: NextRequest) {
 // POST /api/ledger — Called by oracle round_manager after resolving a market.
 // Body: MarketRecord JSON
 export async function POST(req: NextRequest) {
+  // API key required
+  if (!requireApiKey(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const rl = await postLimiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
-    const apiKey = req.headers.get("x-api-key");
-    const expectedKey = process.env.LEDGER_API_KEY;
-
-    // Simple API key auth (optional — if no key set, allow all writes for dev)
-    if (expectedKey && apiKey !== expectedKey) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
     const record = (await req.json()) as MarketRecord;
 
     if (!record.address || !record.createdAt) {
@@ -59,6 +89,7 @@ export async function POST(req: NextRequest) {
       ...record,
       address: addr,
       bets: JSON.stringify(record.bets || []),
+      evidence: record.evidence ? JSON.stringify(record.evidence) : "",
     });
 
     // Add to sorted set (score = createdAt for ordering)
@@ -114,7 +145,54 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    // ── Audit logging (best-effort, never blocks the response) ──────────
+    try {
+      const auditEvent = record.state === "resolved" ? "market_resolved" as const
+        : record.state === "cancelled" ? "market_cancelled" as const
+        : "market_created" as const;
+
+      await logAudit({
+        timestamp: Date.now(),
+        event: auditEvent,
+        marketAddress: addr,
+        data: {
+          roundNumber: record.roundNumber,
+          threshold: record.threshold,
+          actualCount: record.actualCount,
+          winningRange: record.winningRange,
+          totalPool: record.totalPool,
+          totalBettors: record.totalBettors,
+          txHashCreate: record.txHashCreate,
+          txHashResolve: record.txHashResolve,
+        },
+        source: "oracle",
+      });
+
+      // If evidence was included, log a separate evidence_stored event
+      if (record.evidence) {
+        const ev = record.evidence;
+        await logAudit({
+          timestamp: Date.now(),
+          event: "evidence_stored",
+          marketAddress: addr,
+          data: {
+            frameCount: ev.frames?.length ?? 0,
+            finalFrame: ev.finalFrame ?? null,
+            hashCount: ev.frameHashes?.length ?? 0,
+          },
+          source: "oracle",
+        });
+      }
+    } catch (auditErr) {
+      console.error("Audit logging failed (non-fatal):", auditErr);
+    }
+
+    return NextResponse.json({ ok: true }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
   } catch {
     return NextResponse.json({ error: "invalid request" }, { status: 400 });
   }

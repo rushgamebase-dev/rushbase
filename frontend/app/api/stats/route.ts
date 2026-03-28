@@ -1,10 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
+const limiter = createRateLimiter({ max: 20, windowMs: 60_000, route: "stats:get" });
+
 // GET /api/stats — Aggregated platform statistics.
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const rl = await limiter.check(req);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate limited" }, {
+      status: 429,
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
+    });
+  }
+
   try {
     const raw = await kv.hgetall<Record<string, string>>(KEYS.stats);
 
@@ -26,6 +40,11 @@ export async function GET() {
       biggestRound: Math.round(biggestRound * 1000) / 1000,
       avgBettorsPerRound,
       volume24h: 0,
+    }, {
+      headers: {
+        "X-RateLimit-Remaining": String(rl.remaining),
+        "X-RateLimit-Reset": String(rl.reset),
+      },
     });
   } catch (err) {
     console.error("stats error:", err);

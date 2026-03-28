@@ -1,3 +1,11 @@
+// ─── Evidence Types ──────────────────────────────────────────────────────────
+
+export interface EvidenceData {
+  frames: string[];
+  finalFrame: string | null;
+  frameHashes: string[];
+}
+
 // ─── Ledger Types ────────────────────────────────────────────────────────────
 
 export interface BetRecord {
@@ -32,6 +40,7 @@ export interface MarketRecord {
   txHashResolve: string | null;
   roundNumber: number;
   bets: BetRecord[];
+  evidence: EvidenceData | null;
 }
 
 export interface RoundHistoryEntry {

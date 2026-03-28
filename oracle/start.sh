@@ -1,12 +1,22 @@
 #!/bin/bash
 # ─── Rush Oracle Launcher ────────────────────────────────────────────────────
-# Starts: cloudflared tunnel + stream_server/round_manager
-# Auto-registers the tunnel URL with the frontend API so no redeploy needed.
+# Starts: cloudflared tunnel + watchdog.py (which supervises round_manager_rush.py)
 #
 # Usage:
-#   ./start.sh                    # stream only (5 min test)
-#   ./start.sh --rounds 0         # full round manager (infinite)
-#   ./start.sh --duration 120     # stream only, 2 min
+#   ./start.sh                          # infinite rounds (supervised)
+#   ./start.sh --stream-only            # stream server only
+#   ./start.sh --stream-only --duration 300
+#   ./start.sh --rounds 3               # finite run (supervised, 3 rounds)
+#
+# Environment variables:
+#   WS_PORT           WebSocket port (default: 8765)
+#   API_URL           Oracle URL registration endpoint
+#   LEDGER_API_KEY    API key for the registration call
+#   ALERT_WEBHOOK_URL Discord/Telegram webhook for crash alerts (optional)
+#   ORACLE_MODE       "rounds" (default) | "stream-only"
+#   PRIVATE_KEY       Oracle wallet key (required)
+#   RPC_URL           Base RPC endpoint
+#   FACTORY_ADDRESS   MarketFactory contract address
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -e
@@ -16,7 +26,7 @@ WS_PORT="${WS_PORT:-8765}"
 API_URL="${API_URL:-https://www.rushgame.vip/api/oracle-url}"
 LEDGER_API_KEY="${LEDGER_API_KEY:-}"
 
-# Kill anything on the port
+# ── Clean slate ──────────────────────────────────────────────────────────────
 kill $(lsof -ti :"$WS_PORT") 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 sleep 1
@@ -32,7 +42,7 @@ cloudflared tunnel --url "http://localhost:$WS_PORT" > "$TUNNEL_LOG" 2>&1 &
 TUNNEL_PID=$!
 echo "[Launcher] Cloudflared PID: $TUNNEL_PID"
 
-# Wait for tunnel URL
+# ── Wait for tunnel URL (up to 30s) ─────────────────────────────────────────
 echo "[Launcher] Waiting for tunnel URL..."
 TUNNEL_URL=""
 for i in $(seq 1 30); do
@@ -45,7 +55,7 @@ done
 
 if [ -z "$TUNNEL_URL" ]; then
     echo "[ERROR] Failed to get tunnel URL after 30s"
-    kill $TUNNEL_PID 2>/dev/null
+    kill "$TUNNEL_PID" 2>/dev/null || true
     exit 1
 fi
 
@@ -53,7 +63,7 @@ fi
 WSS_URL="wss://$(echo "$TUNNEL_URL" | sed 's|https://||')"
 echo "[Launcher] Tunnel URL: $WSS_URL"
 
-# ── Register URL with frontend API ─────────────────────────────────────────
+# ── Register URL with frontend API ──────────────────────────────────────────
 echo "[Launcher] Registering URL with frontend..."
 curl -s -X POST \
     -H "Content-Type: application/json" \
@@ -62,30 +72,76 @@ curl -s -X POST \
     "$API_URL" || echo "[WARN] Could not register URL (API may be down)"
 echo ""
 
-# ── Start oracle ────────────────────────────────────────────────────────────
-echo "[Launcher] Starting oracle..."
+# ── Graceful shutdown handler ────────────────────────────────────────────────
+# Catches SIGTERM and SIGINT, kills both the tunnel and the watchdog cleanly.
+WATCHDOG_PID=""
 
-if [[ "$*" == *"--rounds"* ]]; then
-    # Full round manager mode
-    echo "[Launcher] Mode: Round Manager"
-    cd "$SCRIPT_DIR"
-    python3 -u round_manager_rush.py "$@"
-else
-    # Stream server only
+_cleanup() {
+    echo ""
+    echo "[Launcher] Shutdown signal received — stopping watchdog and tunnel..."
+
+    if [ -n "$WATCHDOG_PID" ] && kill -0 "$WATCHDOG_PID" 2>/dev/null; then
+        echo "[Launcher] Sending SIGTERM to watchdog (PID $WATCHDOG_PID)..."
+        kill -TERM "$WATCHDOG_PID" 2>/dev/null || true
+        # Wait up to 20s for watchdog to finish its graceful shutdown
+        for i in $(seq 1 20); do
+            kill -0 "$WATCHDOG_PID" 2>/dev/null || break
+            sleep 1
+        done
+        # Force-kill if still alive
+        kill -0 "$WATCHDOG_PID" 2>/dev/null && kill -KILL "$WATCHDOG_PID" 2>/dev/null || true
+    fi
+
+    echo "[Launcher] Stopping cloudflared tunnel (PID $TUNNEL_PID)..."
+    kill "$TUNNEL_PID" 2>/dev/null || true
+
+    echo "[Launcher] Done."
+    exit 0
+}
+
+trap '_cleanup' TERM INT
+
+# ── Start watchdog (which supervises round_manager_rush.py) ──────────────────
+echo "[Launcher] Starting watchdog..."
+
+# Detect stream-only mode: if --stream-only is in args, we run stream_server
+# directly (watchdog does not supervise it, since it is intentionally finite).
+STREAM_ONLY=false
+for arg in "$@"; do
+    if [ "$arg" = "--stream-only" ]; then
+        STREAM_ONLY=true
+        break
+    fi
+done
+
+cd "$SCRIPT_DIR"
+
+if $STREAM_ONLY; then
+    # Parse --duration from args (default 300)
     DURATION="${DURATION:-300}"
-    # Parse --duration from args
+    prev=""
     for arg in "$@"; do
-        if [[ "$prev" == "--duration" ]]; then
+        if [ "$prev" = "--duration" ]; then
             DURATION="$arg"
         fi
         prev="$arg"
     done
 
-    echo "[Launcher] Mode: Stream Server (${DURATION}s)"
-    cd "$SCRIPT_DIR"
-    python3 -u stream_server.py --camera peace-bridge --duration "$DURATION" --port "$WS_PORT" "$@"
+    echo "[Launcher] Mode: Stream Server only (${DURATION}s) — watchdog not used"
+    python3 -u stream_server.py --camera peace-bridge --duration "$DURATION" --port "$WS_PORT" &
+    WATCHDOG_PID=$!
+else
+    echo "[Launcher] Mode: Supervised Round Manager (watchdog.py)"
+    python3 -u watchdog.py "$@" &
+    WATCHDOG_PID=$!
 fi
 
-# ── Cleanup ─────────────────────────────────────────────────────────────────
-echo "[Launcher] Oracle stopped. Cleaning up..."
-kill $TUNNEL_PID 2>/dev/null || true
+echo "[Launcher] Watchdog/server PID: $WATCHDOG_PID"
+
+# ── Wait for the supervised process to finish (or for a signal) ──────────────
+wait "$WATCHDOG_PID"
+EXIT_CODE=$?
+
+echo "[Launcher] Process exited with code $EXIT_CODE. Cleaning up..."
+kill "$TUNNEL_PID" 2>/dev/null || true
+exit "$EXIT_CODE"

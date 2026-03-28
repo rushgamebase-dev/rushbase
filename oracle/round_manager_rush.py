@@ -681,7 +681,12 @@ class RushRoundManager:
                     log.error("All resolveMarket attempts exhausted — market left unresolved")
 
         # ── Step 4: Post to ledger API ────────────────────────────────────────
-        self._post_ledger({
+        # Extract evidence data from result.json if available
+        evidence_data = None
+        if result and "evidence" in result:
+            evidence_data = result["evidence"]
+
+        ledger_record = {
             "address": market_address,
             "createdAt": int(time.time()) - self.cfg.round_duration,
             "resolvedAt": int(time.time()),
@@ -702,7 +707,11 @@ class RushRoundManager:
             "txHashResolve": resolve_tx,
             "roundNumber": self.round_number,
             "bets": [],
-        })
+        }
+        if evidence_data is not None:
+            ledger_record["evidence"] = evidence_data
+
+        self._post_ledger(ledger_record)
 
         # ── Step 5: Update adaptive threshold ─────────────────────────────────
         self.threshold.update(count)
