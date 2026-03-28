@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/stats — Aggregated platform statistics.
 export async function GET() {
   const raw = await kv.hgetall<Record<string, string>>(KEYS.stats);

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 const MAX_MESSAGES = 200;
 const MAX_TEXT_LENGTH = 200;
 

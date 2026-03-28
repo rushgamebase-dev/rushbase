@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 import type { MarketRecord } from "@/lib/ledger";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/ledger?limit=<n>&offset=<n>
 // Returns all market records (most recent first).
 export async function GET(req: NextRequest) {

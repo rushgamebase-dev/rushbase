@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 const ONLINE_WINDOW_MS = 30_000; // 30 seconds
 
 // GET /api/chat/online

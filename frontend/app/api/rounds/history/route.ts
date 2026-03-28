@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 import type { RoundHistoryEntry } from "@/lib/ledger";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/rounds/history?limit=<n>
 // Returns last N round results (most recent first).
 export async function GET(req: NextRequest) {

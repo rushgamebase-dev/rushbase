@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 import type { MarketRecord } from "@/lib/ledger";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/ledger/[market]
 export async function GET(
   req: NextRequest,

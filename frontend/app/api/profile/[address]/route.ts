@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv, KEYS } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 interface ProfileBet {
   user: string;
   rangeIndex: number;
