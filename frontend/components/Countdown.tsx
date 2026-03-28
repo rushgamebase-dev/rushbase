@@ -8,6 +8,10 @@ interface CountdownProps {
   totalDuration?: number;
   status: "open" | "locked" | "resolving" | "resolved";
   roundNumber?: number;
+  /** Final vehicle count — shown in the resolved reveal */
+  finalCount?: number;
+  /** Index of winning range: 1 = OVER, 0 = UNDER. -1 = unknown */
+  winningRangeIndex?: number;
 }
 
 export default function Countdown({
@@ -16,6 +20,8 @@ export default function Countdown({
   totalDuration = 300,
   status,
   roundNumber,
+  finalCount,
+  winningRangeIndex = -1,
 }: CountdownProps) {
   const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
     if (lockTime && lockTime > 0) {
@@ -70,15 +76,58 @@ export default function Countdown({
 
   // ── RESOLVED ──
   if (effectiveStatus === "resolved") {
+    const winningSide = winningRangeIndex === 1 ? "over" : winningRangeIndex === 0 ? "under" : null;
+    const winColor = winningSide === "over" ? "#00ff88" : winningSide === "under" ? "#ff4444" : "#00aaff";
+    const winLabel = winningSide === "over" ? "OVER WINS" : winningSide === "under" ? "UNDER WINS" : "ROUND COMPLETE";
+
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(0,170,255,0.08)", border: "1px solid rgba(0,170,255,0.3)", borderRadius: 12 }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-lg">✅</span>
-          <span className="text-lg font-black tracking-widest" style={{ color: "#00aaff", fontFamily: "monospace" }}>
-            ROUND COMPLETE
-          </span>
+      <div
+        className="result-reveal-flash w-full py-4 text-center"
+        style={{
+          border: `1px solid ${winColor}55`,
+          borderRadius: 12,
+        }}
+      >
+        {/* Final count — large pop-in */}
+        {finalCount !== undefined && finalCount > 0 && (
+          <div className="result-count-pop mb-1">
+            <div
+              className="text-xs font-bold tracking-widest mb-1"
+              style={{ color: "#555", fontFamily: "monospace" }}
+            >
+              FINAL COUNT
+            </div>
+            <div
+              className="font-black tabular-nums"
+              style={{
+                fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                fontSize: 40,
+                color: winColor,
+                textShadow: `0 0 24px ${winColor}99, 0 0 48px ${winColor}44`,
+                lineHeight: 1,
+              }}
+            >
+              {String(finalCount).padStart(3, "0")}
+            </div>
+          </div>
+        )}
+
+        {/* Winning side label */}
+        <div
+          className="font-black tracking-widest"
+          style={{
+            fontFamily: "monospace",
+            fontSize: 18,
+            color: winColor,
+            textShadow: `0 0 16px ${winColor}88`,
+            letterSpacing: "0.14em",
+          }}
+        >
+          {winLabel}
         </div>
-        <span className="text-xs" style={{ color: "#888" }}>Next round starting soon...</span>
+        <div className="text-xs mt-1.5" style={{ color: "#555", fontFamily: "monospace" }}>
+          Next round starting soon...
+        </div>
       </div>
     );
   }
@@ -88,9 +137,8 @@ export default function Countdown({
     return (
       <div className="w-full py-4 text-center" style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 12 }}>
         <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-lg">🔒</span>
           <span className="text-lg font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>
-            BETS ARE CLOSED
+            BETS CLOSED
           </span>
         </div>
         <span className="text-xs" style={{ color: "#888" }}>Watching the count...</span>

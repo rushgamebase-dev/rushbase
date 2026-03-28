@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useAccount } from "wagmi";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useStats } from "@/hooks/useStats";
@@ -13,6 +14,7 @@ import Countdown from "@/components/Countdown";
 import RoundHistory from "@/components/RoundHistory";
 import StatsBar from "@/components/StatsBar";
 import ClaimBanner from "@/components/ClaimBanner";
+import WelcomeOverlay from "@/components/WelcomeOverlay";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Shield, Zap, Brain, Coins } from "lucide-react";
@@ -127,6 +129,7 @@ export default function Home() {
   const [liveCount, setLiveCount] = useState(0);
   const { stats } = useStats();
   const { history: roundHistory } = useRoundHistory();
+  const { isConnected } = useAccount();
 
   const market = buildMarketFromContract(contractData, isWaiting);
 
@@ -135,11 +138,16 @@ export default function Home() {
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
   const contractState = contractData.state;
+  const winningRangeIndex = contractData.winningRangeIndex;
 
   const hasActiveMarket = !!marketAddress && !isWaiting;
 
+  // Ref to scroll to BettingPanel from mobile sticky bar
+  const bettingPanelRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
+      <WelcomeOverlay />
       <Header />
       <StatsBar
         volume24h={stats.volume24h}
@@ -244,22 +252,26 @@ export default function Home() {
               <Countdown
                 lockTime={lockTime > 0 ? lockTime : undefined}
                 status={market.status}
+                finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
+                winningRangeIndex={winningRangeIndex}
               />
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col justify-center gap-1">
                 <div
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    background: "#555",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <span
-                  className="text-sm font-bold"
+                  className="text-xs font-bold tracking-widest"
                   style={{ color: "#555", fontFamily: "monospace" }}
                 >
-                  Waiting for next round...
-                </span>
+                  NEXT ROUND
+                </div>
+                <div
+                  className="text-sm font-black tracking-widest starting-soon-pulse"
+                  style={{ color: "#00ff88", fontFamily: "monospace" }}
+                >
+                  STARTING SOON
+                </div>
+                <div className="text-xs" style={{ color: "#333", fontFamily: "monospace" }}>
+                  Stand by...
+                </div>
               </div>
             )}
             <div className="flex flex-col justify-center gap-1">
@@ -390,11 +402,12 @@ export default function Home() {
 
         {/* Center: Betting panel (25%) */}
         <div
+          ref={bettingPanelRef}
           className="flex flex-col lg:sticky lg:top-0 lg:self-start"
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
-            <BettingPanel market={market} marketAddress={marketAddress} />
+            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} />
           </div>
         </div>
 
@@ -413,6 +426,17 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Mobile sticky betting bar — only on small screens, only when market is OPEN and wallet is connected */}
+      {hasActiveMarket && market.status === "open" && isConnected && (
+        <MobileStickyBar
+          status={market.status}
+          threshold={market.threshold}
+          onTap={() => {
+            bettingPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -657,5 +681,86 @@ function BuiltWith() {
         </span>
       ))}
     </section>
+  );
+}
+
+// ─── Mobile sticky betting bar ────────────────────────────────────────────────
+
+interface MobileStickyBarProps {
+  status: "open" | "locked" | "resolving" | "resolved";
+  threshold: number;
+  onTap: () => void;
+}
+
+function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
+  const statusLabel =
+    status === "open"
+      ? "OPEN"
+      : status === "locked"
+      ? "LOCKED"
+      : status === "resolving"
+      ? "RESOLVING"
+      : "RESOLVED";
+
+  const statusColor =
+    status === "open" ? "#00ff88" : status === "locked" ? "#ffaa00" : "#888";
+
+  return (
+    <div
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3"
+      style={{
+        height: 56,
+        background: "#0d0d0d",
+        borderTop: "2px solid rgba(0,255,136,0.3)",
+        boxShadow: "0 -4px 24px rgba(0,255,136,0.08)",
+      }}
+      role="navigation"
+      aria-label="Quick betting bar"
+    >
+      {/* Status badge */}
+      <div
+        className="shrink-0 px-2 py-1 rounded text-xs font-black tracking-widest"
+        style={{
+          background: `rgba(${status === "open" ? "0,255,136" : "255,170,0"},0.1)`,
+          border: `1px solid ${statusColor}44`,
+          color: statusColor,
+          fontFamily: "monospace",
+        }}
+      >
+        {statusLabel}
+      </div>
+
+      {/* OVER button */}
+      <button
+        onClick={onTap}
+        className="flex-1 rounded font-black text-xs tracking-widest transition-all"
+        style={{
+          height: 36,
+          background: "rgba(0,255,136,0.1)",
+          border: "1px solid rgba(0,255,136,0.3)",
+          color: "#00ff88",
+          fontFamily: "monospace",
+        }}
+        aria-label={`Bet OVER ${threshold} — tap to open betting panel`}
+      >
+        OVER {threshold}
+      </button>
+
+      {/* UNDER button */}
+      <button
+        onClick={onTap}
+        className="flex-1 rounded font-black text-xs tracking-widest transition-all"
+        style={{
+          height: 36,
+          background: "rgba(255,68,68,0.1)",
+          border: "1px solid rgba(255,68,68,0.3)",
+          color: "#ff4444",
+          fontFamily: "monospace",
+        }}
+        aria-label={`Bet UNDER ${threshold} — tap to open betting panel`}
+      >
+        UNDER {threshold}
+      </button>
+    </div>
   );
 }

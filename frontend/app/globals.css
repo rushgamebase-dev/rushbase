@@ -256,3 +256,45 @@ body {
     text-wrap: balance;
   }
 }
+
+/* Welcome overlay fade-in */
+@keyframes rushOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Result reveal — background flash */
+@keyframes resultRevealFlash {
+  0%   { background: rgba(0, 170, 255, 0.22); }
+  60%  { background: rgba(0, 170, 255, 0.10); }
+  100% { background: rgba(0, 170, 255, 0.06); }
+}
+
+.result-reveal-flash {
+  animation: resultRevealFlash 1.2s ease-out forwards;
+}
+
+/* Result glow text pop-in */
+@keyframes resultCountPop {
+  0%   { opacity: 0; transform: scale(0.82); }
+  55%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.result-count-pop {
+  animation: resultCountPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Pulsing "STARTING SOON" for between-round waiting state */
+@keyframes startingSoonPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.starting-soon-pulse {
+  animation: startingSoonPulse 1.6s ease-in-out infinite;
+}
