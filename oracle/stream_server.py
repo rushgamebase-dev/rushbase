@@ -659,6 +659,24 @@ def load_camera(camera_id):
     sys.exit(1)
 
 
+def _kill_port(port: int):
+    """Kill any process holding the port so we never get 'address already in use'."""
+    import signal as _sig
+    try:
+        result = subprocess.run(['lsof', '-ti', f':{port}'], capture_output=True, text=True)
+        for pid in result.stdout.strip().split('\n'):
+            if pid.strip():
+                try:
+                    os.kill(int(pid.strip()), _sig.SIGKILL)
+                    print(f"[Startup] Killed stale process {pid.strip()} on port {port}")
+                except (ProcessLookupError, ValueError):
+                    pass
+        if result.stdout.strip():
+            time.sleep(1)
+    except FileNotFoundError:
+        pass  # lsof not available
+
+
 def main():
     parser = argparse.ArgumentParser(description='SinalBet Live Oracle Server (v3)')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -695,6 +713,9 @@ def main():
         print(f"[Camera] {cam['name']} ({cam.get('source','')}) — {cam['type'].upper()}")
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")
+
+    # Kill any stale process on the port before starting
+    _kill_port(args.port)
 
     server = StreamServer(
         stream_url=stream_url,
