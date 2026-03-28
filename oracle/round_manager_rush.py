@@ -113,6 +113,20 @@ MARKET_ABI = [
         "inputs": [],
         "outputs": [],
     },
+    {
+        "name": "totalPool",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [{"name": "", "type": "uint256"}],
+    },
+    {
+        "name": "poolByRange",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [{"name": "", "type": "uint256"}],
+        "outputs": [{"name": "", "type": "uint256"}],
+    },
 ]
 
 FACTORY_READ_ABI = [
@@ -680,6 +694,87 @@ class RushRoundManager:
             await stream.terminate()
             self.chain.cancel_market(market_address)
             return
+
+        # ── Step 2.5: Check pool before resolving ─────────────────────────────
+        # If no bets or only one side has bets, cancel instead of resolving
+        # to avoid wasting gas or penalizing one-sided bettors with a 5% fee.
+        try:
+            market_contract = self.chain.w3.eth.contract(
+                address=Web3.to_checksum_address(market_address),
+                abi=MARKET_ABI,
+            )
+            total_pool = market_contract.functions.totalPool().call()
+            pool_under = market_contract.functions.poolByRange(0).call()
+            pool_over = market_contract.functions.poolByRange(1).call()
+
+            if total_pool == 0:
+                log.info("No bets placed — cancelling market (no gas wasted on resolve)")
+                self.chain.cancel_market(market_address)
+                self._post_ledger({
+                    "address": market_address,
+                    "createdAt": int(time.time()) - self.cfg.round_duration,
+                    "resolvedAt": int(time.time()),
+                    "state": "cancelled",
+                    "streamUrl": stream_url,
+                    "description": description,
+                    "cameraName": cam_name,
+                    "threshold": threshold,
+                    "actualCount": count,
+                    "winningRange": None,
+                    "winningRangeIndex": None,
+                    "totalPool": "0",
+                    "overPool": "0",
+                    "underPool": "0",
+                    "totalBettors": 0,
+                    "feeCollected": "0",
+                    "txHashCreate": create_tx,
+                    "txHashResolve": None,
+                    "roundNumber": self.round_number,
+                    "bets": [],
+                })
+                self.threshold.update(count)
+                return
+
+            if pool_under == 0 or pool_over == 0:
+                empty_side = "UNDER" if pool_under == 0 else "OVER"
+                log.info(
+                    "One-sided market (no %s bets) — cancelling to protect bettors from losing 5%% fee without adversary",
+                    empty_side,
+                )
+                self.chain.cancel_market(market_address)
+                self._post_ledger({
+                    "address": market_address,
+                    "createdAt": int(time.time()) - self.cfg.round_duration,
+                    "resolvedAt": int(time.time()),
+                    "state": "cancelled",
+                    "streamUrl": stream_url,
+                    "description": description,
+                    "cameraName": cam_name,
+                    "threshold": threshold,
+                    "actualCount": count,
+                    "winningRange": None,
+                    "winningRangeIndex": None,
+                    "totalPool": str(total_pool / 10**18),
+                    "overPool": str(pool_over / 10**18),
+                    "underPool": str(pool_under / 10**18),
+                    "totalBettors": 0,
+                    "feeCollected": "0",
+                    "txHashCreate": create_tx,
+                    "txHashResolve": None,
+                    "roundNumber": self.round_number,
+                    "bets": [],
+                })
+                self.threshold.update(count)
+                return
+
+            log.info(
+                "Pool check OK: total=%.4f ETH, under=%.4f, over=%.4f — proceeding to resolve",
+                total_pool / 10**18,
+                pool_under / 10**18,
+                pool_over / 10**18,
+            )
+        except Exception as exc:
+            log.warning("Could not check pool (proceeding to resolve anyway): %s", exc)
 
         # ── Step 3: Resolve market ────────────────────────────────────────────
         winning_label = f"Under {threshold}" if count <= threshold else f"Over {threshold}"
