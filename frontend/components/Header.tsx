@@ -3,8 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { WalletButton } from "@/components/WalletButton";
+import { useAccount } from "wagmi";
+
+// Admin wallet addresses — only these see the ADMIN nav link
+const ADMIN_ADDRESSES = [
+  "0xdd12D83786C2BAc7be3D59869834C23E91449A2D",
+].map((a) => a.toLowerCase());
 
 export default function Header() {
+  const { address } = useAccount();
+  const isAdmin = !!address && ADMIN_ADDRESSES.includes(address.toLowerCase());
 
   return (
     <header
@@ -85,6 +93,35 @@ export default function Header() {
           >
             STATS
           </Link>
+
+          {/* ADMIN — only shown to admin wallets */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 text-xs font-bold transition-colors"
+              style={{ color: "#ff4444", letterSpacing: "0.05em", fontFamily: "monospace" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff6666")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff4444")}
+              aria-label="Admin panel"
+            >
+              ADMIN
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: "1px 5px",
+                  borderRadius: 3,
+                  background: "rgba(255,68,68,0.12)",
+                  border: "1px solid rgba(255,68,68,0.3)",
+                  color: "#ff4444",
+                  fontFamily: "monospace",
+                  letterSpacing: "0.06em",
+                  lineHeight: 1.4,
+                }}
+              >
+                SYS
+              </span>
+            </Link>
+          )}
         </nav>
       </div>
 
