@@ -202,41 +202,7 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Vehicle count — right side */}
-              <div
-                className="flex flex-col items-end"
-                style={{
-                  background: "rgba(0,0,0,0.5)",
-                  border: "1px solid rgba(0,255,136,0.2)",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                }}
-              >
-                <span
-                  className="tabular-nums"
-                  style={{
-                    color: "#00ff88",
-                    fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                    fontSize: 36,
-                    fontWeight: 900,
-                    lineHeight: 1,
-                    textShadow: "0 0 16px rgba(0,255,136,0.4)",
-                  }}
-                >
-                  {String(displayCount).padStart(3, "0")}
-                </span>
-                <span
-                  style={{
-                    color: "rgba(0,255,136,0.5)",
-                    fontFamily: "monospace",
-                    fontSize: 9,
-                    letterSpacing: "0.1em",
-                    marginTop: 2,
-                  }}
-                >
-                  VEHICLES COUNTED
-                </span>
-              </div>
+              {/* Vehicle count moved to countdown section below */}
             </div>
           </motion.div>
 

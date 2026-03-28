@@ -384,16 +384,7 @@ class VehicleCounter:
                 color = (0, 255, 0) if counted else (0, 0, 255)
                 cv2.rectangle(frame, (bx1, by1), (bx2, by2), color, 2)
 
-                # Show count number on green vehicles
-                if counted and tid in self.counted_number:
-                    num = str(self.counted_number[tid])
-                    # Background for readability
-                    (tw, th), _ = cv2.getTextSize(num, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-                    cx = (bx1 + bx2) // 2 - tw // 2
-                    cy = by1 - 8
-                    cv2.rectangle(frame, (cx - 4, cy - th - 4), (cx + tw + 4, cy + 4), (0, 180, 0), -1)
-                    cv2.putText(frame, num, (cx, cy),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
+                # Count numbers removed — frontend handles display
 
         # ─── Draw counting line (only in line mode) ──────────
 
@@ -414,12 +405,7 @@ class VehicleCounter:
             if self.line2_start:
                 cv2.line(frame, self.line2_start, self.line2_end, NEON_GREEN, 2)
 
-        # ─── HUD — count box ─────────────────────────────────
-
-        cv2.rectangle(frame, (10, 10), (150, 60), (15, 15, 25), -1)
-        cv2.rectangle(frame, (10, 10), (150, 60), NEON_GREEN, 1)
-        cv2.putText(frame, str(self.total_count), (20, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.3, (255, 255, 255), 2, cv2.LINE_AA)
+        # HUD removed — frontend handles count/timer display
 
         return frame, self.total_count
 
@@ -696,13 +682,7 @@ class StreamServer:
                 # Process with YOLO + Supervision
                 annotated, count = self.counter.process_frame(frame)
 
-                # Timer overlay
-                remaining = max(0, self.duration - elapsed)
-                mins = int(remaining // 60)
-                secs = int(remaining % 60)
-                ah, aw = annotated.shape[:2]
-                cv2.putText(annotated, f"{mins:02d}:{secs:02d}", (aw - 100, 35),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, NEON_YELLOW, 2, cv2.LINE_AA)
+                # Timer removed — frontend handles countdown display
 
                 # Encode to JPEG
                 _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
