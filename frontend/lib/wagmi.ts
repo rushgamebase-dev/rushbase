@@ -10,10 +10,11 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.base.org";
 
 export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "";
 
-// Use WebSocket transport for real-time event subscriptions (BetPlaced, etc.)
-// Falls back to HTTP if WSS unavailable.
+// HTTP transport is ALWAYS the primary — reliable, works everywhere.
+// WebSocket is added as secondary for event subscriptions when available.
+// Previous fallback([webSocket, http]) broke silently when WSS failed to init.
 const transport = WSS_URL
-  ? fallback([webSocket(WSS_URL), http(RPC_URL)])
+  ? fallback([http(RPC_URL), webSocket(WSS_URL)])
   : http(RPC_URL);
 
 export const wagmiConfig = createConfig({
