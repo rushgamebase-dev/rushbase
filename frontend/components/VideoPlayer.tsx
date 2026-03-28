@@ -343,39 +343,6 @@ export default function VideoPlayer({
             className="absolute inset-0 pointer-events-none"
             aria-hidden="true"
           >
-            {/* Vehicle count badge */}
-            <div
-              className="absolute top-2 left-2 flex flex-col justify-center"
-              style={{
-                background: "rgba(0,0,0,0.55)",
-                border: "1px solid rgba(0,255,136,0.2)",
-                padding: "4px 10px",
-                minWidth: 90,
-              }}
-            >
-              <span
-                style={{
-                  color: "#00ff88",
-                  fontFamily: "monospace",
-                  fontSize: 28,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                }}
-              >
-                {String(vehicleCount).padStart(3, "0")}
-              </span>
-              <span
-                style={{
-                  color: "rgba(0,255,136,0.5)",
-                  fontFamily: "monospace",
-                  fontSize: 7,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                VEHICLES
-              </span>
-            </div>
-
             {/* LIVE badge */}
             {isLive && (
               <div
