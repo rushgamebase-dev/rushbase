@@ -56,6 +56,11 @@ export default function Chat({ onCollapse }: ChatProps) {
     setInput("");
     setLastSent(now);
     setShowEmoji(false);
+    // Re-focus input after sending
+    setTimeout(() => {
+      desktopInputRef.current?.focus();
+      mobileInputRef.current?.focus();
+    }, 50);
   }, [input, lastSent, sendMessage]);
 
   const onKeyDown = useCallback(
