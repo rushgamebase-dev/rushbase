@@ -240,18 +240,29 @@ class VehicleCounter:
             detections = self._merge_overlapping(detections)
 
             if self.lanes_ready and self.lanes:
-                # ─── Lane-based counting (deterministic) ───
+                # ─── Lane-based counting with bottom-center anchor ───
                 for i in range(len(detections)):
                     tid = detections.tracker_id[i]
                     if tid is None or tid in self.counted_ids:
                         continue
                     x1, y1, x2, y2 = detections.xyxy[i]
+                    # Bottom-center anchor = better ground-plane position
                     cx = int((x1 + x2) / 2)
-                    cy = int((y1 + y2) / 2)
+                    cy = int(y2)
                     cls = detections.class_id[i] if detections.class_id is not None else 2
 
+                    # Track must persist min_frames before counting
+                    self.seen_frames[tid] = self.seen_frames.get(tid, 0) + 1
+                    if self.seen_frames[tid] < self.min_frames:
+                        # Still store position for line-crossing detection
+                        for lane in self.lanes:
+                            ls, le = lane["line_start"], lane["line_end"]
+                            side = self._cross_product_sign(cx, cy, ls[0], ls[1], le[0], le[1])
+                            self.prev_pos[tid] = (cx, cy, side)
+                        continue
+
                     for lane in self.lanes:
-                        # Check if vehicle center is in this lane's zone
+                        # Check if vehicle anchor is in this lane's zone
                         if not self._point_in_polygon(cx, cy, lane["polygon"]):
                             continue
 
@@ -274,10 +285,18 @@ class VehicleCounter:
                                 self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
                                 break  # counted, don't check other lanes
 
-                    self.prev_pos[tid] = (cx, cy,
-                        self._cross_product_sign(cx, cy,
-                            self.lanes[0]["line_start"][0], self.lanes[0]["line_start"][1],
-                            self.lanes[0]["line_end"][0], self.lanes[0]["line_end"][1]) if self.lanes else 0)
+                    # Store per-lane side for the first lane the vehicle is in
+                    for lane in self.lanes:
+                        ls, le = lane["line_start"], lane["line_end"]
+                        if self._point_in_polygon(cx, cy, lane["polygon"]):
+                            side = self._cross_product_sign(cx, cy, ls[0], ls[1], le[0], le[1])
+                            self.prev_pos[tid] = (cx, cy, side)
+                            break
+                    else:
+                        # Not in any lane — still track position with first lane's line
+                        ls, le = self.lanes[0]["line_start"], self.lanes[0]["line_end"]
+                        side = self._cross_product_sign(cx, cy, ls[0], ls[1], le[0], le[1])
+                        self.prev_pos[tid] = (cx, cy, side)
 
             elif self.count_mode == 'uid':
                 # ─── Unique ID mode: count every vehicle seen min_frames+ ───
