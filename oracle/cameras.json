@@ -1,0 +1,130 @@
+{
+  "cameras": [
+    {
+      "id": "peace-bridge",
+      "name": "Peace Bridge — USA/Canada Border",
+      "region": "Buffalo, NY / Fort Erie, ON",
+      "source": "Peace Bridge Authority",
+      "streamUrl": "https://www.youtube.com/watch?v=DnUFAShZKus",
+      "type": "youtube",
+      "resolution": "854x480",
+      "primary": true,
+      "lanes": [
+        {
+          "name": "To Canada (left)",
+          "direction": "away",
+          "zone": [0.15, 0.10, 0.48, 0.10, 0.48, 0.95, 0.15, 0.95],
+          "line": "0.15,0.30,0.48,0.30"
+        },
+        {
+          "name": "To USA (right)",
+          "direction": "toward",
+          "zone": [0.52, 0.10, 0.85, 0.10, 0.85, 0.95, 0.52, 0.95],
+          "line": "0.52,0.65,0.85,0.65"
+        }
+      ],
+      "notes": "Ponte reta, 2 faixas: esquerda pro Canada, direita pros EUA"
+    },
+    {
+      "id": "peace-bridge-qew",
+      "name": "Peace Bridge — QEW to CND Duty Free",
+      "region": "Fort Erie, ON, Canada",
+      "source": "Peace Bridge Authority",
+      "streamUrl": "https://www.youtube.com/watch?v=SETJ79HmwI0",
+      "type": "youtube",
+      "resolution": "1280x720",
+      "linePoints": "0.55,0.0,0.55,1.0",
+      "notes": "Lado canadense, angulo lateral, carros esquerda-direita, linha vertical"
+    },
+    {
+      "id": "caltrans-100",
+      "name": "I-10 Olympic Blvd, Santa Monica",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-100.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-101",
+      "name": "I-10 CCTV-101",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-101.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-117",
+      "name": "I-10 CCTV-117",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-117.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-200",
+      "name": "CCTV-200",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-200.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-201",
+      "name": "CCTV-201",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-201.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-220",
+      "name": "CCTV-220",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-220.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "caltrans-800",
+      "name": "CCTV-800",
+      "region": "Los Angeles, CA",
+      "source": "Caltrans",
+      "streamUrl": "https://wzmedia.dot.ca.gov/D7/CCTV-800.stream/playlist.m3u8",
+      "type": "hls",
+      "resolution": "1280x720"
+    },
+    {
+      "id": "der-sp008-km095",
+      "name": "SP-008 km095 Braganca Paulista",
+      "region": "Sao Paulo, BR",
+      "source": "DER-SP",
+      "imageUrl": "https://www.der.sp.gov.br/Upload/Cameras/CamSP008km095S1.jpg",
+      "type": "jpeg",
+      "refreshInterval": 20
+    },
+    {
+      "id": "der-sp055-km093",
+      "name": "SP-055 km093 Caraguatatuba",
+      "region": "Sao Paulo, BR",
+      "source": "DER-SP",
+      "imageUrl": "https://www.der.sp.gov.br/Upload/Cameras/CamSP055km093S1.jpg",
+      "type": "jpeg",
+      "refreshInterval": 20
+    },
+    {
+      "id": "der-sp324-km081",
+      "name": "SP-324 km081 Itupeva",
+      "region": "Sao Paulo, BR",
+      "source": "DER-SP",
+      "imageUrl": "https://www.der.sp.gov.br/Upload/Cameras/CamSP324km081S1.jpg",
+      "type": "jpeg",
+      "refreshInterval": 20
+    }
+  ]
+}

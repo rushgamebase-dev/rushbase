@@ -1,0 +1,12 @@
+.env
+.env.local
+node_modules/
+.next/
+out/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+*.pt
+botsort_custom.yaml
+__pycache__/
+*.pyc

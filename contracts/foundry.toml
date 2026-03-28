@@ -1,0 +1,17 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+remappings = ["@openzeppelin/=lib/openzeppelin-contracts/"]
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+
+[rpc_endpoints]
+base = "https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236"
+
+[etherscan]
+base = { key = "7KEG96T5NCZQ88X2QQFTB5Z3YB815HMJHU", url = "https://api.basescan.org/api" }
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

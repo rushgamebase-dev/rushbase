@@ -1,0 +1,681 @@
+"""
+SinalBet Oracle — Live YOLO Streaming Server (v3 — Supervision SOTA)
+
+State-of-the-art vehicle counting using:
+  - YOLOv8x/YOLO11x for detection
+  - BoT-SORT for multi-object tracking (persistent IDs)
+  - Supervision LineZone with minimum_crossing_threshold (no jitter double-counts)
+  - DetectionsSmoother for temporal stability
+  - Per-class counting (car, motorcycle, bus, truck)
+
+Usage:
+    python stream_server.py --stream "https://...m3u8" --duration 300
+    python stream_server.py --camera caltrans-100 --duration 300
+
+Frontend connects to ws://localhost:8765
+"""
+
+import argparse
+import asyncio
+import json
+import sys
+import time
+import subprocess
+
+try:
+    import cv2
+    import numpy as np
+    from ultralytics import YOLO
+    import supervision as sv
+    import websockets
+except ImportError as e:
+    print(f"ERROR: Missing dependency: {e}")
+    print("Run: pip install ultralytics supervision websockets opencv-python")
+    sys.exit(1)
+
+
+# Vehicle classes in COCO dataset
+VEHICLE_CLASSES = [2, 3, 5, 7]  # car, motorcycle, bus, truck
+VEHICLE_NAMES = {2: 'car', 3: 'moto', 5: 'bus', 7: 'truck'}
+
+# Colors
+NEON_GREEN = (136, 255, 0)
+NEON_YELLOW = (0, 204, 255)
+
+# Output frame width — higher = better detection but larger JPEG
+OUTPUT_WIDTH = 1920
+
+
+class VehicleCounter:
+    """Vehicle counter: ID tracking + line crossing confirmation.
+
+    - Red box = detected, tracking, hasn't crossed line yet
+    - Green box = crossed the line, counted
+    - Green line on the road = counting trigger
+    - Counts both directions (in + out)
+    - Never recounts same ID
+    """
+
+    def __init__(self, model_name='yolov8x.pt', confidence=0.15,
+                 line_position=0.45, line_angle=10, line_points=None,
+                 count_mode='line', min_frames=5, lanes=None, **_kwargs):
+        self.count_mode = count_mode
+        self.min_frames = min_frames
+        self.seen_frames = {}
+        self.lanes_config = lanes  # list of lane dicts from cameras.json
+        self.lanes = []            # processed lanes (set on first frame)
+        self.lanes_ready = False
+        self.model = YOLO(model_name)
+        self.confidence = confidence
+        self.line_position = line_position  # 0-1, where on x-axis the line center is
+        self.line_angle = line_angle
+        self.custom_line_points = line_points    # "x1,y1,x2,y2" for line 1
+        self.custom_line_points2 = _kwargs.get('line_points2')  # optional line 2
+        self.line2_start = None
+        self.line2_end = None
+
+        # Tracking state
+        self.prev_pos = {}        # tid -> last (cx, cy)
+        self.counted_ids = set()  # IDs that crossed the line
+        self.counted_number = {}  # tid -> sequential count number (#1, #2, #3...)
+        self.total_count = 0
+        self.count_in = 0         # crossed left-to-right
+        self.count_out = 0        # crossed right-to-left
+
+        # Per-class counts
+        self.class_counts = {2: 0, 3: 0, 5: 0, 7: 0}
+
+        # Line endpoints (set on first frame)
+        self.line_start = None    # (x, y) top point
+        self.line_end = None      # (x, y) bottom point
+
+        # Annotators
+        self.trace_annotator = sv.TraceAnnotator(
+            thickness=1, trace_length=50,
+            color=sv.Color.from_hex("#00ff88")
+        )
+        self.smoother = sv.DetectionsSmoother(length=3)
+
+    def _merge_overlapping(self, detections):
+        """Remove smaller detections contained inside larger ones.
+        Handles: truck cab+trailer overlap, AND cars on car carriers (cegonhas).
+        If a small box is mostly inside a big box, it's cargo, not a vehicle."""
+        if len(detections) < 2 or detections.tracker_id is None:
+            return detections
+
+        keep = [True] * len(detections)
+        areas = []
+        for i in range(len(detections)):
+            a = (detections.xyxy[i][2] - detections.xyxy[i][0]) * (detections.xyxy[i][3] - detections.xyxy[i][1])
+            areas.append(a)
+
+        for i in range(len(detections)):
+            if not keep[i]:
+                continue
+            for j in range(len(detections)):
+                if i == j or not keep[j]:
+                    continue
+
+                # Check if j is inside i (smaller inside larger)
+                if areas[j] >= areas[i]:
+                    continue
+
+                # Calculate how much of j is inside i
+                xi1 = max(detections.xyxy[i][0], detections.xyxy[j][0])
+                yi1 = max(detections.xyxy[i][1], detections.xyxy[j][1])
+                xi2 = min(detections.xyxy[i][2], detections.xyxy[j][2])
+                yi2 = min(detections.xyxy[i][3], detections.xyxy[j][3])
+                inter = max(0, xi2 - xi1) * max(0, yi2 - yi1)
+
+                # If 50%+ of the smaller box is inside the larger = cargo, not vehicle
+                containment = inter / areas[j] if areas[j] > 0 else 0
+                if containment > 0.5:
+                    keep[j] = False
+
+        mask = np.array(keep)
+        return detections[mask]
+
+    def _setup_lanes(self, w, h):
+        """Initialize lane zones and lines from config."""
+        if not self.lanes_config:
+            return
+        for lc in self.lanes_config:
+            # Parse zone polygon (x1,y1,x2,y2,...) as fractions
+            zone_pts = lc["zone"]
+            polygon = []
+            for i in range(0, len(zone_pts), 2):
+                polygon.append([int(zone_pts[i] * w), int(zone_pts[i+1] * h)])
+            polygon = np.array(polygon)
+
+            # Parse line
+            lp = [float(p) for p in lc["line"].split(",")]
+            line_start = (int(lp[0] * w), int(lp[1] * h))
+            line_end = (int(lp[2] * w), int(lp[3] * h))
+
+            self.lanes.append({
+                "name": lc["name"],
+                "direction": lc["direction"],
+                "polygon": polygon,
+                "line_start": line_start,
+                "line_end": line_end,
+                "count": 0,
+            })
+            print(f"[Lane] {lc['name']}: zone={polygon.tolist()}, line={line_start}->{line_end}")
+        self.lanes_ready = True
+
+    def _point_in_polygon(self, px, py, polygon):
+        """Ray-casting point-in-polygon test."""
+        n = len(polygon)
+        inside = False
+        j = n - 1
+        for i in range(n):
+            xi, yi = polygon[i]
+            xj, yj = polygon[j]
+            if ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi) + xi):
+                inside = not inside
+            j = i
+        return inside
+
+    def _cross_product_sign(self, px, py, ax, ay, bx, by):
+        """Which side of line AB is point P? Positive = left, Negative = right."""
+        return (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+
+    def process_frame(self, frame):
+        """Detect, track, count on angled line crossing, annotate."""
+        h, w = frame.shape[:2]
+        import math
+
+        # Setup lanes on first frame
+        if not self.lanes_ready and self.lanes_config:
+            self._setup_lanes(w, h)
+
+        # Set line endpoints on first frame
+        if self.line_start is None:
+            if self.custom_line_points:
+                # Custom line: "x1,y1,x2,y2" as fractions of w,h
+                parts = [float(p) for p in self.custom_line_points.split(",")]
+                self.line_start = (int(parts[0] * w), int(parts[1] * h))
+                self.line_end = (int(parts[2] * w), int(parts[3] * h))
+            else:
+                cx = int(w * self.line_position)
+                angle_rad = math.radians(self.line_angle)
+                top_y = 10
+                bot_y = h - 10
+                span = bot_y - top_y
+                dx = int(span * math.tan(angle_rad))
+                self.line_start = (cx - dx // 2, top_y)
+                self.line_end = (cx + dx // 2, bot_y)
+            # Second line (optional)
+            if self.custom_line_points2:
+                p2 = [float(p) for p in self.custom_line_points2.split(",")]
+                self.line2_start = (int(p2[0] * w), int(p2[1] * h))
+                self.line2_end = (int(p2[2] * w), int(p2[3] * h))
+                print(f"[Counter] Line 1: {self.line_start} -> {self.line_end}")
+                print(f"[Counter] Line 2: {self.line2_start} -> {self.line2_end}")
+            else:
+                print(f"[Counter] Line: {self.line_start} -> {self.line_end}")
+
+        lx1, ly1 = self.line_start
+        lx2, ly2 = self.line_end
+
+        # Detect + track with BoT-SORT
+        results = self.model.track(
+            frame, verbose=False, conf=self.confidence,
+            classes=VEHICLE_CLASSES, persist=True,
+            tracker="botsort_custom.yaml", imgsz=1280
+        )[0]
+
+        detections = sv.Detections.from_ultralytics(results)
+
+        if detections.class_id is not None and len(detections) > 0:
+            mask = np.isin(detections.class_id, VEHICLE_CLASSES)
+            detections = detections[mask]
+
+        has_tracker = (detections.tracker_id is not None and
+                       len(detections) > 0 and
+                       any(t is not None for t in detections.tracker_id))
+
+        if has_tracker:
+            detections = self.smoother.update_with_detections(detections)
+            detections = self._merge_overlapping(detections)
+
+            if self.lanes_ready and self.lanes:
+                # ─── Lane-based counting (deterministic) ───
+                for i in range(len(detections)):
+                    tid = detections.tracker_id[i]
+                    if tid is None or tid in self.counted_ids:
+                        continue
+                    x1, y1, x2, y2 = detections.xyxy[i]
+                    cx = int((x1 + x2) / 2)
+                    cy = int((y1 + y2) / 2)
+                    cls = detections.class_id[i] if detections.class_id is not None else 2
+
+                    for lane in self.lanes:
+                        # Check if vehicle center is in this lane's zone
+                        if not self._point_in_polygon(cx, cy, lane["polygon"]):
+                            continue
+
+                        # Check if crosses this lane's line
+                        ls = lane["line_start"]
+                        le = lane["line_end"]
+                        side = self._cross_product_sign(cx, cy, ls[0], ls[1], le[0], le[1])
+
+                        if tid in self.prev_pos and len(self.prev_pos[tid]) > 2:
+                            prev_side = self.prev_pos[tid][2]
+                            if prev_side is not None and prev_side * side < 0:
+                                self.counted_ids.add(tid)
+                                self.total_count += 1
+                                self.counted_number[tid] = self.total_count
+                                lane["count"] += 1
+                                if lane["direction"] == "toward":
+                                    self.count_in += 1
+                                else:
+                                    self.count_out += 1
+                                self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                                break  # counted, don't check other lanes
+
+                    self.prev_pos[tid] = (cx, cy,
+                        self._cross_product_sign(cx, cy,
+                            self.lanes[0]["line_start"][0], self.lanes[0]["line_start"][1],
+                            self.lanes[0]["line_end"][0], self.lanes[0]["line_end"][1]) if self.lanes else 0)
+
+            elif self.count_mode == 'uid':
+                # ─── Unique ID mode: count every vehicle seen 5+ frames ───
+                for i in range(len(detections)):
+                    tid = detections.tracker_id[i]
+                    if tid is None:
+                        continue
+                    cls = detections.class_id[i] if detections.class_id is not None else 2
+                    self.seen_frames[tid] = self.seen_frames.get(tid, 0) + 1
+                    if tid not in self.counted_ids and self.seen_frames[tid] >= self.min_frames:
+                        self.counted_ids.add(tid)
+                        self.total_count += 1
+                        self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+            else:
+                # ─── Line crossing mode ───
+                for i in range(len(detections)):
+                    tid = detections.tracker_id[i]
+                    if tid is None:
+                        continue
+                    x1, y1, x2, y2 = detections.xyxy[i]
+                    cx = int((x1 + x2) / 2)
+                    cy = int((y1 + y2) / 2)
+                    cls = detections.class_id[i] if detections.class_id is not None else 2
+
+                    side1 = self._cross_product_sign(cx, cy, lx1, ly1, lx2, ly2)
+                    side2 = None
+                    if self.line2_start:
+                        side2 = self._cross_product_sign(cx, cy,
+                            self.line2_start[0], self.line2_start[1],
+                            self.line2_end[0], self.line2_end[1])
+
+                    if tid not in self.counted_ids and tid in self.prev_pos:
+                        ps1 = self.prev_pos[tid][2]
+                        ps2 = self.prev_pos[tid][3] if len(self.prev_pos[tid]) > 3 else None
+                        crossed = False
+                        # Check line 1
+                        if ps1 is not None and ps1 * side1 < 0:
+                            crossed = True
+                        # Check line 2
+                        if not crossed and side2 is not None and ps2 is not None and ps2 * side2 < 0:
+                            crossed = True
+
+                        if crossed:
+                            self.counted_ids.add(tid)
+                            self.total_count += 1
+                            self.counted_number[tid] = self.total_count
+                            if side1 > 0:
+                                self.count_in += 1
+                            else:
+                                self.count_out += 1
+                            self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+
+                    self.prev_pos[tid] = (cx, cy, side1, side2)
+
+            # Draw traces
+            frame = self.trace_annotator.annotate(frame, detections)
+
+            # Draw boxes: RED = tracking, GREEN = counted (with number)
+            for i in range(len(detections)):
+                tid = detections.tracker_id[i]
+                if tid is None:
+                    continue
+                bx1, by1, bx2, by2 = detections.xyxy[i].astype(int)
+                counted = tid in self.counted_ids
+                color = (0, 255, 0) if counted else (0, 0, 255)
+                cv2.rectangle(frame, (bx1, by1), (bx2, by2), color, 2)
+
+                # Show count number on green vehicles
+                if counted and tid in self.counted_number:
+                    num = str(self.counted_number[tid])
+                    # Background for readability
+                    (tw, th), _ = cv2.getTextSize(num, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                    cx = (bx1 + bx2) // 2 - tw // 2
+                    cy = by1 - 8
+                    cv2.rectangle(frame, (cx - 4, cy - th - 4), (cx + tw + 4, cy + 4), (0, 180, 0), -1)
+                    cv2.putText(frame, num, (cx, cy),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # ─── Draw counting line (only in line mode) ──────────
+
+        # Draw lanes
+        if self.lanes_ready and self.lanes:
+            for lane in self.lanes:
+                # Draw zone polygon (subtle)
+                pts = lane["polygon"].reshape((-1, 1, 2))
+                cv2.polylines(frame, [pts], True, (100, 100, 100), 1)
+                # Draw counting line (green)
+                cv2.line(frame, lane["line_start"], lane["line_end"], NEON_GREEN, 2)
+                # Lane label
+                lx, ly = lane["line_start"]
+                cv2.putText(frame, f'{lane["name"]}: {lane["count"]}', (lx + 5, ly - 8),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.35, NEON_GREEN, 1, cv2.LINE_AA)
+        elif self.count_mode == 'line' and self.line_start:
+            cv2.line(frame, self.line_start, self.line_end, NEON_GREEN, 2)
+            if self.line2_start:
+                cv2.line(frame, self.line2_start, self.line2_end, NEON_GREEN, 2)
+
+        # ─── HUD — count box ─────────────────────────────────
+
+        cv2.rectangle(frame, (10, 10), (150, 60), (15, 15, 25), -1)
+        cv2.rectangle(frame, (10, 10), (150, 60), NEON_GREEN, 1)
+        cv2.putText(frame, str(self.total_count), (20, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.3, (255, 255, 255), 2, cv2.LINE_AA)
+
+        return frame, self.total_count
+
+
+def get_stream_url(youtube_url):
+    """Extract direct stream URL using yt-dlp."""
+    import os
+
+    if 'youtube.com' not in youtube_url and 'youtu.be' not in youtube_url:
+        return youtube_url
+
+    deno_path = os.path.expanduser("~/.deno/bin")
+    env = os.environ.copy()
+    if deno_path not in env.get("PATH", ""):
+        env["PATH"] = f"{deno_path}:{env.get('PATH', '')}"
+
+    commands = [
+        ['yt-dlp', '--remote-components', 'ejs:github', '-f', 'best[height<=720]', '-g', youtube_url],
+        ['yt-dlp', '-f', 'best[height<=720]', '-g', youtube_url],
+        ['yt-dlp', '-f', 'best', '-g', youtube_url],
+    ]
+
+    for cmd in commands:
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
+            if result.returncode == 0:
+                url = result.stdout.strip()
+                print(f"[yt-dlp] OK: {url[:80]}...")
+                return url
+        except FileNotFoundError:
+            return youtube_url
+        except subprocess.TimeoutExpired:
+            continue
+
+    return youtube_url
+
+
+class StreamServer:
+    """WebSocket server that streams processed video frames."""
+
+    def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
+                 model='yolov8x.pt', confidence=0.15, line_pos=0.5,
+                 line_angle=10, line_points=None, line_points2=None,
+                 count_mode='uid', lanes=None, target_fps=8):
+        self.stream_url = stream_url
+        self.duration = duration
+        self.host = host
+        self.port = port
+        self.target_fps = target_fps
+
+        self.counter = VehicleCounter(model_name=model, confidence=confidence,
+                                       line_position=line_pos, line_angle=line_angle,
+                                       line_points=line_points,
+                                       line_points2=line_points2,
+                                       count_mode=count_mode, lanes=lanes,
+                                       min_frames=5)
+        self.clients = set()
+        self.running = False
+        self.start_time = None
+
+    async def register(self, ws):
+        self.clients.add(ws)
+        print(f"[WS] Client connected ({len(self.clients)} total)")
+        await ws.send(json.dumps({
+            "type": "init",
+            "stream": self.stream_url,
+            "duration": self.duration,
+            "count": self.counter.total_count
+        }))
+
+    async def unregister(self, ws):
+        self.clients.discard(ws)
+        print(f"[WS] Client disconnected ({len(self.clients)} total)")
+
+    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
+        """Send frame + count to all connected clients."""
+        if not self.clients:
+            return
+
+        count_msg = json.dumps({
+            "type": "count",
+            "count": count,
+            "count_in": self.counter.count_in,
+            "count_out": self.counter.count_out,
+            "elapsed": round(elapsed, 1),
+            "remaining": max(0, round(self.duration - elapsed, 1)),
+        })
+
+        dead = set()
+
+        async def send_to(ws):
+            try:
+                await ws.send(count_msg)
+                await ws.send(jpeg_bytes)  # binary frame
+            except websockets.exceptions.ConnectionClosed:
+                dead.add(ws)
+
+        await asyncio.gather(*(send_to(ws) for ws in self.clients))
+        self.clients -= dead
+
+    async def process_video(self):
+        """Main video processing loop."""
+        direct_url = get_stream_url(self.stream_url)
+
+        print(f"\n[Stream] Opening video...")
+        cap = cv2.VideoCapture(direct_url)
+
+        if not cap.isOpened():
+            print("[ERROR] Could not open video stream!")
+            for ws in self.clients:
+                await ws.send(json.dumps({"type": "error", "message": "Could not open stream"}))
+            return
+
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+
+        print(f"[Stream] Opened. FPS: {fps:.0f}, processing ALL frames (no skip)")
+        print(f"[Stream] Output width: {OUTPUT_WIDTH}px")
+        print(f"[Stream] Using BoT-SORT + cross-product line crossing")
+
+        self.running = True
+        self.start_time = time.time()
+        frame_idx = 0
+        frame_interval = 1.0 / self.target_fps
+
+        try:
+            while self.running:
+                frame_start = time.time()
+                elapsed = frame_start - self.start_time
+
+                if elapsed >= self.duration:
+                    print(f"\n[Stream] Done! Final count: {self.counter.total_count}")
+                    print(f"  IN: {self.counter.count_in}, OUT: {self.counter.count_out}")
+                    final_msg = json.dumps({
+                        "type": "final",
+                        "count": self.counter.total_count,
+                        "in_count": self.counter.class_counts.get(2, 0),
+                        "out_count": self.counter.class_counts.get(7, 0),
+                        "duration": self.duration
+                    })
+                    for ws in self.clients:
+                        try:
+                            await ws.send(final_msg)
+                        except Exception:
+                            pass
+
+                    result = {
+                        "count": self.counter.total_count,
+                        "in_count": self.counter.class_counts.get(2, 0),
+                        "out_count": self.counter.class_counts.get(7, 0),
+                        "duration": self.duration,
+                        "stream": self.stream_url,
+                        "timestamp": int(time.time())
+                    }
+                    with open("result.json", "w") as f:
+                        json.dump(result, f, indent=2)
+                    break
+
+                ret, frame = cap.read()
+                if not ret:
+                    await asyncio.sleep(0.02)
+                    continue
+
+                frame_idx += 1
+
+                # Skip 1 frame to drain buffer (3090 Ti handles the rest)
+                if frame_idx % 2 != 0:
+                    continue
+
+                # Resize
+                h, w = frame.shape[:2]
+                if w > OUTPUT_WIDTH:
+                    scale = OUTPUT_WIDTH / w
+                    frame = cv2.resize(frame, (OUTPUT_WIDTH, int(h * scale)),
+                                      interpolation=cv2.INTER_LINEAR)
+
+                # Process with YOLO + Supervision
+                annotated, count = self.counter.process_frame(frame)
+
+                # Timer overlay
+                remaining = max(0, self.duration - elapsed)
+                mins = int(remaining // 60)
+                secs = int(remaining % 60)
+                ah, aw = annotated.shape[:2]
+                cv2.putText(annotated, f"{mins:02d}:{secs:02d}", (aw - 100, 35),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, NEON_YELLOW, 2, cv2.LINE_AA)
+
+                # Encode to JPEG
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
+
+                # Broadcast binary frame
+                await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
+
+                # Yield to event loop (send frames to clients)
+                await asyncio.sleep(0)
+
+        except Exception as e:
+            print(f"\n[ERROR] {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            cap.release()
+            self.running = False
+
+    async def handler(self, ws):
+        await self.register(ws)
+        try:
+            async for msg in ws:
+                try:
+                    data = json.loads(msg)
+                    if data.get("type") == "ping":
+                        await ws.send(json.dumps({"type": "pong"}))
+                except Exception:
+                    pass
+        finally:
+            await self.unregister(ws)
+
+    async def start(self):
+        print(f"\n{'='*55}")
+        print(f"  SinalBet Live Oracle Server (v3 — Supervision)")
+        print(f"  WebSocket: ws://{self.host}:{self.port}")
+        print(f"  Stream: {self.stream_url}")
+        print(f"  Duration: {self.duration}s")
+        print(f"  Model: {self.counter.model.model_name}")
+        print(f"  Counting: Supervision LineZone + BoT-SORT")
+        print(f"  Target FPS: {self.target_fps}")
+        print(f"{'='*55}\n")
+
+        async with websockets.serve(self.handler, self.host, self.port):
+            await self.process_video()
+
+
+def load_camera(camera_id):
+    from pathlib import Path
+    cameras_path = Path(__file__).parent / "cameras.json"
+    with open(cameras_path) as f:
+        data = json.load(f)
+    for cam in data["cameras"]:
+        if cam["id"] == camera_id:
+            return cam
+    print(f"[ERROR] Camera '{camera_id}' not found")
+    sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='SinalBet Live Oracle Server (v3)')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--stream', '-s', help='Direct stream URL (HLS, RTSP, YouTube)')
+    group.add_argument('--camera', help='Camera ID from cameras.json')
+    parser.add_argument('--duration', '-d', type=int, default=300, help='Duration (seconds)')
+    parser.add_argument('--port', '-p', type=int, default=8765, help='WebSocket port')
+    parser.add_argument('--model', '-m', default='yolov8x.pt',
+                       help='YOLO model (yolov8n=fast, yolov8s=balanced, yolov8x=best)')
+    parser.add_argument('--confidence', '-c', type=float, default=0.15, help='Detection confidence')
+    parser.add_argument('--line', '-l', type=float, default=0.5, help='Counting line position (0-1)')
+    parser.add_argument('--angle', '-a', type=float, default=10, help='Line tilt in degrees (positive=top goes left)')
+    parser.add_argument('--line-points', type=str, default=None,
+                       help='Line 1 as "x1,y1,x2,y2" fractions')
+    parser.add_argument('--line-points2', type=str, default=None,
+                       help='Line 2 (optional) as "x1,y1,x2,y2" fractions')
+    parser.add_argument('--mode', choices=['line', 'uid'], default='uid',
+                       help='Counting mode: line=crossing, uid=unique IDs (default: uid)')
+    parser.add_argument('--fps', type=int, default=8, help='Target output FPS')
+
+    args = parser.parse_args()
+
+    stream_url = args.stream
+    cam_lanes = None
+    if args.camera:
+        cam = load_camera(args.camera)
+        stream_url = cam.get("streamUrl", cam.get("imageUrl"))
+        cam_lanes = cam.get("lanes")
+        print(f"[Camera] {cam['name']} ({cam['source']}) — {cam['type'].upper()}")
+        if cam_lanes:
+            print(f"[Camera] {len(cam_lanes)} lanes configured")
+
+    server = StreamServer(
+        stream_url=stream_url,
+        duration=args.duration,
+        port=args.port,
+        model=args.model,
+        confidence=args.confidence,
+        line_pos=args.line,
+        line_angle=args.angle,
+        line_points=args.line_points,
+        line_points2=args.line_points2,
+        count_mode=args.mode,
+        lanes=cam_lanes,
+        target_fps=args.fps
+    )
+
+    try:
+        asyncio.run(server.start())
+    except KeyboardInterrupt:
+        print("\n[Server] Shutting down...")
+
+
+if __name__ == '__main__':
+    main()
