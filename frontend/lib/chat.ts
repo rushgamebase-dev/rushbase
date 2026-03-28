@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import * as Ably from "ably";
 
 export interface ChatMessage {
   id: string;
@@ -11,121 +12,129 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-const POLL_INTERVAL = 3000;      // 3s message polling
-const HEARTBEAT_INTERVAL = 15000; // 15s heartbeat
+const CHANNEL_NAME = "rush:chat";
+const MAX_MESSAGES = 200;
+
+function usernameFromAddress(address?: string): string {
+  return address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "anon";
+}
+
+function colorFromAddress(address?: string): string {
+  let hash = 0;
+  const seed = address || "anon";
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return `hsl(${Math.abs(hash % 360)}, 70%, 60%)`;
+}
 
 /**
- * Global chat hook backed by /api/chat/* endpoints.
- * Falls back to localStorage-only if API is unreachable.
+ * Real-time chat via Ably WebSocket.
+ * Messages are instant (<100ms) between all connected clients.
  */
 export function useChat(walletAddress?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
-  const lastTimestamp = useRef(0);
-  const isMounted = useRef(true);
+  const ablyRef = useRef<Ably.Realtime | null>(null);
+  const channelRef = useRef<Ably.RealtimeChannel | null>(null);
+  const mountedRef = useRef(true);
 
-  // Poll for new messages
   useEffect(() => {
-    isMounted.current = true;
+    mountedRef.current = true;
 
-    async function fetchMessages() {
-      try {
-        const url = lastTimestamp.current > 0
-          ? `/api/chat/messages?after=${lastTimestamp.current}&limit=50`
-          : `/api/chat/messages?limit=50`;
-
-        const res = await fetch(url);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        const newMsgs: ChatMessage[] = data.messages || [];
-
-        if (newMsgs.length > 0 && isMounted.current) {
-          setMessages((prev) => {
-            const existingIds = new Set(prev.map((m) => m.id));
-            const unique = newMsgs.filter((m) => !existingIds.has(m.id));
-            if (unique.length === 0) return prev;
-            const merged = [...prev, ...unique].slice(-200);
-            return merged;
-          });
-
-          const maxTs = Math.max(...newMsgs.map((m) => m.timestamp));
-          if (maxTs > lastTimestamp.current) {
-            lastTimestamp.current = maxTs;
-          }
-        }
-      } catch {
-        // API unreachable — silently ignore
-      }
-    }
-
-    fetchMessages();
-    const interval = setInterval(fetchMessages, POLL_INTERVAL);
-    return () => {
-      isMounted.current = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  // Heartbeat for online count
-  useEffect(() => {
-    async function heartbeat() {
+    async function init() {
       try {
         const addr = walletAddress || "";
-        const url = addr ? `/api/chat/online?heartbeat=${addr}` : "/api/chat/online";
-        const res = await fetch(url);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (isMounted.current) {
-          setOnlineCount(data.online ?? 0);
-        }
-      } catch {
-        // silently ignore
+        const tokenUrl = addr
+          ? `/api/ably-token?address=${addr}`
+          : "/api/ably-token";
+
+        const ably = new Ably.Realtime({
+          authUrl: tokenUrl,
+          autoConnect: true,
+        });
+        ablyRef.current = ably;
+
+        const channel = ably.channels.get(CHANNEL_NAME);
+        channelRef.current = channel;
+
+        // Subscribe to messages
+        channel.subscribe("message", (msg: Ably.Message) => {
+          if (!mountedRef.current) return;
+          const data = msg.data as ChatMessage;
+          if (data?.id && data?.text) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === data.id)) return prev;
+              return [...prev, data].slice(-MAX_MESSAGES);
+            });
+          }
+        });
+
+        // Presence — track online count
+        const updatePresence = async () => {
+          try {
+            const members = await channel.presence.get();
+            if (mountedRef.current) setOnlineCount(members.length);
+          } catch { /* ignore */ }
+        };
+
+        channel.presence.subscribe("enter", updatePresence);
+        channel.presence.subscribe("leave", updatePresence);
+
+        // Enter presence
+        await channel.presence.enter({
+          address: walletAddress || "",
+          username: usernameFromAddress(walletAddress),
+        });
+
+        // Load history
+        try {
+          const history = await channel.history({ limit: 50, direction: "forwards" });
+          if (mountedRef.current && history.items.length > 0) {
+            const hist = history.items
+              .filter((item: Ably.Message) => item.name === "message" && (item.data as ChatMessage)?.id)
+              .map((item: Ably.Message) => item.data as ChatMessage);
+            setMessages(hist.slice(-MAX_MESSAGES));
+          }
+        } catch { /* history might fail on free tier */ }
+
+        await updatePresence();
+      } catch (err) {
+        console.error("Ably init error:", err);
       }
     }
 
-    heartbeat();
-    const interval = setInterval(heartbeat, HEARTBEAT_INTERVAL);
-    return () => clearInterval(interval);
+    init();
+
+    return () => {
+      mountedRef.current = false;
+      if (channelRef.current) {
+        channelRef.current.presence.leave().catch(() => {});
+        channelRef.current.unsubscribe();
+      }
+      if (ablyRef.current) {
+        ablyRef.current.close();
+      }
+      ablyRef.current = null;
+      channelRef.current = null;
+    };
   }, [walletAddress]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed || !channelRef.current) return;
 
-      // Optimistic local insert
-      const username = walletAddress
-        ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-        : "anon";
-      let hash = 0;
-      const seed = walletAddress || "anon";
-      for (let i = 0; i < seed.length; i++) {
-        hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const hue = Math.abs(hash % 360);
-      const color = `hsl(${hue}, 70%, 60%)`;
-
-      const optimistic: ChatMessage = {
-        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        username,
+      const msg: ChatMessage = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        username: usernameFromAddress(walletAddress),
         address: walletAddress || "",
-        color,
-        text: trimmed,
+        color: colorFromAddress(walletAddress),
+        text: trimmed.slice(0, 200),
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, optimistic].slice(-200));
-
-      try {
-        await fetch("/api/chat/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: trimmed, address: walletAddress || "" }),
-        });
-      } catch {
-        // Message stays local if API fails
-      }
+      channelRef.current.publish("message", msg);
     },
     [walletAddress],
   );
