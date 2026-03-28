@@ -43,7 +43,7 @@ const STATIC_ORACLE_WS_URL =
 export default function VideoPlayer({
   vehicleCount: externalVehicleCount,
   isLive = true,
-  cameraName = "CAM-04 PEACE-BRIDGE-N",
+  cameraName = "LIVE CAMERA",
   onCountUpdate,
 }: VideoPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -351,7 +351,7 @@ export default function VideoPlayer({
         <>
           <iframe
             src={YOUTUBE_EMBED_URL}
-            title="Peace Bridge live camera feed"
+            title="Live camera feed"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             style={{

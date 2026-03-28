@@ -8,7 +8,7 @@ const STEPS = [
   {
     num: "01",
     title: "WATCH",
-    desc: "A live traffic camera streams 24/7 on the Peace Bridge",
+    desc: "Live traffic cameras stream 24/7 from real locations worldwide",
   },
   {
     num: "02",

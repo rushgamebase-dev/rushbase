@@ -141,7 +141,7 @@ export default function Header() {
         </div>
         <span style={{ color: "#333" }}>|</span>
         <span className="text-sm font-medium" style={{ color: "#aaa" }}>
-          Peace Bridge — USA/Canada
+          Live Prediction Market
         </span>
       </div>
 

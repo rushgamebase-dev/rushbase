@@ -40,7 +40,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Place Your Prediction",
-    desc: "Over or Under on vehicle count at Peace Bridge.",
+    desc: "Over or Under on vehicle count. New camera each round.",
   },
   {
     step: "03",
@@ -139,6 +139,10 @@ export default function Home() {
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
   const contractState = contractData.state;
   const winningRangeIndex = contractData.winningRangeIndex;
+
+  // Dynamic camera name from contract description (e.g. "Peace Bridge — USA/Canada Border — How many vehicles in 5 min?")
+  const marketDescription = contractData.description || "";
+  const cameraName = marketDescription.split(" — ")[0] || "Live Camera";
 
   const hasActiveMarket = !!marketAddress && !isWaiting;
 
@@ -240,6 +244,7 @@ export default function Home() {
           <VideoPlayer
             vehicleCount={displayCount}
             isLive={hasActiveMarket}
+            cameraName={cameraName}
             onCountUpdate={setLiveCount}
           />
 
