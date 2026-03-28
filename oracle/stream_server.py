@@ -652,7 +652,12 @@ def main():
         cam = load_camera(args.camera)
         stream_url = cam.get("streamUrl", cam.get("imageUrl"))
         cam_lanes = cam.get("lanes")
-        print(f"[Camera] {cam['name']} ({cam['source']}) — {cam['type'].upper()}")
+        # Auto-load linePoints from camera config
+        if not args.line_points and cam.get("linePoints"):
+            args.line_points = cam["linePoints"]
+            args.mode = "line"
+            print(f"[Camera] Line from config: {args.line_points}")
+        print(f"[Camera] {cam['name']} ({cam.get('source','')}) — {cam['type'].upper()}")
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")
 

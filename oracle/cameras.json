@@ -1,6 +1,17 @@
 {
   "cameras": [
     {
+      "id": "netherlands-highway",
+      "name": "Netherlands Highway — Live Traffic",
+      "region": "Netherlands, EU",
+      "source": "Axis Communications",
+      "streamUrl": "https://www.youtube.com/watch?v=Jy1Y9f8NEY0",
+      "type": "youtube",
+      "resolution": "1280x720",
+      "linePoints": "0.667,0.760,0.248,0.659",
+      "notes": "Dutch highway with roundabout, heavy traffic during day"
+    },
+    {
       "id": "peace-bridge",
       "name": "Peace Bridge — USA/Canada Border",
       "region": "Buffalo, NY / Fort Erie, ON",
