@@ -141,7 +141,7 @@ function usernameToColor(name: string): string {
 
 export function useChat(walletAddress?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatFromStorage());
-  const [onlineCount] = useState(() => Math.floor(Math.random() * 50) + 10);
+  const [onlineCount] = useState(0);
 
   // Persist to localStorage on every change
   useEffect(() => {

@@ -2,23 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Eye } from "lucide-react";
-import { useEffect, useState } from "react";
 import { WalletButton } from "@/components/WalletButton";
 
-interface HeaderProps {
-  viewerCount?: number;
-}
-
-export default function Header({ viewerCount = 247 }: HeaderProps) {
-  const [viewers, setViewers] = useState(viewerCount);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setViewers((v) => Math.max(100, v + Math.floor(Math.random() * 5) - 2));
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+export default function Header() {
 
   return (
     <header
@@ -120,20 +106,6 @@ export default function Header({ viewerCount = 247 }: HeaderProps) {
         <span className="text-sm font-medium" style={{ color: "#aaa" }}>
           Peace Bridge — USA/Canada
         </span>
-        <span style={{ color: "#333" }}>|</span>
-        <div className="flex items-center gap-1.5">
-          <Eye size={13} style={{ color: "#666" }} aria-hidden="true" />
-          <span
-            className="text-xs tabular"
-            style={{
-              color: "#666",
-              fontFamily: "monospace",
-            }}
-            aria-label={`${viewers.toLocaleString()} viewers`}
-          >
-            {viewers.toLocaleString()}
-          </span>
-        </div>
       </div>
 
       {/* Right: Wallet */}
