@@ -232,33 +232,8 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         </div>
       )}
 
-      {/* Waiting state — shown when no market is active */}
-      {market.threshold === 0 && market.totalPool === 0 && market.bettors === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center px-4 py-10 gap-3"
-          style={{ borderBottom: "1px solid #1a1a1a" }}
-        >
-          <div
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: "#555",
-              animation: "pulse 2s ease-in-out infinite",
-            }}
-          />
-          <div
-            className="text-sm font-bold tracking-widest text-center"
-            style={{ color: "#555", fontFamily: "monospace" }}
-          >
-            WAITING FOR NEXT ROUND
-          </div>
-          <div
-            className="text-xs text-center"
-            style={{ color: "#333", fontFamily: "monospace" }}
-          >
-            A new market will open shortly
-          </div>
-        </div>
-      ) : (
+      {/* Always show betting interface */}
+      {(
         <>
 
       {/* Question */}
