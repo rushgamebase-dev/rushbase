@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
 import { formatEther } from "viem";
-import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw } from "lucide-react";
+import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ---------------------------------------------------------------------------
@@ -116,25 +116,47 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
   async function handleConnect(optionId: string) {
     setConnectingId(optionId);
 
-    // Find the right wagmi connector
-    let connector = connectors.find((c) => {
-      if (optionId === "coinbaseWallet") return c.id === "coinbaseWallet";
-      // MetaMask and Phantom both use the injected connector
-      return c.id === "injected" || c.type === "injected";
-    });
+    // Detect available wallets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w: any = typeof window !== "undefined" ? window : {};
+    const hasPhantom = !!w.phantom?.ethereum;
+    const hasMetaMask = !!w.ethereum?.isMetaMask;
 
-    if (!connector) {
-      // Fallback: use the first available connector
-      connector = connectors[0];
+    let connector = connectors[0]; // fallback
+
+    if (optionId === "coinbaseWallet") {
+      connector = connectors.find((c) => c.id === "coinbaseWallet") || connector;
+    } else if (optionId === "injected-phantom") {
+      if (hasPhantom) {
+        // Phantom has its own ethereum provider
+        connector = connectors.find((c) => c.id === "injected") || connector;
+        // Switch to Phantom's provider
+        try {
+          if (w.phantom?.ethereum) {
+            await w.phantom.ethereum.request({ method: "eth_requestAccounts" });
+          }
+        } catch {}
+      } else {
+        window.open("https://phantom.app/", "_blank");
+        setConnectingId(null);
+        return;
+      }
+      connector = connectors.find((c) => c.id === "injected") || connector;
+    } else {
+      // MetaMask
+      if (!hasMetaMask) {
+        window.open("https://metamask.io/download/", "_blank");
+        setConnectingId(null);
+        return;
+      }
+      connector = connectors.find((c) => c.id === "injected") || connector;
     }
 
-    if (connector) {
-      try {
-        connect({ connector });
-        onClose();
-      } catch {
-        // Connection cancelled or failed — user sees the modal stays open
-      }
+    try {
+      connect({ connector });
+      onClose();
+    } catch {
+      // Connection cancelled or failed
     }
 
     setConnectingId(null);
@@ -314,6 +336,32 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
       icon: <ExternalLink size={13} />,
       onClick: () => window.open(`https://basescan.org/address/${address}`, "_blank"),
       color: "#aaa",
+    },
+    {
+      label: "Add $RUSH Token",
+      icon: <Plus size={13} />,
+      onClick: async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const wp: any = typeof window !== "undefined" ? window : {};
+          const provider = wp.ethereum;
+          if (provider) {
+            await provider.request({
+              method: "wallet_watchAsset",
+              params: [{
+                type: "ERC20",
+                options: {
+                  address: "0x0000000000000000000000000000000000000000", // Replace with $RUSH token address after Flaunch
+                  symbol: "RUSH",
+                  decimals: 18,
+                  image: "https://rushgame.vip/logo.png",
+                },
+              }],
+            });
+          }
+        } catch {}
+      },
+      color: "#ffd700",
     },
     {
       label: "Switch Wallet",
