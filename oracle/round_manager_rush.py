@@ -121,6 +121,13 @@ MARKET_ABI = [
         "outputs": [{"name": "", "type": "uint256"}],
     },
     {
+        "name": "lockTime",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [{"name": "", "type": "uint256"}],
+    },
+    {
         "name": "poolByRange",
         "type": "function",
         "stateMutability": "view",
@@ -221,8 +228,8 @@ def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     by_id = {c["id"]: c for c in cameras}
     primary_ids = ["peace-bridge"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
-    if len(result) < 2:
-        result = cameras[:2]
+    if not result:
+        result = cameras[:1]
     return result
 
 
@@ -610,16 +617,39 @@ class RushRoundManager:
         log.info("Camera: %s (%s)", cam_name, stream_url)
         log.info("Threshold: %d  (Under %d / Over %d)", threshold, threshold, threshold)
 
-        # ── Step 0: Check for active markets (prevent double-create) ─────────
+        # ── Step 0: Check for active markets (cancel orphans or skip) ─────────
         try:
             factory_read = self.w3_factory_read()
             active = factory_read.functions.getActiveMarkets().call()
             if len(active) > 0:
-                log.warning(
-                    "Active market(s) already exist: %s — skipping round to prevent double-create",
-                    active,
-                )
-                return
+                # Check if these are orphan markets (lock time passed)
+                now = int(time.time())
+                all_orphans = True
+                for addr in active:
+                    try:
+                        orphan_market = self.chain.w3.eth.contract(
+                            address=Web3.to_checksum_address(addr),
+                            abi=MARKET_ABI,
+                        )
+                        market_lock = orphan_market.functions.lockTime().call()
+                        if now < market_lock:
+                            all_orphans = False  # Still within lock window
+                            break
+                    except Exception:
+                        pass
+
+                if all_orphans:
+                    # Cancel all orphan markets
+                    for addr in active:
+                        log.info("Cancelling orphan market: %s", addr)
+                        self.chain.cancel_market(addr)
+                    log.info("Cancelled %d orphan market(s) — proceeding to create new one", len(active))
+                else:
+                    log.warning(
+                        "Active market(s) still within lock window: %s — skipping round",
+                        active,
+                    )
+                    return
         except Exception as exc:
             log.warning("Could not check active markets (proceeding anyway): %s", exc)
 
