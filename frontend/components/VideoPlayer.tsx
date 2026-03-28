@@ -6,6 +6,7 @@ interface VideoPlayerProps {
   vehicleCount: number;
   isLive?: boolean;
   cameraName?: string;
+  onCountUpdate?: (count: number) => void;
 }
 
 interface OracleCountMsg {
@@ -42,6 +43,7 @@ export default function VideoPlayer({
   vehicleCount: externalVehicleCount,
   isLive = true,
   cameraName = "CAM-04 PEACE-BRIDGE-N",
+  onCountUpdate,
 }: VideoPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -135,10 +137,13 @@ export default function VideoPlayer({
           const msg = JSON.parse(event.data) as OracleMsg;
           if (msg.type === "count") {
             setOracleCount(msg.count);
+            onCountUpdate?.(msg.count);
           } else if (msg.type === "init") {
             setOracleCount(msg.count);
+            onCountUpdate?.(msg.count);
           } else if (msg.type === "final") {
             setOracleCount(msg.count);
+            onCountUpdate?.(msg.count);
           }
         } catch {
           // Non-JSON text, ignore

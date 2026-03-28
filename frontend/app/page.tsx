@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import Header from "@/components/Header";
@@ -119,8 +120,12 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 export default function Home() {
   const { marketAddress, isDemoMode, isWaiting } = useActiveMarket();
   const contractData = useMarketContract(marketAddress);
+  const [liveCount, setLiveCount] = useState(0);
 
   const market = buildMarketFromContract(contractData, isWaiting);
+
+  // Use live oracle count if available, otherwise contract data
+  const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
   const contractState = contractData.state;
@@ -196,7 +201,7 @@ export default function Home() {
                     textShadow: "0 0 16px rgba(0,255,136,0.4)",
                   }}
                 >
-                  {String(market.vehicleCount).padStart(3, "0")}
+                  {String(displayCount).padStart(3, "0")}
                 </span>
                 <span
                   style={{
@@ -214,8 +219,9 @@ export default function Home() {
           </motion.div>
 
           <VideoPlayer
-            vehicleCount={market.vehicleCount}
+            vehicleCount={displayCount}
             isLive={hasActiveMarket}
+            onCountUpdate={setLiveCount}
           />
 
           {/* Countdown + count row */}
@@ -260,7 +266,7 @@ export default function Home() {
                   textShadow: hasActiveMarket ? "0 0 16px rgba(0,255,136,0.4)" : "none",
                 }}
               >
-                {hasActiveMarket ? String(market.vehicleCount).padStart(3, "0") : "---"}
+                {hasActiveMarket ? String(displayCount).padStart(3, "0") : "---"}
               </div>
               <div className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
                 {hasActiveMarket && market.threshold > 0 ? (
@@ -270,13 +276,13 @@ export default function Home() {
                     {" · "}
                     <span
                       style={{
-                        color: market.vehicleCount > market.threshold ? "#00ff88" : "#ff4444",
+                        color: displayCount > market.threshold ? "#00ff88" : "#ff4444",
                         fontWeight: 700,
                       }}
                     >
-                      {market.vehicleCount > market.threshold
-                        ? `+${market.vehicleCount - market.threshold} over`
-                        : `${market.threshold - market.vehicleCount} to go`}
+                      {displayCount > market.threshold
+                        ? `+${displayCount - market.threshold} over`
+                        : `${market.threshold - displayCount} to go`}
                     </span>
                   </>
                 ) : (

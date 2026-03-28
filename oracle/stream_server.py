@@ -545,9 +545,7 @@ class StreamServer:
 
                 frame_idx += 1
 
-                # Skip 1 frame to drain buffer (3090 Ti handles the rest)
-                if frame_idx % 2 != 0:
-                    continue
+                # No skip — 3090 Ti processes every frame for smooth video
 
                 # Resize
                 h, w = frame.shape[:2]
