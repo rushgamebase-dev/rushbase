@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
 import { formatEther } from "viem";
-import { Copy, LogOut, ExternalLink, ChevronDown, X } from "lucide-react";
+import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ---------------------------------------------------------------------------
@@ -279,9 +279,10 @@ interface AccountDropdownProps {
   address: `0x${string}`;
   onDisconnect: () => void;
   onClose: () => void;
+  onSwitchWallet: () => void;
 }
 
-function AccountDropdown({ address, onDisconnect, onClose }: AccountDropdownProps) {
+function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: AccountDropdownProps) {
   const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -312,6 +313,12 @@ function AccountDropdown({ address, onDisconnect, onClose }: AccountDropdownProp
       label: "View on Basescan",
       icon: <ExternalLink size={13} />,
       onClick: () => window.open(`https://basescan.org/address/${address}`, "_blank"),
+      color: "#aaa",
+    },
+    {
+      label: "Switch Wallet",
+      icon: <RefreshCw size={13} />,
+      onClick: () => { onSwitchWallet(); onClose(); },
       color: "#aaa",
     },
     {
@@ -377,6 +384,11 @@ export function WalletButton() {
   const openModal = useCallback(() => setModalOpen(true), []);
   const closeModal = useCallback(() => setModalOpen(false), []);
   const closeDropdown = useCallback(() => setDropdownOpen(false), []);
+
+  const handleSwitchWallet = useCallback(() => {
+    disconnect();
+    setTimeout(() => setModalOpen(true), 150);
+  }, [disconnect]);
 
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -459,6 +471,7 @@ export function WalletButton() {
               address={address!}
               onDisconnect={disconnect}
               onClose={closeDropdown}
+              onSwitchWallet={handleSwitchWallet}
             />
           )}
         </AnimatePresence>

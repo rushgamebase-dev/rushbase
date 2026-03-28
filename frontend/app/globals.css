@@ -19,6 +19,7 @@
 
 html {
   color-scheme: dark;
+  overflow-x: hidden;
 }
 
 body {
@@ -27,6 +28,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* Do NOT set overflow-y here — let the page scroll naturally */
 }
 
 /* Custom scrollbar */

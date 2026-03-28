@@ -1,6 +1,5 @@
 "use client";
 
-import { useLiveMarket } from "@/lib/mock";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import Header from "@/components/Header";
@@ -14,14 +13,15 @@ import ClaimBanner from "@/components/ClaimBanner";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Shield, Zap, Brain, Coins } from "lucide-react";
+import type { LiveMarket } from "@/lib/mock";
 
-// ─── Platform stats (mock values) ─────────────────────────────────────────────
+// ─── Platform stats (real values from contracts or zero) ─────────────────────
 
 const PLATFORM_STAT_CARDS = [
-  { label: "Total Volume", value: "127.4 ETH", color: "#00ff88" },
-  { label: "Markets Resolved", value: "1,247", color: "#ffd700" },
-  { label: "Distributed to Holders", value: "3.24 ETH", color: "#aa88ff" },
-  { label: "Unique Bettors", value: "892", color: "#00aaff" },
+  { label: "Total Volume", value: "0.00 ETH", color: "#00ff88" },
+  { label: "Markets Resolved", value: "0", color: "#ffd700" },
+  { label: "Distributed to Holders", value: "0.00 ETH", color: "#aa88ff" },
+  { label: "Unique Bettors", value: "0", color: "#00aaff" },
 ];
 
 const HOW_IT_WORKS = [
@@ -78,27 +78,66 @@ const fadeUp = {
   show: (delay = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay } }),
 };
 
+// ─── Build LiveMarket from contract data ──────────────────────────────────────
+
+function buildMarketFromContract(contractData: ReturnType<typeof useMarketContract>, isWaiting: boolean): LiveMarket {
+  const totalPoolNum = parseFloat(contractData.totalPool) || 0;
+  const overPool = contractData.poolByRange[1] ? parseFloat(contractData.poolByRange[1]) : 0;
+  const underPool = contractData.poolByRange[0] ? parseFloat(contractData.poolByRange[0]) : 0;
+  const total = overPool + underPool;
+  const overPct = total > 0 ? Math.round((overPool / total) * 100) : 0;
+  const underPct = total > 0 ? 100 - overPct : 0;
+  const net = total > 0 ? total * 0.95 : 0;
+  const overOdds = overPool > 0 ? parseFloat((net / overPool).toFixed(2)) : 0;
+  const underOdds = underPool > 0 ? parseFloat((net / underPool).toFixed(2)) : 0;
+
+  const stateMap: Record<number, LiveMarket["status"]> = { 0: "open", 1: "locked", 2: "resolved" };
+  const status = isWaiting ? "open" : (stateMap[contractData.state] ?? "open");
+
+  return {
+    roundId: 0,
+    status,
+    vehicleCount: contractData.actualCarCount,
+    threshold: contractData.ranges[0] ? Number(contractData.ranges[0].maxCars) : 0,
+    timeLeft: 0,
+    totalDuration: 300,
+    overPool,
+    underPool,
+    totalPool: totalPoolNum,
+    overOdds,
+    underOdds,
+    overPct,
+    underPct,
+    bettors: contractData.totalBettors,
+    recentBets: [],
+    roundHistory: [],
+  };
+}
+
 // ─── Home page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const market = useLiveMarket();
-  const { marketAddress, isDemoMode } = useActiveMarket();
+  const { marketAddress, isDemoMode, isWaiting } = useActiveMarket();
   const contractData = useMarketContract(marketAddress);
+
+  const market = buildMarketFromContract(contractData, isWaiting);
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
   const contractState = contractData.state;
 
+  const hasActiveMarket = !!marketAddress && !isWaiting;
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0" }}>
-      <Header viewerCount={247} />
+    <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
+      <Header />
       <StatsBar />
 
       {/* Main 3-column layout */}
-      <div className="flex-1 flex min-h-0 flex-col lg:flex-row">
+      <div className="flex flex-col lg:flex-row" style={{ flex: "1 1 auto" }}>
 
         {/* Left: Video + content (55%) */}
         <div
-          className="flex flex-col p-3 gap-3 overflow-y-auto lg:overflow-visible"
+          className="flex flex-col p-3 gap-3"
           style={{
             flex: "0 0 55%",
             maxWidth: "100%",
@@ -136,7 +175,7 @@ export default function Home() {
 
           <VideoPlayer
             vehicleCount={market.vehicleCount}
-            isLive={market.status === "open" || market.status === "locked"}
+            isLive={hasActiveMarket}
           />
 
           {/* Countdown + count row */}
@@ -144,13 +183,28 @@ export default function Home() {
             className="grid grid-cols-2 gap-4 p-4 rounded"
             style={{ background: "#111", border: "1px solid #1a1a1a" }}
           >
-            <Countdown
-              lockTime={lockTime > 0 ? lockTime : undefined}
-              timeLeft={market.timeLeft}
-              totalDuration={market.totalDuration}
-              status={market.status}
-              roundNumber={market.roundId}
-            />
+            {hasActiveMarket ? (
+              <Countdown
+                lockTime={lockTime > 0 ? lockTime : undefined}
+                status={market.status}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{
+                    background: "#555",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                />
+                <span
+                  className="text-sm font-bold"
+                  style={{ color: "#555", fontFamily: "monospace" }}
+                >
+                  Waiting for next round...
+                </span>
+              </div>
+            )}
             <div className="flex flex-col justify-center gap-1">
               <div
                 className="text-xs font-bold tracking-widest"
@@ -161,27 +215,33 @@ export default function Home() {
               <div
                 className="text-3xl font-black tabular"
                 style={{
-                  color: "#00ff88",
+                  color: hasActiveMarket ? "#00ff88" : "#333",
                   fontFamily: "monospace",
-                  textShadow: "0 0 16px rgba(0,255,136,0.4)",
+                  textShadow: hasActiveMarket ? "0 0 16px rgba(0,255,136,0.4)" : "none",
                 }}
               >
-                {String(market.vehicleCount).padStart(3, "0")}
+                {hasActiveMarket ? String(market.vehicleCount).padStart(3, "0") : "---"}
               </div>
               <div className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
-                threshold:{" "}
-                <span style={{ color: "#ffd700" }}>{market.threshold}</span>
-                {" · "}
-                <span
-                  style={{
-                    color: market.vehicleCount > market.threshold ? "#00ff88" : "#ff4444",
-                    fontWeight: 700,
-                  }}
-                >
-                  {market.vehicleCount > market.threshold
-                    ? `+${market.vehicleCount - market.threshold} over`
-                    : `${market.threshold - market.vehicleCount} to go`}
-                </span>
+                {hasActiveMarket && market.threshold > 0 ? (
+                  <>
+                    threshold:{" "}
+                    <span style={{ color: "#ffd700" }}>{market.threshold}</span>
+                    {" · "}
+                    <span
+                      style={{
+                        color: market.vehicleCount > market.threshold ? "#00ff88" : "#ff4444",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {market.vehicleCount > market.threshold
+                        ? `+${market.vehicleCount - market.threshold} over`
+                        : `${market.threshold - market.vehicleCount} to go`}
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ color: "#333" }}>--</span>
+                )}
               </div>
             </div>
           </div>
@@ -240,7 +300,7 @@ export default function Home() {
             className="p-4 rounded"
             style={{ background: "#111", border: "1px solid #1a1a1a" }}
           >
-            <RoundHistory history={market.roundHistory} />
+            <RoundHistory history={[]} />
           </div>
 
           {/* Platform Stats */}
@@ -273,22 +333,27 @@ export default function Home() {
 
         {/* Center: Betting panel (25%) */}
         <div
-          className="flex flex-col"
-          style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0 }}
+          className="flex flex-col lg:sticky lg:top-0 lg:self-start"
+          style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
-          <BettingPanel market={market} marketAddress={marketAddress} />
+          <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
+            <BettingPanel market={market} marketAddress={marketAddress} />
+          </div>
         </div>
 
         {/* Right: Chat (20%) */}
         <div
-          className="hidden lg:flex flex-col"
+          className="hidden lg:flex flex-col lg:sticky lg:top-0 lg:self-start"
           style={{
             flex: "0 0 20%",
             maxWidth: "20%",
             borderLeft: "1px solid #1a1a1a",
+            maxHeight: "100vh",
           }}
         >
-          <Chat />
+          <div className="flex flex-col h-full overflow-hidden" style={{ maxHeight: "100vh" }}>
+            <Chat />
+          </div>
         </div>
       </div>
     </div>
@@ -418,13 +483,11 @@ function WhyRush() {
 
 function TilesPreview() {
   const TOTAL_TILES = 100;
-  const OWNED = 34;
-  const DISTRIBUTED = 2.47;
 
   const miniTiles = Array.from({ length: 25 }, (_, i) => ({
     id: i,
-    owned: i < 8,
-    mine: i === 2 || i === 7,
+    owned: false,
+    mine: false,
   }));
 
   return (
@@ -466,8 +529,8 @@ function TilesPreview() {
       <div className="flex gap-4 mb-3">
         {[
           { label: "TOTAL TILES", value: String(TOTAL_TILES) },
-          { label: "OWNED", value: String(OWNED) },
-          { label: "DISTRIBUTED", value: `${DISTRIBUTED} ETH` },
+          { label: "OWNED", value: "0" },
+          { label: "DISTRIBUTED", value: "0.00 ETH" },
         ].map((s) => (
           <div key={s.label}>
             <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>{s.label}</div>
@@ -486,8 +549,8 @@ function TilesPreview() {
             key={t.id}
             className="aspect-square rounded-sm"
             style={{
-              background: t.mine ? "rgba(0,255,136,0.5)" : t.owned ? "rgba(255,215,0,0.25)" : "#1a1a1a",
-              border: t.mine ? "1px solid rgba(0,255,136,0.7)" : t.owned ? "1px solid rgba(255,215,0,0.3)" : "1px solid #222",
+              background: "#1a1a1a",
+              border: "1px solid #222",
             }}
           />
         ))}

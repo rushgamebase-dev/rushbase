@@ -17,12 +17,21 @@ export default function RoundHistory({ history }: RoundHistoryProps) {
           className="text-xs font-bold tracking-widest"
           style={{ color: "#666", fontFamily: "monospace" }}
         >
-          LAST {history.length} ROUNDS
+          {history.length > 0 ? `LAST ${history.length} ROUNDS` : "ROUND HISTORY"}
         </span>
         <span className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
           GREEN = OVER / RED = UNDER
         </span>
       </div>
+
+      {history.length === 0 && (
+        <div
+          className="text-xs py-3 text-center"
+          style={{ color: "#444", fontFamily: "monospace" }}
+        >
+          No rounds yet
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         {history.map((round) => {

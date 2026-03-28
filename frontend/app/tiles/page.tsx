@@ -13,32 +13,12 @@ import { formatEther } from "viem";
 import { BASE_MAINNET, RUSH_TILES_ADDRESS } from "@/lib/contracts";
 import type { Tile } from "@/lib/mock";
 
-// ─── Mock data for sidebar ────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const RUSH_TOKEN_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const CREATOR_ADDRESS = "0x4c385830c2E241EfeEd070Eb92606B6AedeDA277";
 const UNISWAP_LINK = "https://app.uniswap.org/#/swap?outputCurrency=" + RUSH_TOKEN_ADDRESS + "&chain=base";
 const BASESCAN_CREATOR = `https://basescan.org/address/${CREATOR_ADDRESS}`;
-
-const MOCK_REWARDS = [
-  { id: 1, ago: "3m ago", amount: "+0.005 ETH", addr: "0x4c38...A277" },
-  { id: 2, ago: "11m ago", amount: "+0.012 ETH", addr: "0xface...10fe" },
-  { id: 3, ago: "24m ago", amount: "+0.008 ETH", addr: "0xdead...cdef" },
-  { id: 4, ago: "38m ago", amount: "+0.003 ETH", addr: "0xb16b...1234" },
-  { id: 5, ago: "52m ago", amount: "+0.019 ETH", addr: "0xc0ff...ba98" },
-];
-
-const MOCK_LEADERBOARD = [
-  { rank: 1, addr: "0x4c38...A277", seats: 8 },
-  { rank: 2, addr: "0xface...10fe", seats: 6 },
-  { rank: 3, addr: "0xdead...cdef", seats: 5 },
-  { rank: 4, addr: "0xb16b...1234", seats: 4 },
-  { rank: 5, addr: "0xc0ff...ba98", seats: 3 },
-];
-
-const FLOOR_PRICE = 0.01;
-const FLOOR_24H_CHANGE = +12.5;
-const TOTAL_REWARDS = 3.24;
 const TOTAL_TILES = 100;
 
 // ─── Copy button helper ───────────────────────────────────────────────────────
@@ -164,26 +144,11 @@ function LeftSidebar() {
         >
           LATEST REWARDS
         </div>
-        <div className="flex flex-col gap-1.5">
-          {MOCK_REWARDS.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between px-2 py-1.5 rounded"
-              style={{ background: "#111", border: "1px solid #1a1a1a" }}
-            >
-              <div className="flex flex-col">
-                <span className="text-xs" style={{ color: "#00ff88", fontFamily: "monospace", fontWeight: 700 }}>
-                  {r.amount}
-                </span>
-                <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
-                  {r.addr}
-                </span>
-              </div>
-              <span className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
-                {r.ago}
-              </span>
-            </div>
-          ))}
+        <div
+          className="px-3 py-4 rounded text-center text-xs"
+          style={{ background: "#111", border: "1px solid #1a1a1a", color: "#444", fontFamily: "monospace" }}
+        >
+          No rewards yet
         </div>
       </div>
     </aside>
@@ -203,22 +168,6 @@ function RightSidebar() {
         background: "#0d0d0d",
       }}
     >
-      {/* Buyout CTA */}
-      <button
-        className="w-full py-3 rounded font-black text-sm tracking-wider transition-all"
-        style={{
-          background: "rgba(0,255,136,0.15)",
-          border: "1px solid rgba(0,255,136,0.45)",
-          color: "#00ff88",
-          fontFamily: "monospace",
-          cursor: "pointer",
-        }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.25)")}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.15)")}
-      >
-        BUYOUT — {(FLOOR_PRICE * 1.1).toFixed(3)} ETH
-      </button>
-
       {/* Floor Price card */}
       <div
         className="p-4 rounded-lg"
@@ -227,19 +176,11 @@ function RightSidebar() {
         <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
           FLOOR PRICE
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-black" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-            {FLOOR_PRICE.toFixed(2)} ETH
-          </span>
+        <div className="text-2xl font-black" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
+          0.01 ETH
         </div>
-        <div
-          className="text-xs mt-1 font-bold"
-          style={{
-            color: FLOOR_24H_CHANGE >= 0 ? "#00ff88" : "#ff4444",
-            fontFamily: "monospace",
-          }}
-        >
-          {FLOOR_24H_CHANGE >= 0 ? "+" : ""}{FLOOR_24H_CHANGE.toFixed(1)}% (24h)
+        <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
+          base claim price
         </div>
       </div>
 
@@ -252,7 +193,7 @@ function RightSidebar() {
           TOTAL REWARDS
         </div>
         <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-          {TOTAL_REWARDS.toFixed(2)} ETH
+          0.00 ETH
         </div>
         <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
           distributed all time
@@ -264,38 +205,11 @@ function RightSidebar() {
         <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
           TOP SEAT HOLDERS
         </div>
-        <div className="flex flex-col gap-1">
-          {MOCK_LEADERBOARD.map((entry) => {
-            const pct = ((entry.seats / TOTAL_TILES) * 100).toFixed(0);
-            return (
-              <div
-                key={entry.rank}
-                className="flex items-center gap-2 px-3 py-2 rounded"
-                style={{ background: "#111", border: "1px solid #1a1a1a" }}
-              >
-                <span
-                  className="text-xs font-black w-4 shrink-0 tabular"
-                  style={{
-                    color: entry.rank === 1 ? "#ffd700" : entry.rank === 2 ? "#aaa" : entry.rank === 3 ? "#cd7f32" : "#555",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  #{entry.rank}
-                </span>
-                <span className="text-xs flex-1 truncate" style={{ color: "#888", fontFamily: "monospace" }}>
-                  {entry.addr}
-                </span>
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="text-xs font-bold" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-                    {entry.seats} seats
-                  </span>
-                  <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
-                    {pct}% fees
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        <div
+          className="px-3 py-4 rounded text-center text-xs"
+          style={{ background: "#111", border: "1px solid #1a1a1a", color: "#444", fontFamily: "monospace" }}
+        >
+          No holders yet
         </div>
       </div>
     </aside>

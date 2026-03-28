@@ -170,6 +170,14 @@ export default function ProfilePage({ params }: PageProps) {
             <span className="text-right">TX</span>
           </div>
 
+          {profile.bets.length === 0 && (
+            <div
+              className="px-4 py-8 text-center text-xs"
+              style={{ color: "#444", fontFamily: "monospace", background: "#111" }}
+            >
+              No predictions yet
+            </div>
+          )}
           {profile.bets.map((bet: ProfileBet, i: number) => (
             <div
               key={bet.id}

@@ -8,10 +8,10 @@ interface StatsBarProps {
 }
 
 export default function StatsBar({
-  volume24h = 12.5,
-  totalDistributed = 3.2,
-  activeBettors = 85,
-  marketsResolved = 1247,
+  volume24h = 0,
+  totalDistributed = 0,
+  activeBettors = 0,
+  marketsResolved = 0,
 }: StatsBarProps) {
   const stats = [
     { label: "VOL 24H", value: `${volume24h.toFixed(1)} ETH`, color: "#00ff88" },
