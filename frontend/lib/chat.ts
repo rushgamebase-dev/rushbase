@@ -32,7 +32,7 @@ export function useChat(walletAddress?: string) {
       try {
         const url = lastTimestamp.current > 0
           ? `/api/chat/messages?after=${lastTimestamp.current}&limit=50`
-          : `/api/chat/messages?limit=100`;
+          : `/api/chat/messages?limit=50`;
 
         const res = await fetch(url);
         if (!res.ok) return;

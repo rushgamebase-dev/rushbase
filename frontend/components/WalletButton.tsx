@@ -35,24 +35,31 @@ function MetaMaskIcon({ size = 20 }: { size?: number }) {
 
 function PhantomIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="40" height="40" rx="8" fill="#AB9FF2"/>
-      <path d="M33.5 20c0 7.456-6.044 13.5-13.5 13.5S6.5 27.456 6.5 20 12.544 6.5 20 6.5 33.5 12.544 33.5 20z" fill="#fff"/>
-      <path d="M28 20.5c0 4.142-3.358 7.5-7.5 7.5S13 24.642 13 20.5s3.358-7.5 7.5-7.5 7.5 3.358 7.5 7.5z" fill="#AB9FF2"/>
-      <circle cx="17.5" cy="19.5" r="2.5" fill="#fff"/>
-      <circle cx="22.5" cy="19.5" r="2.5" fill="#fff"/>
-      <circle cx="17.5" cy="19.5" r="1.5" fill="#1C1C28"/>
-      <circle cx="22.5" cy="19.5" r="1.5" fill="#1C1C28"/>
+    <svg width={size} height={size} viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="128" height="128" rx="26" fill="url(#phantom-grad)"/>
+      <path d="M110.584 64.914H99.142C99.142 41.064 79.685 21.607 55.835 21.607C32.318 21.607 13.07 40.509 12.578 63.893C12.074 87.845 31.478 108.393 55.429 108.393H58.572C79.883 108.393 110.584 88.095 110.584 64.914Z" fill="url(#phantom-grad2)"/>
+      <circle cx="44.336" cy="57.393" r="7.179" fill="#fff"/>
+      <circle cx="73.107" cy="57.393" r="7.179" fill="#fff"/>
+      <defs>
+        <linearGradient id="phantom-grad" x1="64" y1="0" x2="64" y2="128" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#534BB1"/>
+          <stop offset="1" stopColor="#551BF9"/>
+        </linearGradient>
+        <linearGradient id="phantom-grad2" x1="61.581" y1="21.607" x2="61.581" y2="108.393" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fff"/>
+          <stop offset="1" stopColor="#fff" stopOpacity=".82"/>
+        </linearGradient>
+      </defs>
     </svg>
   );
 }
 
 function CoinbaseIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="40" height="40" rx="8" fill="#0052FF"/>
-      <path d="M20 8C13.373 8 8 13.373 8 20s5.373 12 12 12 12-5.373 12-12S26.627 8 20 8z" fill="#fff"/>
-      <path d="M17 16h6c.553 0 1 .447 1 1v6c0 .553-.447 1-1 1h-6c-.553 0-1-.447-1-1v-6c0-.553.447-1 1-1z" fill="#0052FF"/>
+    <svg width={size} height={size} viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="128" height="128" rx="26" fill="#0052FF"/>
+      <circle cx="64" cy="64" r="42" fill="#fff"/>
+      <rect x="48" y="48" width="32" height="32" rx="6" fill="#0052FF"/>
     </svg>
   );
 }
@@ -173,7 +180,7 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-start pt-20 md:items-center md:pt-0 justify-center p-4 overflow-y-auto"
             style={{ background: "rgba(0,0,0,0.75)" }}
             onClick={(e) => {
               if (e.target === e.currentTarget) onClose();
