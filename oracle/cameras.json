@@ -20,21 +20,7 @@
       "type": "youtube",
       "resolution": "854x480",
       "primary": true,
-      "lanes": [
-        {
-          "name": "To Canada (left)",
-          "direction": "away",
-          "zone": [0.15, 0.10, 0.48, 0.10, 0.48, 0.95, 0.15, 0.95],
-          "line": "0.15,0.30,0.48,0.30"
-        },
-        {
-          "name": "To USA (right)",
-          "direction": "toward",
-          "zone": [0.52, 0.10, 0.85, 0.10, 0.85, 0.95, 0.52, 0.95],
-          "line": "0.52,0.65,0.85,0.65"
-        }
-      ],
-      "notes": "Ponte reta, 2 faixas: esquerda pro Canada, direita pros EUA"
+      "notes": "3 lanes: 1 to Canada (left), 2 to USA (center+right). UID mode — no lines, counts by persistent track ID (5+ frames). More robust for this frontal bridge view."
     },
     {
       "id": "peace-bridge-qew",

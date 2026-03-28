@@ -56,9 +56,9 @@ class VehicleCounter:
     - Never recounts same ID
     """
 
-    def __init__(self, model_name='yolov8x.pt', confidence=0.15,
+    def __init__(self, model_name='yolov8x.pt', confidence=0.20,
                  line_position=0.45, line_angle=10, line_points=None,
-                 count_mode='line', min_frames=5, lanes=None, **_kwargs):
+                 count_mode='line', min_frames=8, lanes=None, **_kwargs):
         self.count_mode = count_mode
         self.min_frames = min_frames
         self.seen_frames = {}
@@ -280,17 +280,35 @@ class VehicleCounter:
                             self.lanes[0]["line_end"][0], self.lanes[0]["line_end"][1]) if self.lanes else 0)
 
             elif self.count_mode == 'uid':
-                # ─── Unique ID mode: count every vehicle seen 5+ frames ───
+                # ─── Unique ID mode: count every vehicle seen min_frames+ ───
+                # Uses bottom-center anchor and tracks movement direction
+                # to filter out stationary/phantom detections.
                 for i in range(len(detections)):
                     tid = detections.tracker_id[i]
                     if tid is None:
                         continue
+                    x1, y1, x2, y2 = detections.xyxy[i]
+                    # Bottom-center = better ground-plane anchor than centroid
+                    anchor_x = int((x1 + x2) / 2)
+                    anchor_y = int(y2)
                     cls = detections.class_id[i] if detections.class_id is not None else 2
+
                     self.seen_frames[tid] = self.seen_frames.get(tid, 0) + 1
+
+                    # Track position history for direction validation
+                    if tid not in self.prev_pos:
+                        self.prev_pos[tid] = (anchor_x, anchor_y)
+
                     if tid not in self.counted_ids and self.seen_frames[tid] >= self.min_frames:
-                        self.counted_ids.add(tid)
-                        self.total_count += 1
-                        self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                        # Check that the vehicle actually moved (not a parked/phantom detection)
+                        first_pos = self.prev_pos[tid]
+                        dx = abs(anchor_x - first_pos[0])
+                        dy = abs(anchor_y - first_pos[1])
+                        if dx + dy >= 15:  # must have moved at least 15px total
+                            self.counted_ids.add(tid)
+                            self.total_count += 1
+                            self.counted_number[tid] = self.total_count
+                            self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
             else:
                 # ─── Line crossing mode ───
                 for i in range(len(detections)):
