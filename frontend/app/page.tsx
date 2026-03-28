@@ -74,7 +74,6 @@ const WHY_RUSH = [
 
 const BUILT_WITH = [
   { label: "Built on Base" },
-  { label: "$RUSH on Uniswap" },
   { label: "Powered by AI" },
 ];
 
@@ -87,7 +86,7 @@ const fadeUp = {
 
 // ─── Build LiveMarket from contract data ──────────────────────────────────────
 
-function buildMarketFromContract(contractData: ReturnType<typeof useMarketContract>, isWaiting: boolean): LiveMarket {
+function buildMarketFromContract(contractData: ReturnType<typeof useMarketContract>, isWaiting: boolean, marketCount: number): LiveMarket {
   const totalPoolNum = parseFloat(contractData.totalPool) || 0;
   const overPool = contractData.poolByRange[1] ? parseFloat(contractData.poolByRange[1]) : 0;
   const underPool = contractData.poolByRange[0] ? parseFloat(contractData.poolByRange[0]) : 0;
@@ -102,7 +101,7 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
   const status = isWaiting ? "open" : (stateMap[contractData.state] ?? "open");
 
   return {
-    roundId: 0,
+    roundId: marketCount,
     status,
     vehicleCount: contractData.actualCarCount,
     threshold: contractData.ranges[0] ? Number(contractData.ranges[0].maxCars) : 0,
@@ -124,14 +123,14 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 // ─── Home page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { marketAddress, isDemoMode, isWaiting } = useActiveMarket();
+  const { marketAddress, isDemoMode, isWaiting, marketCount } = useActiveMarket();
   const contractData = useMarketContract(marketAddress);
   const [liveCount, setLiveCount] = useState(0);
   const { stats } = useStats();
   const { history: roundHistory } = useRoundHistory();
   const { isConnected } = useAccount();
 
-  const market = buildMarketFromContract(contractData, isWaiting);
+  const market = buildMarketFromContract(contractData, isWaiting, marketCount);
 
   // Use live oracle count if available, otherwise contract data
   const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);

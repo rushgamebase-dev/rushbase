@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { Copy, Check, ExternalLink, X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import TilesGrid from "@/components/TilesGrid";
@@ -15,39 +15,11 @@ import type { Tile } from "@/lib/mock";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const RUSH_TOKEN_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const CREATOR_ADDRESS = "0x4c385830c2E241EfeEd070Eb92606B6AedeDA277";
-const UNISWAP_LINK = "https://app.uniswap.org/#/swap?outputCurrency=" + RUSH_TOKEN_ADDRESS + "&chain=base";
 const BASESCAN_CREATOR = `https://basescan.org/address/${CREATOR_ADDRESS}`;
 const TOTAL_TILES = 100;
 
-// ─── Copy button helper ───────────────────────────────────────────────────────
-
-function CopyButton({ text, label }: { text: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }, [text]);
-  return (
-    <button
-      onClick={handleCopy}
-      className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all"
-      style={{
-        background: copied ? "rgba(0,255,136,0.12)" : "rgba(255,255,255,0.05)",
-        border: `1px solid ${copied ? "rgba(0,255,136,0.3)" : "#2a2a2a"}`,
-        color: copied ? "#00ff88" : "#666",
-        fontFamily: "monospace",
-        cursor: "pointer",
-      }}
-      aria-label={`Copy ${label ?? text}`}
-    >
-      {copied ? <Check size={11} /> : <Copy size={11} />}
-      {copied ? "Copied" : "Copy"}
-    </button>
-  );
-}
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 // ─── Left Sidebar ─────────────────────────────────────────────────────────────
 
@@ -80,7 +52,7 @@ function LeftSidebar() {
           </span>
         </div>
 
-        {/* $RUSH token row */}
+        {/* $RUSH token — coming soon */}
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className="text-sm font-bold"
@@ -88,12 +60,10 @@ function LeftSidebar() {
           >
             $RUSH
           </span>
-          <CopyButton text={RUSH_TOKEN_ADDRESS} label="$RUSH token address" />
+          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "#1a1a1a", color: "#555", fontFamily: "monospace" }}>
+            Coming Soon
+          </span>
         </div>
-
-        <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
-          Rush Game
-        </span>
 
         {/* Creator */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -114,27 +84,6 @@ function LeftSidebar() {
           </a>
         </div>
       </div>
-
-      {/* Trade button */}
-      <a
-        href={UNISWAP_LINK}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 py-2.5 rounded font-bold text-sm transition-all"
-        style={{
-          background: "rgba(0,255,136,0.12)",
-          border: "1px solid rgba(0,255,136,0.35)",
-          color: "#00ff88",
-          fontFamily: "monospace",
-          letterSpacing: "0.05em",
-          textDecoration: "none",
-        }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.2)")}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.12)")}
-      >
-        <ExternalLink size={14} />
-        Trade on Uniswap
-      </a>
 
       {/* Latest Rewards feed */}
       <div>

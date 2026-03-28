@@ -27,11 +27,23 @@ export function useActiveMarket() {
     },
   });
 
+  const { data: marketCountData } = useReadContract({
+    address: FACTORY_ADDRESS || undefined,
+    abi: FACTORY_ABI,
+    functionName: "getMarketCount",
+    query: {
+      enabled,
+      refetchInterval: 30_000,
+    },
+  });
+
   const activeMarkets = (data as `0x${string}`[] | undefined) ?? [];
   const marketAddress = activeMarkets.length > 0 ? activeMarkets[0] : null;
 
   // "waiting" = factory is real, query has resolved, but no active market yet
   const isWaiting = !IS_DEMO_MODE && !isLoading && activeMarkets.length === 0;
+
+  const marketCount = marketCountData !== undefined ? Number(marketCountData as bigint) : 0;
 
   return {
     marketAddress,
@@ -42,5 +54,7 @@ export function useActiveMarket() {
     isDemoMode: IS_DEMO_MODE,
     /** True when the factory is deployed but no round is currently active. */
     isWaiting,
+    /** Total number of markets ever created — use as roundId. */
+    marketCount,
   };
 }

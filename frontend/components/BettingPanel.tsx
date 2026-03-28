@@ -232,6 +232,35 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         </div>
       )}
 
+      {/* Waiting state — shown when no market is active */}
+      {market.threshold === 0 && market.totalPool === 0 && market.bettors === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center px-4 py-10 gap-3"
+          style={{ borderBottom: "1px solid #1a1a1a" }}
+        >
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{
+              background: "#555",
+              animation: "pulse 2s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="text-sm font-bold tracking-widest text-center"
+            style={{ color: "#555", fontFamily: "monospace" }}
+          >
+            WAITING FOR NEXT ROUND
+          </div>
+          <div
+            className="text-xs text-center"
+            style={{ color: "#333", fontFamily: "monospace" }}
+          >
+            A new market will open shortly
+          </div>
+        </div>
+      ) : (
+        <>
+
       {/* Question */}
       <div
         className="px-4 py-3 shrink-0"
@@ -284,10 +313,10 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 className={`text-lg font-black tabular ${overOddsFlash ? "odds-flash" : ""}`}
                 style={{ color: "#00ff88", fontFamily: "monospace" }}
               >
-                {market.overOdds.toFixed(2)}x
+                {market.overOdds > 0 ? `${market.overOdds.toFixed(2)}x` : "—"}
               </div>
               <div className="text-xs" style={{ color: "#555" }}>
-                {formatEth(market.overPool)} ETH
+                {market.overPool > 0 ? `${formatEth(market.overPool)} ETH` : "No bets yet"}
               </div>
             </div>
           </div>
@@ -337,10 +366,10 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 className={`text-lg font-black tabular ${underOddsFlash ? "odds-flash" : ""}`}
                 style={{ color: "#ff4444", fontFamily: "monospace" }}
               >
-                {market.underOdds.toFixed(2)}x
+                {market.underOdds > 0 ? `${market.underOdds.toFixed(2)}x` : "—"}
               </div>
               <div className="text-xs" style={{ color: "#555" }}>
-                {formatEth(market.underPool)} ETH
+                {market.underPool > 0 ? `${formatEth(market.underPool)} ETH` : "No bets yet"}
               </div>
             </div>
           </div>
@@ -621,14 +650,31 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         </div>
       )}
 
+        </>
+      )}
+
       {/* Recent bets */}
       <div className="px-4 py-3 flex flex-col gap-2 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
         <div className="flex items-center justify-between">
           <span
-            className="text-xs font-bold tracking-widest"
+            className="text-xs font-bold tracking-widest flex items-center gap-2"
             style={{ color: "#555", fontFamily: "monospace" }}
           >
             RECENT BETS
+            {betsWithAge.length > 0 && (
+              <span
+                className="px-1.5 py-0.5 rounded text-xs font-black tabular"
+                style={{
+                  background: "rgba(0,255,136,0.1)",
+                  border: "1px solid rgba(0,255,136,0.2)",
+                  color: "#00ff88",
+                  fontFamily: "monospace",
+                  fontSize: 10,
+                }}
+              >
+                {betsWithAge.length}
+              </span>
+            )}
           </span>
           <span
             className="text-xs flex items-center gap-1"
@@ -660,22 +706,31 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           <div className="flex flex-col gap-0.5">
             {betsWithAge.map((bet) => {
               const isNew = bet.id === flashBetId;
+              const sideColor = bet.side === "over" ? "#00ff88" : "#ff4444";
               return (
                 <div
                   key={bet.id}
                   className={`flex items-center justify-between py-1.5 px-2 rounded transition-all group ${isNew ? "bet-flash" : ""}`}
-                  style={{ animation: isNew ? "betFlash 0.8s ease-out" : undefined }}
+                  style={{
+                    background: isNew ? "rgba(0,255,136,0.06)" : "transparent",
+                    animation: isNew ? "betFlash 0.8s ease-out" : undefined,
+                    border: isNew ? "1px solid rgba(0,255,136,0.18)" : "1px solid transparent",
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-xs font-bold w-3 text-center"
-                      style={{ color: bet.side === "over" ? "#00ff88" : "#ff4444" }}
+                      className="text-xs font-black tracking-wider"
+                      style={{
+                        color: sideColor,
+                        fontFamily: "monospace",
+                        minWidth: 36,
+                      }}
                     >
-                      {bet.side === "over" ? "\u25B2" : "\u25BC"}
+                      {bet.side === "over" ? "\u25B2 OVR" : "\u25BC UND"}
                     </span>
                     <span
                       className="text-xs font-mono"
-                      style={{ color: "#555" }}
+                      style={{ color: "#444" }}
                     >
                       {bet.shortWallet}
                     </span>
@@ -685,7 +740,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                     <span
                       className="text-xs font-bold tabular"
                       style={{
-                        color: bet.side === "over" ? "#00ff88" : "#ff4444",
+                        color: sideColor,
                         fontFamily: "monospace",
                       }}
                     >
@@ -725,20 +780,39 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           </div>
           <div
             className="text-sm font-black tabular"
-            style={{ color: "#00ff88", fontFamily: "monospace" }}
+            style={{
+              color: market.totalPool > 0 ? "#00ff88" : "#444",
+              fontFamily: "monospace",
+              textShadow: market.totalPool > 0 ? "0 0 8px rgba(0,255,136,0.35)" : "none",
+            }}
           >
-            {market.totalPool.toFixed(3)} ETH
+            {market.totalPool > 0 ? `${market.totalPool.toFixed(3)} ETH` : "—"}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
-            BETTORS
+          <div className="flex items-center justify-end gap-1.5">
+            {market.bettors > 0 && (
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: "#00ff88",
+                  boxShadow: "0 0 4px #00ff88",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            )}
+            <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
+              {market.bettors > 0 ? "LIVE" : "BETTORS"}
+            </div>
           </div>
           <div
             className="text-sm font-black tabular"
-            style={{ color: "#e0e0e0", fontFamily: "monospace" }}
+            style={{
+              color: market.bettors > 0 ? "#00ff88" : "#444",
+              fontFamily: "monospace",
+            }}
           >
-            {market.bettors}
+            {market.bettors > 0 ? market.bettors : "—"}
           </div>
         </div>
       </div>
