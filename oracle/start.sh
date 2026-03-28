@@ -22,6 +22,19 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# ── Load .env from project root (auto-export all vars) ─────────────────────
+if [ -f "$ROOT_DIR/.env" ]; then
+    set -a
+    source "$ROOT_DIR/.env"
+    set +a
+    echo "[Launcher] Loaded .env from $ROOT_DIR/.env"
+fi
+
+# Ensure FACTORY_ADDRESS is set (not in .env by default)
+export FACTORY_ADDRESS="${FACTORY_ADDRESS:-0x7b51C8C92f24Ef705E9C5c6f77ffA819b9733f4c}"
+
 WS_PORT="${WS_PORT:-8765}"
 API_URL="${API_URL:-https://www.rushgame.vip/api/oracle-url}"
 LEDGER_API_KEY="${LEDGER_API_KEY:-}"
