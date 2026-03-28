@@ -87,7 +87,7 @@ export default function StatsPage() {
     { label: "Chain", value: "Base (8453)" },
     { label: "Settlement", value: "AI Oracle (YOLOv8)" },
     { label: "Round Duration", value: "5 minutes" },
-    { label: "Min Bet", value: "0.005 ETH" },
+    { label: "Min Bet", value: "0.001 ETH" },
     { label: "Tile Count", value: "100 seats" },
   ];
 

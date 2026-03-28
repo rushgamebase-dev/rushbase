@@ -19,7 +19,7 @@ interface BettingPanelProps {
   winningRangeIndex?: number;
 }
 
-const QUICK_AMOUNTS = [0.01, 0.05, 0.1, 0.5];
+const QUICK_AMOUNTS = [0.001, 0.005, 0.01, 0.05];
 
 function formatEth(n: number): string {
   if (n === 0) return "0";
@@ -58,7 +58,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
 
   const isOpen = market.status === "open";
   const amountNum = parseFloat(amount) || 0;
-  const canBet = isOpen && selectedSide !== null && amountNum >= 0.005 && amountNum <= 10;
+  const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;
 
   const selectedOdds = selectedSide === "over" ? market.overOdds : market.underOdds;
   const potentialReturn = amountNum > 0 ? amountNum * selectedOdds : 0;
@@ -383,9 +383,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            min="0.005"
+            min="0.001"
             max="10"
-            step="0.005"
+            step="0.001"
             disabled={!isOpen}
             className="flex-1 bg-transparent py-2.5 pr-3 text-right focus:outline-none tabular"
             style={{
