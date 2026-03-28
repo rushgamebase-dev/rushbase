@@ -34,7 +34,8 @@ type OracleMsg = OracleInitMsg | OracleCountMsg | OracleFinalMsg;
 const YOUTUBE_EMBED_URL =
   "https://www.youtube.com/embed/DnUFAShZKus?autoplay=1&mute=1&controls=0";
 
-const ORACLE_WS_URL =
+// Static env var fallback — but dynamic URL from API takes priority
+const STATIC_ORACLE_WS_URL =
   typeof window !== "undefined"
     ? process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? ""
     : "";
@@ -49,6 +50,24 @@ export default function VideoPlayer({
   const frameRef = useRef(0);
   const animRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Dynamic oracle URL from API
+  const [oracleWsUrl, setOracleWsUrl] = useState(STATIC_ORACLE_WS_URL);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchUrl() {
+      try {
+        const res = await fetch("/api/oracle-url");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.url && !cancelled) setOracleWsUrl(data.url);
+      } catch { /* use static fallback */ }
+    }
+    fetchUrl();
+    const interval = setInterval(fetchUrl, 30_000); // re-check every 30s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
 
   // Oracle connection state
   const [oracleConnected, setOracleConnected] = useState(false);
@@ -92,7 +111,7 @@ export default function VideoPlayer({
 
   // Oracle WebSocket
   const connectOracle = useCallback(() => {
-    if (!ORACLE_WS_URL) return;
+    if (!oracleWsUrl) return;
 
     if (wsRef.current) {
       wsRef.current.onclose = null;
@@ -104,7 +123,7 @@ export default function VideoPlayer({
 
     let ws: WebSocket;
     try {
-      ws = new WebSocket(ORACLE_WS_URL);
+      ws = new WebSocket(oracleWsUrl);
     } catch {
       return;
     }
@@ -163,9 +182,9 @@ export default function VideoPlayer({
         connectOracle();
       }, 10_000);
     };
-  }, []);
+  }, [oracleWsUrl]);
 
-  // Connect on mount, clean up on unmount
+  // Connect on mount or when URL changes, clean up on unmount
   useEffect(() => {
     connectOracle();
 
