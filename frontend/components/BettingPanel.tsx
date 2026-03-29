@@ -6,7 +6,7 @@ import { useAccount, useBalance } from "wagmi";
 import { useWalletModal } from "@/components/WalletButton";
 import { formatEther } from "viem";
 import type { Bet, LiveMarket } from "@/lib/mock";
-import { timeAgo, IS_DEMO_MODE } from "@/lib/mock";
+import { timeAgo } from "@/lib/mock";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
 import { BASE_MAINNET } from "@/lib/contracts";
 import ClaimSection from "@/components/ClaimSection";
