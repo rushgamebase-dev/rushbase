@@ -108,8 +108,7 @@ export default function VideoPlayer({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
-  const frameSeqRef = useRef(0);
-  const renderedSeqRef = useRef(0);
+  const prevBlobUrlRef = useRef<string | null>(null);
 
   const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
   const prevCountRef = useRef(vehicleCount);
@@ -174,14 +173,19 @@ export default function VideoPlayer({
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        const seq = ++frameSeqRef.current;
         const blob = new Blob([event.data], { type: "image/jpeg" });
-        createImageBitmap(blob).then((bitmap) => {
-          if (seq >= renderedSeqRef.current) {
-            renderedSeqRef.current = seq;
-            oracleImageRef.current = bitmap as unknown as HTMLImageElement;
-          }
-        }).catch(() => {});
+        const url = URL.createObjectURL(blob);
+
+        if (prevBlobUrlRef.current) {
+          URL.revokeObjectURL(prevBlobUrlRef.current);
+        }
+        prevBlobUrlRef.current = url;
+
+        const img = new Image();
+        img.onload = () => {
+          oracleImageRef.current = img;
+        };
+        img.src = url;
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
