@@ -15,7 +15,7 @@ export default function RootLayout({
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <html lang="en" style={{ colorScheme: "dark" }}>
+    <html lang="en" style={{ colorScheme: "dark" }} suppressHydrationWarning>
       <head>
         <title>Rush — Live Prediction Market</title>
         <meta name="description" content="On-chain vehicle count prediction market. Bet on traffic. Win ETH." />
