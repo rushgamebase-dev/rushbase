@@ -79,6 +79,14 @@ export function useTilesContract() {
     query: { enabled },
   });
 
+  // Read dev pending
+  const { data: devPendingData } = useReadContract({
+    address: addr,
+    abi: RUSH_TILES_ABI,
+    functionName: "devPending",
+    query: { enabled, refetchInterval: 15_000 },
+  });
+
   // Write contract
   const {
     writeContract,
@@ -184,6 +192,7 @@ export function useTilesContract() {
   const totalActiveTiles = totalActiveTilesData ? Number(totalActiveTilesData) : 0;
   const totalDistributedWei = (totalDistributedData as bigint) ?? BigInt(0);
   const treasuryBalanceWei = (treasuryBalanceData as bigint) ?? BigInt(0);
+  const devPendingWei = (devPendingData as bigint) ?? BigInt(0);
 
   // Parse player
   const player: PlayerStateOnChain | null = playerData
@@ -229,6 +238,8 @@ export function useTilesContract() {
     totalDistributedWei,
     treasuryBalance: formatEther(treasuryBalanceWei),
     treasuryBalanceWei,
+    devPending: formatEther(devPendingWei),
+    devPendingWei,
 
     // Actions
     claimTile,

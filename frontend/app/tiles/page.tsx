@@ -114,7 +114,37 @@ function LeftSidebar() {
 
 // ─── Right Sidebar ────────────────────────────────────────────────────────────
 
-function RightSidebar() {
+interface RightSidebarProps {
+  tiles: Tile[];
+  totalDistributed: string;
+  treasuryBalance: string;
+  devPending: string;
+  activeTileCount: number;
+}
+
+function RightSidebar({ tiles, totalDistributed, treasuryBalance, devPending, activeTileCount }: RightSidebarProps) {
+  // Calculate floor price (lowest price among owned tiles)
+  const ownedTiles = tiles.filter((t) => t.isActive);
+  const floorPrice = ownedTiles.length > 0
+    ? Math.min(...ownedTiles.map((t) => t.price))
+    : 0.01;
+
+  // Build top holders leaderboard
+  const holderMap = new Map<string, number>();
+  for (const t of ownedTiles) {
+    if (t.owner) {
+      holderMap.set(t.owner, (holderMap.get(t.owner) || 0) + 1);
+    }
+  }
+  const topHolders: [string, number][] = [];
+  holderMap.forEach((count, addr) => topHolders.push([addr, count]));
+  topHolders.sort((a, b) => b[1] - a[1]);
+  topHolders.splice(5);
+
+  const totalDist = parseFloat(totalDistributed);
+  const treasury = parseFloat(treasuryBalance);
+  const devPend = parseFloat(devPending);
+
   return (
     <aside
       className="flex flex-col gap-4 p-4 overflow-y-auto"
@@ -134,26 +164,47 @@ function RightSidebar() {
           FLOOR PRICE
         </div>
         <div className="text-2xl font-black" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-          0.01 ETH
+          {floorPrice.toFixed(4)} ETH
         </div>
         <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
-          base claim price
+          lowest listed tile
         </div>
       </div>
 
-      {/* Total Rewards card */}
+      {/* Total Distributed card */}
       <div
         className="p-4 rounded-lg"
         style={{ background: "#111", border: "1px solid rgba(255,215,0,0.15)" }}
       >
         <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
-          TOTAL REWARDS
+          TOTAL DISTRIBUTED
         </div>
         <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-          0.00 ETH
+          {totalDist.toFixed(4)} ETH
         </div>
         <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
-          distributed all time
+          paid to tile holders
+        </div>
+      </div>
+
+      {/* Treasury + Dev Pending */}
+      <div
+        className="p-4 rounded-lg"
+        style={{ background: "#111", border: "1px solid rgba(0,255,136,0.15)" }}
+      >
+        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
+          PENDING POOLS
+        </div>
+        <div className="flex justify-between text-xs mb-1">
+          <span style={{ color: "#555", fontFamily: "monospace" }}>Treasury</span>
+          <span style={{ color: "#00ff88", fontFamily: "monospace" }}>{treasury.toFixed(4)} ETH</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span style={{ color: "#555", fontFamily: "monospace" }}>Dev fees</span>
+          <span style={{ color: "#00aaff", fontFamily: "monospace" }}>{devPend.toFixed(4)} ETH</span>
+        </div>
+        <div className="text-[10px] mt-2" style={{ color: "#444", fontFamily: "monospace" }}>
+          {activeTileCount} active tiles
         </div>
       </div>
 
@@ -162,12 +213,34 @@ function RightSidebar() {
         <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
           TOP SEAT HOLDERS
         </div>
-        <div
-          className="px-3 py-4 rounded text-center text-xs"
-          style={{ background: "#111", border: "1px solid #1a1a1a", color: "#444", fontFamily: "monospace" }}
-        >
-          No holders yet
-        </div>
+        {topHolders.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {topHolders.map(([addr, count], i) => (
+              <div
+                key={addr}
+                className="flex items-center justify-between px-3 py-2 rounded text-xs"
+                style={{ background: "#111", border: "1px solid #1a1a1a", fontFamily: "monospace" }}
+              >
+                <span style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#c0c0c0" : i === 2 ? "#cd7f32" : "#666" }}>
+                  #{i + 1}
+                </span>
+                <span style={{ color: "#888" }}>
+                  {addr.slice(0, 6)}...{addr.slice(-4)}
+                </span>
+                <span style={{ color: "#e0e0e0", fontWeight: 700 }}>
+                  {count} {count === 1 ? "tile" : "tiles"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="px-3 py-4 rounded text-center text-xs"
+            style={{ background: "#111", border: "1px solid #1a1a1a", color: "#444", fontFamily: "monospace" }}
+          >
+            No holders yet
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -556,7 +629,13 @@ export default function TilesPage() {
 
         {/* Right Sidebar (25%) — hidden on mobile */}
         <div className="hidden lg:flex" style={{ width: "25%", minWidth: 220 }}>
-          <RightSidebar />
+          <RightSidebar
+            tiles={tiles}
+            totalDistributed={tilesContract.totalDistributed}
+            treasuryBalance={tilesContract.treasuryBalance}
+            devPending={tilesContract.devPending}
+            activeTileCount={activeTileCount}
+          />
         </div>
       </div>
 
