@@ -135,10 +135,6 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 // ─── Home page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  // Mounted guard — prevents hydration mismatch from SSR rendering
-  // default values (Round #0, Threshold 0) that differ from client values.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   const { marketAddress: activeMarketAddress, isWaiting, marketCount } = useActiveMarket();
 
@@ -186,16 +182,6 @@ export default function Home() {
   const bettingPanelRef = useRef<HTMLDivElement>(null);
   // Separate ref for the mobile betting panel (rendered after video)
   const mobileBettingPanelRef = useRef<HTMLDivElement>(null);
-
-  // SSR loading skeleton — shown until client mounts to prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="flex flex-col items-center justify-center" style={{ background: "#0a0a0a", color: "#00ff88", minHeight: "100vh" }}>
-        <div className="w-8 h-8 rounded-full border-2 border-t-transparent" style={{ borderColor: "#00ff8855", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
-        <span className="text-sm font-black mt-3" style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>LOADING...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
