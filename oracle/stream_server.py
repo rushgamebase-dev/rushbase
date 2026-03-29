@@ -512,7 +512,7 @@ class StreamServer:
     EVIDENCE_JPEG_QUALITY = 80
 
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
-                 model='yolov8x.pt', confidence=0.15, line_pos=0.5,
+                 model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
                  count_mode='uid', lanes=None, target_fps=10, **kwargs):
         self.stream_url = stream_url
