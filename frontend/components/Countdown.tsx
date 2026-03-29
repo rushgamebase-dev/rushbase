@@ -54,6 +54,30 @@ export default function Countdown({
   }
 
   const COUNTING_DURATION = 150; // seconds of counting after bets close
+  const INTER_ROUND_SECS = 15;  // gap between rounds
+
+  // Next-round countdown — starts when status becomes resolved/cancelled
+  const [nextRoundCountdown, setNextRoundCountdown] = useState(0);
+  const nextRoundRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef(status);
+
+  useEffect(() => {
+    if ((status === "resolved" || status === "cancelled") && prevStatusRef.current !== status) {
+      // Status just changed to terminal — start next-round timer
+      setNextRoundCountdown(INTER_ROUND_SECS);
+      nextRoundRef.current = setInterval(() => {
+        setNextRoundCountdown(prev => {
+          if (prev <= 1) {
+            if (nextRoundRef.current) clearInterval(nextRoundRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    prevStatusRef.current = status;
+    return () => { if (nextRoundRef.current) clearInterval(nextRoundRef.current); };
+  }, [status]);
 
   const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
     if (lockTime && lockTime > 0) {
@@ -165,7 +189,12 @@ export default function Countdown({
         <span className="text-lg font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
           ROUND CANCELLED
         </span>
-        <div className="text-xs mt-1" style={{ color: "#555" }}>No bets placed — next round starting soon</div>
+        <div className="text-xs mt-1" style={{ color: "#555" }}>No bets placed</div>
+        {nextRoundCountdown > 0 && (
+          <div className="text-sm font-black mt-2" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+            Next round in {nextRoundCountdown}s
+          </div>
+        )}
       </div>
     );
   }
@@ -237,7 +266,11 @@ export default function Countdown({
           {winLabel}
         </div>
         <div className="text-xs mt-1.5" style={{ color: "#555", fontFamily: "monospace" }}>
-          Next round starting soon...
+          {nextRoundCountdown > 0 ? (
+            <span>Next round in <span style={{ color: "#00ff88", fontWeight: 700 }}>{nextRoundCountdown}s</span></span>
+          ) : (
+            "Next round starting..."
+          )}
         </div>
       </div>
     );
