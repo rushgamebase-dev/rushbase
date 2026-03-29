@@ -591,12 +591,9 @@ class StreamServer:
         self.clients.discard(ws)
         print(f"[WS] Client disconnected ({len(self.clients)} total)")
 
-    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
-        """Send frame + count to all connected clients."""
-        if not self.clients:
-            return
-
-        count_msg = json.dumps({
+    def _set_pending_frame(self, jpeg_bytes, count, elapsed):
+        """Store latest frame for async broadcast. Latest wins — no queue."""
+        self._pending_frame = (jpeg_bytes, json.dumps({
             "type": "count",
             "count": count,
             "count_in": self.counter.count_in,
@@ -606,19 +603,33 @@ class StreamServer:
             "marketAddress": self.market_address,
             "cameraId": self.camera_id,
             "roundId": self.round_id,
-        })
+        }))
 
-        dead = set()
+    async def _broadcast_loop(self):
+        """Async task: sends latest pending frame. Runs independently from processing."""
+        while self.running:
+            pending = getattr(self, '_pending_frame', None)
+            if pending is None or not self.clients:
+                await asyncio.sleep(0.01)
+                continue
 
-        async def send_to(ws):
-            try:
-                await ws.send(count_msg)
-                await ws.send(jpeg_bytes)  # binary frame
-            except websockets.exceptions.ConnectionClosed:
-                dead.add(ws)
+            jpeg_bytes, count_msg = pending
+            self._pending_frame = None  # consumed — next frame will overwrite if we're slow
 
-        await asyncio.gather(*(send_to(ws) for ws in self.clients))
-        self.clients -= dead
+            dead = set()
+            async def send_to(ws):
+                try:
+                    await ws.send(count_msg)
+                    await ws.send(jpeg_bytes)
+                except websockets.exceptions.ConnectionClosed:
+                    dead.add(ws)
+
+            await asyncio.gather(*(send_to(ws) for ws in self.clients))
+            self.clients -= dead
+
+    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
+        """Non-blocking: stores frame for async broadcast task."""
+        self._set_pending_frame(jpeg_bytes, count, elapsed)
 
     def _ensure_evidence_dir(self) -> None:
         """Create evidence/ directory and clean up old evidence if needed."""
@@ -744,14 +755,13 @@ class StreamServer:
                 ret, f = cap.read()
                 if ret and f is not None:
                     try:
-                        _frame_q.put_nowait(f)
+                        _frame_q.put_nowait((f, time.time()))  # tuple: (frame, read_timestamp)
                     except _queue.Full:
-                        # Drop oldest, keep newest (rare — only if YOLO can't keep up)
                         try:
                             _frame_q.get_nowait()
                         except _queue.Empty:
                             pass
-                        _frame_q.put_nowait(f)
+                        _frame_q.put_nowait((f, time.time()))
                 else:
                     print("[Reader] cap.read() failed — reconnecting")
                     try:
@@ -767,8 +777,8 @@ class StreamServer:
         # Wait for first frame
         print("[Stream] Waiting for first frame...")
         try:
-            first = _frame_q.get(timeout=30)
-            _frame_q.put(first)  # put it back for the main loop
+            first_item = _frame_q.get(timeout=30)
+            _frame_q.put(first_item)  # put it back for the main loop
             print(f"[Stream] First frame received (queue size: {_frame_q.qsize()})")
         except _queue.Empty:
             print("[Stream] No frames after 30s — aborting")
@@ -825,7 +835,7 @@ class StreamServer:
                 _last_count = getattr(self, '_last_count', 0)
 
                 try:
-                    frame = _frame_q.get_nowait()
+                    frame, _frame_read_ts = _frame_q.get_nowait()
                 except _queue.Empty:
                     # No new frame — rebroadcast last JPEG to keep stream alive
                     if _last_jpeg is not None:
@@ -834,6 +844,10 @@ class StreamServer:
                     continue
 
                 frame_idx += 1
+                # Instrumentation: queue state + frame age every 30 frames
+                if frame_idx % 30 == 0:
+                    frame_age_s = time.time() - _frame_read_ts
+                    print(f"[METRICS] frame={frame_idx} qsize={_frame_q.qsize()} age={frame_age_s:.2f}s elapsed={elapsed:.1f}s")
 
                 # Resize
                 h, w = frame.shape[:2]
@@ -910,8 +924,14 @@ class StreamServer:
         print(f"  Target FPS: {self.target_fps}")
         print(f"{'='*55}\n")
 
+        self._pending_frame = None
         async with websockets.serve(self.handler, self.host, self.port):
-            await self.process_video()
+            # Broadcast runs as independent task — never blocks processing
+            broadcast_task = asyncio.create_task(self._broadcast_loop())
+            try:
+                await self.process_video()
+            finally:
+                broadcast_task.cancel()
 
 
 def load_camera(camera_id):
