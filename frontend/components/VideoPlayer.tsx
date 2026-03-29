@@ -66,22 +66,31 @@ export default function VideoPlayer({
   const animRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Dynamic oracle URL from API
+  // Dynamic oracle URL — fetch ONCE on mount, retry with backoff if fails
   const [oracleWsUrl, setOracleWsUrl] = useState(STATIC_ORACLE_WS_URL);
 
   useEffect(() => {
     let cancelled = false;
+    let retries = 0;
+
     async function fetchUrl() {
       try {
         const res = await fetch("/api/oracle-url");
-        if (!res.ok) return;
+        if (!res.ok) throw new Error(`${res.status}`);
         const data = await res.json();
         if (data.url && !cancelled) setOracleWsUrl(data.url);
-      } catch { /* use static fallback */ }
+      } catch {
+        // Retry with backoff: 3s, 6s, 12s, 30s max
+        if (!cancelled) {
+          const delay = Math.min(3000 * Math.pow(2, retries), 30000);
+          retries++;
+          setTimeout(fetchUrl, delay);
+        }
+      }
     }
+
     fetchUrl();
-    const interval = setInterval(fetchUrl, 5_000); // check every 5s for fast reconnect
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => { cancelled = true; };
   }, []);
 
   // Oracle connection state
@@ -194,12 +203,14 @@ export default function VideoPlayer({
       oracleImageRef.current = null;
       wsRef.current = null;
 
-      // Exponential backoff: 2s, 4s, 8s, 16s, 30s max
-      const delay = Math.min(2000 * Math.pow(2, retryCountRef.current), 30_000);
-      retryCountRef.current++;
-      retryTimerRef.current = setTimeout(() => {
-        connectOracle();
-      }, delay);
+      // Max 10 retries with exponential backoff, then stop
+      if (retryCountRef.current < 10) {
+        const delay = Math.min(3000 * Math.pow(2, retryCountRef.current), 30_000);
+        retryCountRef.current++;
+        retryTimerRef.current = setTimeout(() => {
+          connectOracle();
+        }, delay);
+      }
     };
   }, [oracleWsUrl, marketAddress, onCountUpdate]);
 
