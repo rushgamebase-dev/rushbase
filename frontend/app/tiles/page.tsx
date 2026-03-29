@@ -200,8 +200,8 @@ function RightSidebar({ tiles, totalDistributed, treasuryBalance, devPending, ac
           <span style={{ color: "#00ff88", fontFamily: "monospace" }}>{treasury.toFixed(4)} ETH</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span style={{ color: "#555", fontFamily: "monospace" }}>Dev fees</span>
-          <span style={{ color: "#00aaff", fontFamily: "monospace" }}>{devPend.toFixed(4)} ETH</span>
+          <span style={{ color: "#555", fontFamily: "monospace" }}>Protocol</span>
+          <span style={{ color: "#00aaff", fontFamily: "monospace" }}>{(treasury + devPend).toFixed(4)} ETH</span>
         </div>
         <div className="text-[10px] mt-2" style={{ color: "#444", fontFamily: "monospace" }}>
           {activeTileCount} active tiles
