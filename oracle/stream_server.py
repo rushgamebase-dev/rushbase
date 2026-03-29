@@ -773,12 +773,10 @@ class StreamServer:
                     break
 
                 # Grab latest frame from reader thread (never blocks)
-                # Clear after read — only process NEW frames, never duplicates
                 with frame_lock:
                     frame = latest_frame[0]
-                    latest_frame[0] = None
                 if frame is None:
-                    await asyncio.sleep(0.02)
+                    await asyncio.sleep(0.005)
                     continue
 
                 frame_idx += 1
@@ -822,8 +820,8 @@ class StreamServer:
                 if self.duration - elapsed < frame_interval * 2:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
-                # Yield to event loop
-                await asyncio.sleep(0)
+                # Yield to event loop — minimal sleep to not starve WS
+                await asyncio.sleep(0.001)
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
