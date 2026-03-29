@@ -718,8 +718,25 @@ function TilesPreview() {
         </div>
       </div>
 
-      <div className="mt-2 text-xs" style={{ color: "#444", fontFamily: "monospace" }}>
-        Harberger tax model · 5%/week · buyout anytime
+      <div className="mt-2 text-xs flex items-center gap-2 flex-wrap" style={{ color: "#444", fontFamily: "monospace" }}>
+        <span>Harberger tax model · 5%/week · buyout anytime</span>
+        <span style={{ color: "#333" }}>|</span>
+        <a
+          href="https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#ffd700" }}
+          className="hover:underline"
+        >
+          $RUSH
+        </a>
+        <button
+          onClick={() => { navigator.clipboard.writeText("0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"); }}
+          style={{ color: "#666", cursor: "pointer", background: "none", border: "none", fontFamily: "monospace", fontSize: "inherit" }}
+          title="Copy contract address"
+        >
+          0xB36A...e73b
+        </button>
       </div>
     </section>
   );
