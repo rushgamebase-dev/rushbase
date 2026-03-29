@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatEther } from "viem";
 import { useState, useEffect } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
-import { IS_DEMO_MODE } from "@/lib/mock";
 
 export interface MarketRange {
   minCars: bigint;
@@ -41,7 +40,7 @@ const SAFETY_POLL = 30_000;
  * Uses WebSocket events for instant bet detection + polling as safety net.
  */
 export function useMarketContract(marketAddress: `0x${string}` | null) {
-  const enabled = !IS_DEMO_MODE && !!marketAddress;
+  const enabled = !!marketAddress;
   const addr = marketAddress || undefined;
   const queryClient = useQueryClient();
 

@@ -6,11 +6,10 @@ import { ExternalLink, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import TilesGrid from "@/components/TilesGrid";
-import { useTiles, IS_DEMO_MODE } from "@/lib/mock";
 import { useTilesContract } from "@/hooks/useTilesContract";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
-import { BASE_MAINNET, RUSH_TILES_ADDRESS } from "@/lib/contracts";
+import { BASE_MAINNET } from "@/lib/contracts";
 import type { Tile } from "@/lib/mock";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -339,12 +338,9 @@ function TileModal({
 export default function TilesPage() {
   const { address: walletAddress } = useAccount();
 
-  const mockData = useTiles();
   const tilesContract = useTilesContract();
 
-  const useReal = !IS_DEMO_MODE && !!RUSH_TILES_ADDRESS && tilesContract.tiles.length > 0;
-
-  const tiles: Tile[] = useReal
+  const tiles: Tile[] = tilesContract.tiles.length > 0
     ? tilesContract.tiles.map((t, i) => {
         const isOwned = t.owner !== "0x0000000000000000000000000000000000000000";
         const isMine = isOwned && walletAddress
@@ -359,11 +355,18 @@ export default function TilesPage() {
           isMine,
         };
       })
-    : mockData.tiles;
+    : Array.from({ length: 100 }, (_, i) => ({
+        id: i,
+        owner: null,
+        price: 0.01,
+        isActive: false,
+        pendingFees: 0,
+        isMine: false,
+      }));
 
-  const myAddress = useReal ? (walletAddress ?? "") : mockData.myAddress;
-  const activeTileCount = useReal ? tilesContract.totalActiveTiles : mockData.activeTileCount;
-  const totalPendingFees = useReal ? parseFloat(tilesContract.pendingFees) : mockData.totalPendingFees;
+  const myAddress = walletAddress ?? "";
+  const activeTileCount = tilesContract.totalActiveTiles;
+  const totalPendingFees = parseFloat(tilesContract.pendingFees);
 
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
   const [newPrice, setNewPrice] = useState("");
@@ -375,33 +378,27 @@ export default function TilesPage() {
     if (!selectedTile) return;
     setIsLoading(true);
 
-    if (useReal) {
-      switch (action) {
-        case "claim":
-          await tilesContract.claimTile(selectedTile.id, "0.01", "0.0105");
-          break;
-        case "buyout": {
-          const buyPrice = (selectedTile.price * 1.1).toFixed(6);
-          const totalCost = (selectedTile.price * 1.1 * 1.1).toFixed(6);
-          await tilesContract.buyoutTile(selectedTile.id, buyPrice, totalCost);
-          break;
-        }
-        case "setprice":
-          if (newPrice) await tilesContract.setPrice(selectedTile.id, newPrice);
-          break;
-        case "abandon":
-          await tilesContract.abandonTile(selectedTile.id);
-          break;
-        case "claimfees":
-          await tilesContract.claimFees();
-          break;
-        default:
-          await new Promise((r) => setTimeout(r, 1200));
+    switch (action) {
+      case "claim":
+        await tilesContract.claimTile(selectedTile.id, "0.01", "0.0105");
+        break;
+      case "buyout": {
+        const buyPrice = (selectedTile.price * 1.1).toFixed(6);
+        const totalCost = (selectedTile.price * 1.1 * 1.1).toFixed(6);
+        await tilesContract.buyoutTile(selectedTile.id, buyPrice, totalCost);
+        break;
       }
-      tilesContract.refetchAll();
-    } else {
-      await new Promise((r) => setTimeout(r, 1200));
+      case "setprice":
+        if (newPrice) await tilesContract.setPrice(selectedTile.id, newPrice);
+        break;
+      case "abandon":
+        await tilesContract.abandonTile(selectedTile.id);
+        break;
+      case "claimfees":
+        await tilesContract.claimFees();
+        break;
     }
+    tilesContract.refetchAll();
 
     setIsLoading(false);
     setSelectedTile(null);
@@ -410,12 +407,8 @@ export default function TilesPage() {
 
   async function handleClaimFees() {
     setIsLoading(true);
-    if (useReal) {
-      await tilesContract.claimFees();
-      tilesContract.refetchAll();
-    } else {
-      await new Promise((r) => setTimeout(r, 1200));
-    }
+    await tilesContract.claimFees();
+    tilesContract.refetchAll();
     setIsLoading(false);
   }
 
@@ -442,11 +435,6 @@ export default function TilesPage() {
               <h1 className="text-lg font-black tracking-widest" style={{ color: "#ffd700", fontFamily: "monospace" }}>
                 {activeTileCount}/{TOTAL_TILES} seats
               </h1>
-              {IS_DEMO_MODE && (
-                <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.3)", color: "#ffaa00", fontFamily: "monospace" }}>
-                  DEMO
-                </span>
-              )}
             </div>
             <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
               click to select

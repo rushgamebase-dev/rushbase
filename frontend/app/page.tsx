@@ -21,6 +21,7 @@ import { motion } from "framer-motion";
 import { Shield, Zap, Brain, Coins } from "lucide-react";
 import { timeAgo, type LiveMarket } from "@/lib/mock";
 import { useMarketStream } from "@/hooks/useMarketStream";
+import BetToast from "@/components/BetToast";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
@@ -134,7 +135,7 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 // ─── Home page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { marketAddress, isDemoMode, isWaiting, marketCount } = useActiveMarket();
+  const { marketAddress, isWaiting, marketCount } = useActiveMarket();
   const contractData = useMarketContract(marketAddress);
   const [liveCount, setLiveCount] = useState(0);
   const { stats } = useStats();
@@ -257,44 +258,42 @@ export default function Home() {
             </div>
           </motion.div>
 
-          <VideoPlayer
-            vehicleCount={displayCount}
-            isLive={hasActiveMarket}
-            cameraName={cameraName}
-            onCountUpdate={setLiveCount}
-          />
+          {/* Video + Countdown overlay */}
+          <div className="relative">
+            <VideoPlayer
+              vehicleCount={displayCount}
+              isLive={hasActiveMarket}
+              cameraName={cameraName}
+              onCountUpdate={setLiveCount}
+            />
 
-          {/* Countdown + count row */}
+            <BetToast bets={market.recentBets} />
+
+            {/* Countdown overlaid on video */}
+            <div className="absolute bottom-3 left-3 right-3 z-10" style={{ pointerEvents: "auto" }}>
+              {hasActiveMarket ? (
+                <div style={{ background: "rgba(0,0,0,0.75)", borderRadius: 12 }}>
+                  <Countdown
+                    lockTime={lockTime > 0 ? lockTime : undefined}
+                    status={market.status}
+                    finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
+                    winningRangeIndex={winningRangeIndex}
+                  />
+                </div>
+              ) : (
+                <div className="px-3 py-2 rounded" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 8 }}>
+                  <div className="text-xs font-bold tracking-widest" style={{ color: "#555", fontFamily: "monospace" }}>NEXT ROUND</div>
+                  <div className="text-sm font-black tracking-widest starting-soon-pulse" style={{ color: "#00ff88", fontFamily: "monospace" }}>STARTING SOON</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Current count card (standalone) */}
           <div
-            className="grid grid-cols-2 gap-4 p-4 rounded"
+            className="p-4 rounded"
             style={{ background: "#111", border: "1px solid #1a1a1a" }}
           >
-            {hasActiveMarket ? (
-              <Countdown
-                lockTime={lockTime > 0 ? lockTime : undefined}
-                status={market.status}
-                finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
-                winningRangeIndex={winningRangeIndex}
-              />
-            ) : (
-              <div className="flex flex-col justify-center gap-1">
-                <div
-                  className="text-xs font-bold tracking-widest"
-                  style={{ color: "#555", fontFamily: "monospace" }}
-                >
-                  NEXT ROUND
-                </div>
-                <div
-                  className="text-sm font-black tracking-widest starting-soon-pulse"
-                  style={{ color: "#00ff88", fontFamily: "monospace" }}
-                >
-                  STARTING SOON
-                </div>
-                <div className="text-xs" style={{ color: "#333", fontFamily: "monospace" }}>
-                  Stand by...
-                </div>
-              </div>
-            )}
             <div className="flex flex-col justify-center gap-1">
               <div
                 className="text-xs font-bold tracking-widest"
@@ -415,9 +414,6 @@ export default function Home() {
             <a href="https://basescan.org" target="_blank" rel="noopener noreferrer" className="hover:text-[#00ff88] transition-colors">
               Basescan
             </a>
-            {isDemoMode && (
-              <span style={{ color: "#ffaa00" }}>DEMO MODE</span>
-            )}
           </div>
         </div>
 

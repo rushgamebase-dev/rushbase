@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { RUSH_TILES_ABI, RUSH_TILES_ADDRESS } from "@/lib/contracts";
-import { IS_DEMO_MODE } from "@/lib/mock";
 
 export interface TileDataOnChain {
   owner: string;
@@ -23,15 +22,12 @@ export interface PlayerStateOnChain {
 
 /**
  * Reads and writes to RushTiles contract.
- * Falls back to mock if RUSH_TILES_ADDRESS is empty.
+ * If RUSH_TILES_ADDRESS is not set, all reads return empty/zero and writes are no-ops.
  */
 export function useTilesContract() {
   const { address: userAddress } = useAccount();
-  const enabled = !IS_DEMO_MODE && !!RUSH_TILES_ADDRESS;
+  const enabled = !!RUSH_TILES_ADDRESS;
   const addr = RUSH_TILES_ADDRESS || undefined;
-
-  const [mockLoading, setMockLoading] = useState(false);
-  const [mockTxHash, setMockTxHash] = useState<string | null>(null);
 
   // Read all tiles
   const { data: allTilesData, refetch: refetchTiles } = useReadContract({
@@ -95,20 +91,11 @@ export function useTilesContract() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash: txHash });
 
-  // Helper for mock fallback
-  const mockAction = useCallback(async () => {
-    setMockLoading(true);
-    const fakeTx = "0x" + Math.random().toString(16).slice(2).padEnd(64, "0");
-    setMockTxHash(fakeTx);
-    await new Promise((r) => setTimeout(r, 1200));
-    setMockLoading(false);
-  }, []);
-
   // --- Write actions ---
 
   const claimTile = useCallback(
     async (tileIndex: number, priceEth: string, depositEth: string) => {
-      if (!enabled) return mockAction();
+      if (!enabled) return;
       reset();
       const price = parseEther(priceEth);
       const value = parseEther(depositEth);
@@ -120,12 +107,12 @@ export function useTilesContract() {
         value,
       });
     },
-    [enabled, writeContract, reset, mockAction]
+    [enabled, writeContract, reset]
   );
 
   const buyoutTile = useCallback(
     async (tileIndex: number, newPriceEth: string, totalCostEth: string) => {
-      if (!enabled) return mockAction();
+      if (!enabled) return;
       reset();
       const newPrice = parseEther(newPriceEth);
       const value = parseEther(totalCostEth);
@@ -137,12 +124,12 @@ export function useTilesContract() {
         value,
       });
     },
-    [enabled, writeContract, reset, mockAction]
+    [enabled, writeContract, reset]
   );
 
   const abandonTile = useCallback(
     async (tileIndex: number) => {
-      if (!enabled) return mockAction();
+      if (!enabled) return;
       reset();
       writeContract({
         address: RUSH_TILES_ADDRESS,
@@ -151,12 +138,12 @@ export function useTilesContract() {
         args: [tileIndex],
       });
     },
-    [enabled, writeContract, reset, mockAction]
+    [enabled, writeContract, reset]
   );
 
   const setPrice = useCallback(
     async (tileIndex: number, newPriceEth: string, appTaxEth?: string) => {
-      if (!enabled) return mockAction();
+      if (!enabled) return;
       reset();
       const newPrice = parseEther(newPriceEth);
       const value = appTaxEth ? parseEther(appTaxEth) : BigInt(0);
@@ -168,28 +155,28 @@ export function useTilesContract() {
         value,
       });
     },
-    [enabled, writeContract, reset, mockAction]
+    [enabled, writeContract, reset]
   );
 
   const claimFees = useCallback(async () => {
-    if (!enabled) return mockAction();
+    if (!enabled) return;
     reset();
     writeContract({
       address: RUSH_TILES_ADDRESS,
       abi: RUSH_TILES_ABI,
       functionName: "claimFees",
     });
-  }, [enabled, writeContract, reset, mockAction]);
+  }, [enabled, writeContract, reset]);
 
   const distributeFees = useCallback(async () => {
-    if (!enabled) return mockAction();
+    if (!enabled) return;
     reset();
     writeContract({
       address: RUSH_TILES_ADDRESS,
       abi: RUSH_TILES_ABI,
       functionName: "distributeFees",
     });
-  }, [enabled, writeContract, reset, mockAction]);
+  }, [enabled, writeContract, reset]);
 
   // --- Parse data ---
 
@@ -253,10 +240,9 @@ export function useTilesContract() {
     refetchAll,
 
     // Status
-    isLoading: IS_DEMO_MODE ? mockLoading : isWritePending || isConfirming,
-    isSuccess: IS_DEMO_MODE ? false : isConfirmed,
-    txHash: IS_DEMO_MODE ? (mockTxHash as `0x${string}` | null) : (txHash ?? null),
+    isLoading: isWritePending || isConfirming,
+    isSuccess: isConfirmed,
+    txHash: txHash ?? null,
     error: writeError ? writeError.message : null,
-    isDemoMode: IS_DEMO_MODE,
   };
 }
