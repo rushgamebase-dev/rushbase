@@ -529,7 +529,7 @@ class StreamServer:
                                        line_points=line_points,
                                        line_points2=line_points2,
                                        count_mode=count_mode, lanes=lanes,
-                                       min_frames=5)
+                                       min_frames=3)
         self.clients = set()
         self.running = False
         self.start_time = None
