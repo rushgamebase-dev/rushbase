@@ -243,7 +243,7 @@ def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     Rounds alternate: peace-bridge → netherlands-highway → peace-bridge → ...
     """
     by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["peace-bridge-qew"]
+    primary_ids = ["peace-bridge"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
     if not result:
         result = cameras[:1]
