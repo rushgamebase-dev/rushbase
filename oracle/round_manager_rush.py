@@ -748,9 +748,13 @@ class RushRoundManager:
                             address=Web3.to_checksum_address(addr),
                             abi=MARKET_ABI,
                         )
+                        market_state = orphan_market.functions.state().call()
+                        # Already resolved/cancelled — treat as orphan
+                        if market_state >= 2:
+                            continue
                         market_lock = orphan_market.functions.lockTime().call()
                         if now < market_lock:
-                            all_orphans = False  # Still within lock window
+                            all_orphans = False
                             break
                     except Exception:
                         pass
