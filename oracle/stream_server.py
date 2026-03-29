@@ -58,7 +58,7 @@ class VehicleCounter:
     - Never recounts same ID
     """
 
-    def __init__(self, model_name='yolov8x.pt', confidence=0.15,
+    def __init__(self, model_name='yolov8s.pt', confidence=0.25,
                  line_position=0.45, line_angle=10, line_points=None,
                  count_mode='line', min_frames=5, lanes=None, **_kwargs):
         self.count_mode = count_mode
@@ -84,6 +84,12 @@ class VehicleCounter:
         self.count_in = 0         # crossed left-to-right
         self.count_out = 0        # crossed right-to-left
 
+        # Anti-double-count: recent crossing positions with timestamps
+        # If a new ID crosses within DEDUP_RADIUS pixels of a recent crossing, skip it
+        self._recent_crossings: list[tuple[int, int, float]] = []  # (cx, cy, time)
+        self.DEDUP_RADIUS = 60     # pixels — must be far enough from recent crossing
+        self.DEDUP_WINDOW = 3.0    # seconds — how long to remember a crossing
+
         # Per-class counts
         self.class_counts = {2: 0, 3: 0, 5: 0, 7: 0}
 
@@ -97,6 +103,24 @@ class VehicleCounter:
             color=sv.Color.from_hex("#00ff88")
         )
         self.smoother = sv.DetectionsSmoother(length=3)
+
+    def _is_duplicate_crossing(self, cx: int, cy: int) -> bool:
+        """Check if a crossing at (cx, cy) is too close to a recent crossing."""
+        import time as _time
+        now = _time.time()
+        # Clean old entries
+        self._recent_crossings = [
+            (x, y, t) for x, y, t in self._recent_crossings
+            if now - t < self.DEDUP_WINDOW
+        ]
+        # Check distance to all recent crossings
+        for rx, ry, _ in self._recent_crossings:
+            dist = ((cx - rx) ** 2 + (cy - ry) ** 2) ** 0.5
+            if dist < self.DEDUP_RADIUS:
+                return True  # Too close — likely same vehicle with new ID
+        # Not a duplicate — record this crossing
+        self._recent_crossings.append((cx, cy, now))
+        return False
 
     def _merge_overlapping(self, detections):
         """Remove smaller detections contained inside larger ones.
@@ -220,11 +244,11 @@ class VehicleCounter:
         lx1, ly1 = self.line_start
         lx2, ly2 = self.line_end
 
-        # Detect + track with BoT-SORT
+        # Detect + track with BoT-SORT (imgsz=640 for speed, yolov8s is fast enough)
         results = self.model.track(
             frame, verbose=False, conf=self.confidence,
             classes=VEHICLE_CLASSES, persist=True,
-            tracker="botsort_custom.yaml", imgsz=1280
+            tracker="botsort_custom.yaml", imgsz=640
         )[0]
 
         detections = sv.Detections.from_ultralytics(results)
@@ -276,14 +300,15 @@ class VehicleCounter:
                         if tid in self.prev_pos and len(self.prev_pos[tid]) > 2:
                             prev_side = self.prev_pos[tid][2]
                             if prev_side is not None and prev_side * side < 0:
-                                self.counted_ids.add(tid)
-                                self.total_count += 1
-                                self.counted_number[tid] = self.total_count
-                                lane["count"] += 1
-                                if lane["direction"] == "toward":
-                                    self.count_in += 1
-                                else:
-                                    self.count_out += 1
+                                if not self._is_duplicate_crossing(cx, cy):
+                                    self.counted_ids.add(tid)
+                                    self.total_count += 1
+                                    self.counted_number[tid] = self.total_count
+                                    lane["count"] += 1
+                                    if lane["direction"] == "toward":
+                                        self.count_in += 1
+                                    else:
+                                        self.count_out += 1
                                 self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
                                 break  # counted, don't check other lanes
 
@@ -325,7 +350,7 @@ class VehicleCounter:
                         first_pos = self.prev_pos[tid]
                         dx = abs(anchor_x - first_pos[0])
                         dy = abs(anchor_y - first_pos[1])
-                        if dx + dy >= 15:  # must have moved at least 15px total
+                        if dx + dy >= 15 and not self._is_duplicate_crossing(anchor_x, anchor_y):
                             self.counted_ids.add(tid)
                             self.total_count += 1
                             self.counted_number[tid] = self.total_count
@@ -359,7 +384,7 @@ class VehicleCounter:
                         if not crossed and side2 is not None and ps2 is not None and ps2 * side2 < 0:
                             crossed = True
 
-                        if crossed:
+                        if crossed and not self._is_duplicate_crossing(cx, cy):
                             self.counted_ids.add(tid)
                             self.total_count += 1
                             self.counted_number[tid] = self.total_count
