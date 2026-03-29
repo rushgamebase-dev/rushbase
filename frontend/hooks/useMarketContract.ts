@@ -203,6 +203,17 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     },
   });
 
+  // Watch MarketLocked for instant lock detection
+  useWatchContractEvent({
+    address: addr,
+    abi: MARKET_ABI,
+    eventName: "MarketLocked",
+    enabled,
+    onLogs() {
+      queryClient.invalidateQueries({ queryKey: ["readContract"] });
+    },
+  });
+
   // Build pools array
   const pools = [pool0, pool1, pool2, pool3]
     .slice(0, rangeCount)

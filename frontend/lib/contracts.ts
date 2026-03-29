@@ -72,12 +72,15 @@ export const MARKET_ABI = parseAbi([
   "function claimWinnings()",
   "function cancelMarket()",
   "function refund()",
+  "function claimWinningsFor(address) public",
+  "function distributeAll() external",
 
   // View functions
   "function getRangeCount() view returns (uint256)",
   "function getRange(uint256) view returns (uint256 minCars, uint256 maxCars, string label)",
   "function getAllRanges() view returns ((uint256 minCars, uint256 maxCars, string label)[])",
   "function getUserBets(address) view returns ((uint256 rangeIndex, uint256 amount, bool claimed)[])",
+  "function getBettorList() view returns (address[])",
   "function getUserClaimable(address) view returns (uint256)",
   "function isClaimable() view returns (bool)",
   "function getMarketInfo() view returns (string _streamUrl, string _description, uint8 _state, uint256 _totalPool, uint256 _lockTime, uint256 _rangeCount)",
@@ -196,8 +199,8 @@ export const STATE_COLORS: Record<string, string> = {
 
 // ─── Contract addresses — fill in after deploy ─────────────────────────────
 
-export const FACTORY_ADDRESS = "0x7b51C8C92f24Ef705E9C5c6f77ffA819b9733f4c" as `0x${string}`;
-export const RUSH_TILES_ADDRESS = "0xaCa403BbDE42836146b681AC7B26CE44E875c651" as `0x${string}`;
+export const FACTORY_ADDRESS = "0x80E6c49C6A694a259A4cC7fB9ABa97A876Ffc9fC" as `0x${string}`;
+export const RUSH_TILES_ADDRESS = "0x1c36D127ef239d13D2BA04249D0423ddf5d29Ae8" as `0x${string}`;
 
 // USDC on Base mainnet (for future token mode)
 export const USDC_ADDRESS_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";

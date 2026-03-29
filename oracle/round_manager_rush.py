@@ -134,6 +134,20 @@ MARKET_ABI = [
         "inputs": [{"name": "", "type": "uint256"}],
         "outputs": [{"name": "", "type": "uint256"}],
     },
+    {
+        "name": "lockMarket",
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "inputs": [],
+        "outputs": [],
+    },
+    {
+        "name": "distributeAll",
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "inputs": [],
+        "outputs": [],
+    },
 ]
 
 FACTORY_READ_ABI = [
@@ -414,6 +428,48 @@ class ChainClient:
                 log.warning("cancelMarket reverted for %s", market_address)
         except Exception as exc:
             log.warning("cancelMarket failed for %s: %s", market_address, exc)
+        return None
+
+    # ── lockMarket ────────────────────────────────────────────────────────────
+
+    def lock_market(self, market_address: str) -> Optional[str]:
+        """Call PredictionMarket.lockMarket() to close betting."""
+        try:
+            market = self.w3.eth.contract(
+                address=Web3.to_checksum_address(market_address),
+                abi=MARKET_ABI,
+            )
+            fn_call = market.functions.lockMarket()
+            tx_hash = self._send_tx(fn_call, gas=100_000)
+            receipt = self.wait_for_receipt(tx_hash)
+            if receipt["status"] == 1:
+                log.info("Market locked: %s (tx: %s)", market_address, tx_hash)
+                return tx_hash
+            else:
+                log.warning("lockMarket reverted for %s", market_address)
+        except Exception as exc:
+            log.warning("lockMarket failed for %s: %s", market_address, exc)
+        return None
+
+    # ── distributeAll ─────────────────────────────────────────────────────────
+
+    def distribute_all(self, market_address: str) -> Optional[str]:
+        """Call PredictionMarket.distributeAll() to auto-pay all winners."""
+        try:
+            market = self.w3.eth.contract(
+                address=Web3.to_checksum_address(market_address),
+                abi=MARKET_ABI,
+            )
+            fn_call = market.functions.distributeAll()
+            tx_hash = self._send_tx(fn_call, gas=3_000_000)
+            receipt = self.wait_for_receipt(tx_hash)
+            if receipt["status"] == 1:
+                log.info("Winnings distributed: %s (tx: %s)", market_address, tx_hash)
+                return tx_hash
+            else:
+                log.warning("distributeAll reverted for %s", market_address)
+        except Exception as exc:
+            log.warning("distributeAll failed for %s: %s", market_address, exc)
         return None
 
 
@@ -745,6 +801,18 @@ class RushRoundManager:
         count: Optional[int] = None
         try:
             await stream.start()
+
+            # Lock betting after the betting window
+            lock_delay = self.cfg.betting_window
+            if 0 < lock_delay < self.cfg.round_duration:
+                log.info("Locking bets after %ds...", lock_delay)
+                await asyncio.sleep(lock_delay)
+                self.chain.lock_market(market_address)
+                self._publish_ably("market_locked", {
+                    "marketAddress": market_address,
+                    "ts": int(time.time() * 1000),
+                })
+
             returncode = await stream.wait()
             if returncode != 0:
                 log.warning("stream_server.py exited with code %d", returncode)
@@ -905,6 +973,17 @@ class RushRoundManager:
                     await asyncio.sleep(5 * attempt)
                 else:
                     log.error("All resolveMarket attempts exhausted — market left unresolved")
+
+        # Auto-distribute winnings to all bettors
+        if resolve_tx:
+            distribute_tx = self.chain.distribute_all(market_address)
+            if distribute_tx:
+                log.info("Auto-distributed winnings (tx: %s)", distribute_tx)
+                self._publish_ably("winnings_distributed", {
+                    "marketAddress": market_address,
+                    "txHash": distribute_tx,
+                    "ts": int(time.time() * 1000),
+                })
 
         # ── Step 4: Post to ledger API ────────────────────────────────────────
         # Extract evidence data from result.json if available

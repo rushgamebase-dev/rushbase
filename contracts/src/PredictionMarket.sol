@@ -64,6 +64,9 @@ contract PredictionMarket {
     uint256 public totalBettors;
     uint256 public feeCollected;
 
+    address[] public bettorList;                       // all unique bettors
+    mapping(address => bool) public hasBet;            // dedup tracker
+
     // ─── Events ──────────────────────────────────────────────────────────
 
     event BetPlaced(address indexed user, uint256 rangeIndex, uint256 amount);
@@ -184,6 +187,11 @@ contract PredictionMarket {
         totalPool += amount;
         totalBettors++;
 
+        if (!hasBet[user]) {
+            hasBet[user] = true;
+            bettorList.push(user);
+        }
+
         emit BetPlaced(user, rangeIndex, amount);
     }
 
@@ -269,6 +277,47 @@ contract PredictionMarket {
     }
 
     /**
+     * @notice Claim winnings on behalf of another user. Anyone can call.
+     *         Enables the oracle to auto-distribute after resolution.
+     */
+    function claimWinningsFor(address user) public inState(MarketState.RESOLVED) {
+        uint256 winPool = poolByRange[winningRangeIndex];
+        if (winPool == 0) return;
+
+        uint256 distributable = totalPool - feeCollected;
+        uint256 totalClaim = 0;
+
+        Bet[] storage userBets = betsByUser[user];
+        for (uint256 i = 0; i < userBets.length; i++) {
+            if (userBets[i].rangeIndex == winningRangeIndex && !userBets[i].claimed) {
+                userBets[i].claimed = true;
+                totalClaim += (userBets[i].amount * distributable) / winPool;
+            }
+        }
+
+        if (totalClaim > 0) {
+            bool ok = _safeTransfer(user, totalClaim);
+            if (!ok) {
+                // Recipient rejected ETH (contract without receive).
+                // Send to treasury so funds are never stuck.
+                _transfer(feeRecipient, totalClaim);
+            }
+            emit WinningsClaimed(user, totalClaim);
+        }
+    }
+
+    /**
+     * @notice Distribute winnings to ALL winners in one call.
+     *         Oracle calls this right after resolveMarket().
+     *         Uses _safeTransfer so one failing recipient doesn't block others.
+     */
+    function distributeAll() external inState(MarketState.RESOLVED) {
+        for (uint256 i = 0; i < bettorList.length; i++) {
+            claimWinningsFor(bettorList[i]);
+        }
+    }
+
+    /**
      * @notice Cancel market and allow refunds (oracle only)
      */
     function cancelMarket() external onlyOracle {
@@ -310,6 +359,21 @@ contract PredictionMarket {
         }
     }
 
+    /// @dev Same as _transfer but does NOT revert on failure.
+    ///      Used by distributeAll so one bad recipient can't block everyone.
+    function _safeTransfer(address to, uint256 amount) internal returns (bool) {
+        if (isTokenMode) {
+            try bettingToken.transfer(to, amount) returns (bool success) {
+                return success;
+            } catch {
+                return false;
+            }
+        } else {
+            (bool sent,) = to.call{value: amount}("");
+            return sent;
+        }
+    }
+
     // ─── View Functions ──────────────────────────────────────────────────
 
     function getRangeCount() external view returns (uint256) {
@@ -328,6 +392,10 @@ contract PredictionMarket {
 
     function getUserBets(address user) external view returns (Bet[] memory) {
         return betsByUser[user];
+    }
+
+    function getBettorList() external view returns (address[] memory) {
+        return bettorList;
     }
 
     function getUserClaimable(address user) external view returns (uint256) {
