@@ -45,6 +45,7 @@ pkill -f "round_manager_rush.py" 2>/dev/null || true
 pkill -f "watchdog.py --rounds" 2>/dev/null || true
 pkill -f "stream_server.py" 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
+pkill -f "ngrok http" 2>/dev/null || true
 kill $(lsof -ti :"$WS_PORT") 2>/dev/null || true
 sleep 2
 # Force-kill any survivors
@@ -58,17 +59,18 @@ echo "  Rush Oracle Launcher"
 echo "  WebSocket port: $WS_PORT"
 echo "═══════════════════════════════════════════════════"
 
-# ── Start cloudflared quick tunnel ──────────────────────────────────────────
-TUNNEL_LOG="/tmp/rush_tunnel.log"
-cloudflared tunnel --url "http://0.0.0.0:$WS_PORT" --no-chunked-encoding > "$TUNNEL_LOG" 2>&1 &
+# ── Start ngrok tunnel (more stable than cloudflared) ──────────────────────
+pkill -f "ngrok http" 2>/dev/null || true
+sleep 1
+ngrok http "$WS_PORT" --log /tmp/rush_ngrok.log --log-format logfmt &
 TUNNEL_PID=$!
-echo "[Launcher] Cloudflared PID: $TUNNEL_PID"
+echo "[Launcher] Ngrok PID: $TUNNEL_PID"
 
 # ── Wait for tunnel URL (up to 30s) ─────────────────────────────────────────
-echo "[Launcher] Waiting for tunnel URL..."
+echo "[Launcher] Waiting for ngrok URL..."
 TUNNEL_URL=""
 for i in $(seq 1 30); do
-    TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
+    TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | python3 -c "import json,sys; [print(t['public_url']) for t in json.load(sys.stdin).get('tunnels',[])]" 2>/dev/null | head -1)
     if [ -n "$TUNNEL_URL" ]; then
         break
     fi
@@ -76,7 +78,7 @@ for i in $(seq 1 30); do
 done
 
 if [ -z "$TUNNEL_URL" ]; then
-    echo "[ERROR] Failed to get tunnel URL after 30s"
+    echo "[ERROR] Failed to get ngrok URL after 30s"
     kill "$TUNNEL_PID" 2>/dev/null || true
     exit 1
 fi
@@ -114,7 +116,7 @@ _cleanup() {
         kill -0 "$WATCHDOG_PID" 2>/dev/null && kill -KILL "$WATCHDOG_PID" 2>/dev/null || true
     fi
 
-    echo "[Launcher] Stopping cloudflared tunnel (PID $TUNNEL_PID)..."
+    echo "[Launcher] Stopping tunnel (PID $TUNNEL_PID)..."
     kill "$TUNNEL_PID" 2>/dev/null || true
 
     echo "[Launcher] Done."
