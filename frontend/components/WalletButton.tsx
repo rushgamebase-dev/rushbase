@@ -329,7 +329,7 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
     {
       label: "Buy $RUSH",
       icon: <Plus size={13} />,
-      onClick: () => window.open("https://app.uniswap.org/swap?outputCurrency=0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b&chain=base", "_blank"),
+      onClick: () => window.open("https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b", "_blank"),
       color: "#ffd700",
     },
     {

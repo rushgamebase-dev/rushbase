@@ -73,12 +73,12 @@ export default function DocsPage() {
 
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           <a
-            href={`https://app.uniswap.org/swap?outputCurrency=${RUSH_TOKEN}&chain=base`}
+            href={`https://flaunch.gg/base/coins/${RUSH_TOKEN}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ ...S.badge, background: "#1a2a1a", color: "#00ff88", border: "1px solid #00ff8833" }}
           >
-            Buy $RUSH on Uniswap
+            Buy $RUSH on Flaunch
           </a>
           <a
             href={`https://dexscreener.com/base/${RUSH_TOKEN}`}

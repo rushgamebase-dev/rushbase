@@ -54,7 +54,7 @@ function LeftSidebar() {
         {/* $RUSH token */}
         <div className="flex items-center gap-2 flex-wrap">
           <a
-            href="https://basescan.org/token/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
+            href="https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-bold hover:underline"
@@ -62,14 +62,22 @@ function LeftSidebar() {
           >
             $RUSH
           </a>
+          <button
+            onClick={() => { navigator.clipboard.writeText("0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"); }}
+            className="text-[10px] px-2 py-0.5 rounded hover:opacity-80"
+            style={{ background: "#1a1a1a", color: "#888", fontFamily: "monospace", border: "1px solid #333", cursor: "pointer" }}
+            title="Copy contract address"
+          >
+            0xB36A...e73b
+          </button>
           <a
-            href="https://app.uniswap.org/swap?outputCurrency=0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b&chain=base"
+            href="https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs px-2 py-0.5 rounded hover:opacity-80"
             style={{ background: "#1a2a1a", color: "#00ff88", fontFamily: "monospace", border: "1px solid #00ff8833" }}
           >
-            Buy on Uniswap
+            Buy on Flaunch
           </a>
         </div>
 
