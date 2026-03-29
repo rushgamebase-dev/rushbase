@@ -652,7 +652,10 @@ class RushRoundManager:
         self.cfg = cfg
         self.chain = ChainClient(cfg)
         self.cameras = pick_round_cameras(load_cameras())
-        self.threshold = AdaptiveThreshold(initial=50)
+        # Per-camera thresholds — each camera has its own traffic pattern
+        self.thresholds: dict[str, AdaptiveThreshold] = {}
+        for cam in self.cameras:
+            self.thresholds[cam["id"]] = AdaptiveThreshold(initial=50)
         self.round_number = 0
         self._shutdown = False
 
@@ -722,9 +725,10 @@ class RushRoundManager:
     async def _run_round(self) -> None:
         self.round_number += 1
         camera = self.cameras[(self.round_number - 1) % len(self.cameras)]
+        cam_id     = camera["id"]
         stream_url = camera.get("streamUrl") or camera.get("imageUrl", "")
         cam_name   = camera["name"]
-        threshold  = self.threshold.value
+        threshold  = self.thresholds[cam_id].value
 
         log.info("Round #%d starting", self.round_number)
         log.info("Camera: %s (%s)", cam_name, stream_url)
@@ -921,7 +925,7 @@ class RushRoundManager:
                     "roundNumber": self.round_number,
                     "bets": [],
                 })
-                self.threshold.update(count)
+                self.thresholds[cam_id].update(count)
                 return
 
             if pool_under == 0 or pool_over == 0:
@@ -958,7 +962,7 @@ class RushRoundManager:
                     "roundNumber": self.round_number,
                     "bets": [],
                 })
-                self.threshold.update(count)
+                self.thresholds[cam_id].update(count)
                 return
 
             log.info(
@@ -1051,7 +1055,7 @@ class RushRoundManager:
         self._post_ledger(ledger_record)
 
         # ── Step 5: Update adaptive threshold ─────────────────────────────────
-        self.threshold.update(count)
+        self.thresholds[cam_id].update(count)
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
