@@ -678,6 +678,29 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
+        # Minimal reader thread — only isolates blocking cap.read().
+        # No buffering, no processing, no drain. Just reads + timestamps.
+        import threading
+        _reader_frame = [None]      # single slot, overwritten each read
+        _reader_fresh = [False]     # flag: new frame available
+        _reader_ts = [time.time()]  # last successful read timestamp
+        _reader_alive = [True]
+        _reader_lock = threading.Lock()
+
+        def _reader():
+            while _reader_alive[0]:
+                ret, f = cap.read()
+                if ret:
+                    with _reader_lock:
+                        _reader_frame[0] = f
+                        _reader_fresh[0] = True
+                        _reader_ts[0] = time.time()
+                else:
+                    time.sleep(0.01)
+
+        reader_thread = threading.Thread(target=_reader, daemon=True)
+        reader_thread.start()
+
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -706,13 +729,6 @@ class StreamServer:
                         except Exception:
                             pass
 
-                    # Save final evidence frame (the last annotated frame
-                    # is from the previous iteration; we'll capture it below
-                    # after the break — but since we break here, capture now
-                    # using the last read frame if available)
-                    # Note: we haven't read a new frame yet in this iteration,
-                    # but _last_annotated is set from the previous loop pass.
-
                     result = {
                         "count": self.counter.total_count,
                         "in_count": self.counter.class_counts.get(2, 0),
@@ -730,10 +746,32 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                ret, frame = cap.read()
-                if not ret:
-                    await asyncio.sleep(0.02)
+                # Check for HLS stall — reopen if no frame for 10s
+                if time.time() - _reader_ts[0] > 10:
+                    print("[Stream] No frames for 10s — reopening stream")
+                    _reader_alive[0] = False
+                    reader_thread.join(timeout=2)
+                    cap.release()
+                    direct_url = get_stream_url(self.stream_url)
+                    cap = cv2.VideoCapture(direct_url)
+                    if not cap.isOpened():
+                        print("[Stream] Reopen failed — retrying in 5s")
+                        await asyncio.sleep(5)
+                        continue
+                    _reader_alive[0] = True
+                    _reader_ts[0] = time.time()
+                    reader_thread = threading.Thread(target=_reader, daemon=True)
+                    reader_thread.start()
+                    print("[Stream] Reopened successfully")
                     continue
+
+                # Grab frame only if fresh — no duplicates
+                with _reader_lock:
+                    if not _reader_fresh[0]:
+                        await asyncio.sleep(0.02)
+                        continue
+                    frame = _reader_frame[0]
+                    _reader_fresh[0] = False
 
                 frame_idx += 1
 
@@ -784,6 +822,7 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
+            _reader_alive[0] = False
             cap.release()
             self.running = False
 
