@@ -108,6 +108,8 @@ export default function VideoPlayer({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
+  const decoderImgRef = useRef<HTMLImageElement | null>(null); // reused — no GC churn
+  const prevUrlRef = useRef<string | null>(null);
   const latestFrameRef = useRef<ArrayBuffer | null>(null);
   const processingRef = useRef(false);
 
@@ -258,21 +260,29 @@ export default function VideoPlayer({
       const H = canvas.height;
       const currentFrame = ++frameRef.current;
 
-      // Consume at most 1 frame per tick — never pile up decodes
+      // Consume at most 1 frame per tick — reuse single Image to avoid GC stalls
       if (latestFrameRef.current && !processingRef.current) {
         processingRef.current = true;
         const buffer = latestFrameRef.current;
         latestFrameRef.current = null;
-        const blob = new Blob([buffer], { type: "image/jpeg" });
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
+
+        // Revoke previous URL before creating new one
+        if (prevUrlRef.current) {
+          URL.revokeObjectURL(prevUrlRef.current);
+        }
+        const url = URL.createObjectURL(new Blob([buffer], { type: "image/jpeg" }));
+        prevUrlRef.current = url;
+
+        // Reuse single Image object — no new Image() per frame
+        if (!decoderImgRef.current) {
+          decoderImgRef.current = new Image();
+        }
+        const img = decoderImgRef.current;
         img.onload = () => {
           oracleImageRef.current = img;
-          URL.revokeObjectURL(url);
           processingRef.current = false;
         };
         img.onerror = () => {
-          URL.revokeObjectURL(url);
           processingRef.current = false;
         };
         img.src = url;
