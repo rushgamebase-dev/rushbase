@@ -100,8 +100,7 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
   const overOdds = overPool > 0 ? parseFloat((net / overPool).toFixed(2)) : 0;
   const underOdds = underPool > 0 ? parseFloat((net / underPool).toFixed(2)) : 0;
 
-  const stateMap: Record<number, LiveMarket["status"]> = { 0: "open", 1: "locked", 2: "resolved" };
-  // Always trust contract state. Only show "open" (waiting) if we have NO contract data at all.
+  const stateMap: Record<number, LiveMarket["status"]> = { 0: "open", 1: "locked", 2: "resolved", 3: "cancelled" };
   const status = stateMap[contractData.state] ?? "open";
 
   return {

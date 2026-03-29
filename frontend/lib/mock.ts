@@ -39,7 +39,7 @@ export interface Tile {
 
 export interface LiveMarket {
   roundId: number;
-  status: "open" | "locked" | "resolving" | "resolved";
+  status: "open" | "locked" | "resolving" | "resolved" | "cancelled";
   vehicleCount: number;
   threshold: number;
   timeLeft: number;

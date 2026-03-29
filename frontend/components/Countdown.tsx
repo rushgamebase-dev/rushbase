@@ -6,7 +6,7 @@ interface CountdownProps {
   lockTime?: number;
   timeLeft?: number;
   totalDuration?: number;
-  status: "open" | "locked" | "resolving" | "resolved";
+  status: "open" | "locked" | "resolving" | "resolved" | "cancelled";
   roundNumber?: number;
   /** Final vehicle count — shown in the resolved reveal */
   finalCount?: number;
@@ -154,6 +154,18 @@ export default function Countdown({
             </span>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ── CANCELLED (no bets / one-sided) ──
+  if (effectiveStatus === "cancelled") {
+    return (
+      <div className="w-full py-4 text-center" style={{ background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.3)", borderRadius: 12 }}>
+        <span className="text-lg font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
+          ROUND CANCELLED
+        </span>
+        <div className="text-xs mt-1" style={{ color: "#555" }}>No bets placed — next round starting soon</div>
       </div>
     );
   }
