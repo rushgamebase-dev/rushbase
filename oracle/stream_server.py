@@ -647,6 +647,26 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
+        # Threaded frame reader — cap.read() is blocking and can stall
+        # the entire async loop when HLS buffers. This thread reads
+        # continuously and we always grab the LATEST frame.
+        import threading
+        latest_frame = [None]  # mutable container for thread
+        frame_lock = threading.Lock()
+        reader_alive = [True]
+
+        def reader_thread():
+            while reader_alive[0] and cap.isOpened():
+                ret, f = cap.read()
+                if ret:
+                    with frame_lock:
+                        latest_frame[0] = f
+                else:
+                    time.sleep(0.01)
+
+        reader = threading.Thread(target=reader_thread, daemon=True)
+        reader.start()
+
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -699,19 +719,12 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # Drain buffer — skip stale frames, keep only the newest.
-                # Without this, YOLO processing time causes cap.read() to
-                # return old buffered frames, creating the "loop/jump" effect.
-                ret, frame = cap.read()
-                if not ret:
+                # Grab latest frame from reader thread (never blocks)
+                with frame_lock:
+                    frame = latest_frame[0]
+                if frame is None:
                     await asyncio.sleep(0.02)
                     continue
-                # Grab up to 5 more frames to drain the HLS buffer
-                for _ in range(5):
-                    ret2, frame2 = cap.read()
-                    if not ret2:
-                        break
-                    frame = frame2  # keep the newest
 
                 frame_idx += 1
 
@@ -762,6 +775,7 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
+            reader_alive[0] = False
             cap.release()
             self.running = False
 
