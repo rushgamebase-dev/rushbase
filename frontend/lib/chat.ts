@@ -34,7 +34,7 @@ function colorFromAddress(address?: string): string {
  */
 export function useChat(walletAddress?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineCount] = useState(0);
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
   const mountedRef = useRef(true);
@@ -70,24 +70,7 @@ export function useChat(walletAddress?: string) {
           }
         });
 
-        // Presence — track online count
-        const updatePresence = async () => {
-          try {
-            const members = await channel.presence.get();
-            if (mountedRef.current) setOnlineCount(members.length);
-          } catch { /* ignore */ }
-        };
-
-        channel.presence.subscribe("enter", updatePresence);
-        channel.presence.subscribe("leave", updatePresence);
-
-        // Enter presence
-        await channel.presence.enter({
-          address: walletAddress || "",
-          username: usernameFromAddress(walletAddress),
-        });
-
-        // Load history
+        // Load history (no presence — Ably free tier rejects it)
         try {
           const history = await channel.history({ limit: 50, direction: "forwards" });
           if (mountedRef.current && history.items.length > 0) {
@@ -97,8 +80,6 @@ export function useChat(walletAddress?: string) {
             setMessages(hist.slice(-MAX_MESSAGES));
           }
         } catch { /* history might fail on free tier */ }
-
-        await updatePresence();
       } catch (err) {
         console.error("Ably init error:", err);
       }
@@ -108,7 +89,6 @@ export function useChat(walletAddress?: string) {
 
     return () => {
       mountedRef.current = false;
-      try { channelRef.current?.presence.leave().catch(() => {}); } catch {}
       try { channelRef.current?.unsubscribe(); } catch {}
       try { ablyRef.current?.close(); } catch {}
       ablyRef.current = null;
