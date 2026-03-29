@@ -101,7 +101,8 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
   const underOdds = underPool > 0 ? parseFloat((net / underPool).toFixed(2)) : 0;
 
   const stateMap: Record<number, LiveMarket["status"]> = { 0: "open", 1: "locked", 2: "resolved" };
-  const status = isWaiting ? "open" : (stateMap[contractData.state] ?? "open");
+  // Always trust contract state. Only show "open" (waiting) if we have NO contract data at all.
+  const status = stateMap[contractData.state] ?? "open";
 
   return {
     roundId: marketCount,
@@ -135,7 +136,19 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 // ─── Home page ────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { marketAddress, isWaiting, marketCount } = useActiveMarket();
+  const { marketAddress: activeMarketAddress, isWaiting, marketCount } = useActiveMarket();
+
+  // Keep the last known market address so we can show RESOLVED state
+  // even after getActiveMarkets() returns []. Only update when a NEW market appears.
+  const [lastMarketAddress, setLastMarketAddress] = useState<`0x${string}` | null>(null);
+  useEffect(() => {
+    if (activeMarketAddress) {
+      setLastMarketAddress(activeMarketAddress);
+    }
+  }, [activeMarketAddress]);
+
+  // Use active market if available, otherwise keep showing the last one
+  const marketAddress = activeMarketAddress || lastMarketAddress;
   const contractData = useMarketContract(marketAddress);
   const [liveCount, setLiveCount] = useState(0);
   const { stats } = useStats();
@@ -146,9 +159,9 @@ export default function Home() {
   useMarketStream();
 
   // Reset live count when market changes (new round starts)
-  useEffect(() => { setLiveCount(0); }, [marketAddress]);
+  useEffect(() => { setLiveCount(0); }, [activeMarketAddress]);
 
-  const market = buildMarketFromContract(contractData, isWaiting, marketCount);
+  const market = buildMarketFromContract(contractData, isWaiting && !lastMarketAddress, marketCount);
 
   // Use live oracle count if available; fallback to contract data but never jump backwards
   const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
