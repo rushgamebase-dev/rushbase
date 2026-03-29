@@ -179,6 +179,8 @@ export default function Home() {
 
   // Ref to scroll to BettingPanel from mobile sticky bar
   const bettingPanelRef = useRef<HTMLDivElement>(null);
+  // Separate ref for the mobile betting panel (rendered after video)
+  const mobileBettingPanelRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
@@ -228,9 +230,9 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Vehicle count — live counter */}
+              {/* Vehicle count — live counter (hidden on mobile; countdown overlay shows it) */}
               <div
-                className="flex flex-col items-end"
+                className="hidden md:flex flex-col items-end"
                 style={{
                   background: "rgba(0,0,0,0.5)",
                   border: `1px solid ${hasActiveMarket ? "rgba(0,255,136,0.2)" : "#1a1a1a"}`,
@@ -300,9 +302,14 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Current count card (standalone) */}
+          {/* Mobile betting panel — shows right after video on small screens */}
+          <div ref={mobileBettingPanelRef} className="lg:hidden">
+            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} />
+          </div>
+
+          {/* Current count card (standalone) — hidden on mobile; countdown overlay already shows it */}
           <div
-            className="p-4 rounded"
+            className="hidden md:block p-4 rounded"
             style={{ background: "#111", border: "1px solid #1a1a1a" }}
           >
             <div className="flex flex-col justify-center gap-1">
@@ -428,10 +435,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Center: Betting panel (25%) */}
+        {/* Center: Betting panel (25%) — hidden on mobile, shown inline after video instead */}
         <div
           ref={bettingPanelRef}
-          className="flex flex-col lg:sticky lg:top-0 lg:self-start"
+          className="hidden lg:flex flex-col lg:sticky lg:top-0 lg:self-start"
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
@@ -461,7 +468,7 @@ export default function Home() {
           status={market.status}
           threshold={market.threshold}
           onTap={() => {
-            bettingPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            mobileBettingPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />
       )}
