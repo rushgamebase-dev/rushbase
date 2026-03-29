@@ -8,6 +8,7 @@ interface VideoPlayerProps {
   cameraName?: string;
   onCountUpdate?: (count: number) => void;
   marketAddress?: string;
+  streamUrl?: string;
 }
 
 interface OracleCountMsg {
@@ -41,7 +42,7 @@ interface OracleFinalMsg {
 
 type OracleMsg = OracleInitMsg | OracleCountMsg | OracleFinalMsg;
 
-const YOUTUBE_EMBED_URL =
+const DEFAULT_YOUTUBE_EMBED_URL =
   "https://www.youtube.com/embed/DnUFAShZKus?autoplay=1&mute=1&controls=0";
 
 // Static env var fallback — but dynamic URL from API takes priority
@@ -56,6 +57,7 @@ export default function VideoPlayer({
   cameraName = "LIVE CAMERA",
   onCountUpdate,
   marketAddress,
+  streamUrl,
 }: VideoPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -296,7 +298,7 @@ export default function VideoPlayer({
         /* No oracle: show YouTube live stream embed */
         <>
           <iframe
-            src={YOUTUBE_EMBED_URL}
+            src={streamUrl ? streamUrl.replace("watch?v=", "embed/") + "?autoplay=1&mute=1&controls=0" : DEFAULT_YOUTUBE_EMBED_URL}
             title="Live camera feed"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
