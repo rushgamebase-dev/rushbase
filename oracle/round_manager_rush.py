@@ -232,15 +232,11 @@ def load_cameras() -> list[dict]:
 
 def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     """
-    Return the two primary cameras used for alternating rounds.
-
-    Preference order:
-      1. peace-bridge
-      2. peace-bridge-qew
-    Falls back to the first two cameras in the file.
+    Return the cameras used for alternating rounds.
+    Rounds alternate: peace-bridge → netherlands-highway → peace-bridge → ...
     """
     by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["peace-bridge"]
+    primary_ids = ["peace-bridge", "netherlands-highway"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
     if not result:
         result = cameras[:1]
