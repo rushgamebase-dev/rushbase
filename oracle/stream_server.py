@@ -468,12 +468,38 @@ class VehicleCounter:
         return frame, self.total_count
 
 
+_URL_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".url_cache.json")
+_URL_CACHE_TTL = 18000  # 5 hours — HLS URLs last ~6h
+
+def _load_url_cache():
+    try:
+        with open(_URL_CACHE_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_url_cache(cache):
+    try:
+        with open(_URL_CACHE_FILE, 'w') as f:
+            json.dump(cache, f)
+    except Exception:
+        pass
+
 def get_stream_url(youtube_url):
-    """Extract direct stream URL using yt-dlp."""
+    """Extract direct stream URL using yt-dlp. Cached on disk to avoid rate limits."""
     import os
 
     if 'youtube.com' not in youtube_url and 'youtu.be' not in youtube_url:
         return youtube_url
+
+    # Return cached URL if fresh
+    cache = _load_url_cache()
+    if youtube_url in cache:
+        cached_url, cached_ts = cache[youtube_url]
+        age = time.time() - cached_ts
+        if age < _URL_CACHE_TTL:
+            print(f"[yt-dlp] Using cached URL (age {int(age)}s)")
+            return cached_url
 
     deno_path = os.path.expanduser("~/.deno/bin")
     env = os.environ.copy()
@@ -492,11 +518,18 @@ def get_stream_url(youtube_url):
             if result.returncode == 0:
                 url = result.stdout.strip()
                 print(f"[yt-dlp] OK: {url[:80]}...")
+                cache[youtube_url] = [url, time.time()]
+                _save_url_cache(cache)
                 return url
         except FileNotFoundError:
             return youtube_url
         except subprocess.TimeoutExpired:
             continue
+
+    # yt-dlp failed — return cached even if stale, better than nothing
+    if youtube_url in cache:
+        print("[yt-dlp] FAILED — using stale cached URL")
+        return cache[youtube_url][0]
 
     return youtube_url
 
@@ -933,6 +966,9 @@ def main():
             args.line_points = cam["linePoints"]
             args.mode = "line"
             print(f"[Camera] Line from config: {args.line_points}")
+        if not args.line_points2 and cam.get("linePoints2"):
+            args.line_points2 = cam["linePoints2"]
+            print(f"[Camera] Line 2 from config: {args.line_points2}")
         print(f"[Camera] {cam['name']} ({cam.get('source','')}) — {cam['type'].upper()}")
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")

@@ -43,7 +43,8 @@
       "type": "youtube",
       "resolution": "1280x720",
       "linePoints": "0.794,0.541,0.836,0.190",
-      "notes": "Lado canadense, angulo lateral, linha quase vertical na pista da direita"
+      "linePoints2": "0.648,0.360,0.792,0.186",
+      "notes": "Duas linhas: direita (line1) + esquerda (line2) pra pegar ambas as vias"
     },
     {
       "id": "caltrans-100",
