@@ -711,6 +711,26 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
+        # Minimal reader thread — ONLY to prevent cap.read() from blocking event loop.
+        # Queue(2): just current + next frame. Preserves natural HLS timing.
+        import threading
+        import queue as _queue
+        _frame_q = _queue.Queue(maxsize=2)
+        _reader_alive = [True]
+
+        def _reader():
+            while _reader_alive[0]:
+                ret, f = cap.read()
+                if ret and f is not None:
+                    try:
+                        _frame_q.put(f, timeout=1)  # blocks if queue full — natural backpressure
+                    except _queue.Full:
+                        pass  # drop frame if main loop can't keep up
+                else:
+                    time.sleep(0.02)
+
+        threading.Thread(target=_reader, daemon=True).start()
+
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -756,8 +776,9 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                ret, frame = cap.read()
-                if not ret:
+                try:
+                    frame = _frame_q.get_nowait()
+                except _queue.Empty:
                     await asyncio.sleep(0.02)
                     continue
 
@@ -809,6 +830,7 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
+            _reader_alive[0] = False
             cap.release()
             self.running = False
 
