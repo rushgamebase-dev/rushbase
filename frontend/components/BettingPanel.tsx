@@ -69,7 +69,15 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
 
   // Enforce the SAME rule as the contract: require(block.timestamp < lockTime)
-  const bettingExpired = lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime;
+  // Use state for bettingExpired to avoid hydration mismatch (Date.now differs server vs client)
+  const [bettingExpired, setBettingExpired] = useState(false);
+  useEffect(() => {
+    if (!lockTime || lockTime <= 0) return;
+    function check() { setBettingExpired(Math.floor(Date.now() / 1000) >= lockTime); }
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
+  }, [lockTime]);
   const isOpen = market.status === "open" && !bettingExpired;
   const amountNum = parseFloat(amount) || 0;
   const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;

@@ -79,12 +79,8 @@ export default function Countdown({
     return () => { if (nextRoundRef.current) clearInterval(nextRoundRef.current); };
   }, [status]);
 
-  const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
-    if (lockTime && lockTime > 0) {
-      return Math.max(0, Math.floor(lockTime - Date.now() / 1000));
-    }
-    return timeLeftProp ?? 0;
-  });
+  // Initialize to 0 — real value computed in useEffect to avoid hydration mismatch
+  const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(0);
 
   // Counting phase countdown (lockTime + 150s = round end)
   const [countingTimeLeft, setCountingTimeLeft] = useState(0);

@@ -15,7 +15,7 @@ export default function RootLayout({
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <html lang="en" style={{ colorScheme: "dark" }} suppressHydrationWarning>
+    <html lang="en" style={{ colorScheme: "dark" }}>
       <head>
         <title>Rush — Live Prediction Market</title>
         <meta name="description" content="On-chain vehicle count prediction market. Bet on traffic. Win ETH." />
@@ -37,7 +37,7 @@ export default function RootLayout({
         <meta name="twitter:image" content="https://rushgame.vip/og-image.png" />
         <meta name="twitter:site" content="@rushgamebase" />
       </head>
-      <body suppressHydrationWarning>
+      <body>
         <WagmiProvider config={wagmiConfig}>
           <QueryClientProvider client={queryClient}>
             {children}
