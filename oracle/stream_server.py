@@ -830,17 +830,10 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # Get frame from queue — process new, rebroadcast last during gaps
-                _last_jpeg = getattr(self, '_last_jpeg', None)
-                _last_count = getattr(self, '_last_count', 0)
-
                 try:
                     frame, _frame_read_ts = _frame_q.get_nowait()
                 except _queue.Empty:
-                    # No new frame — rebroadcast last JPEG to keep stream alive
-                    if _last_jpeg is not None:
-                        await self.broadcast_frame(_last_jpeg, _last_count, elapsed)
-                    await asyncio.sleep(frame_interval)
+                    await asyncio.sleep(0.005)
                     continue
 
                 frame_idx += 1
@@ -872,11 +865,7 @@ class StreamServer:
                 _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 55])
                 jpeg_bytes = jpeg.tobytes()
 
-                # Cache for rebroadcast during gaps
-                self._last_jpeg = jpeg_bytes
-                self._last_count = count
-
-                # Broadcast
+                # Broadcast (non-blocking — stored for async send)
                 await self.broadcast_frame(jpeg_bytes, count, elapsed)
 
                 # ── Evidence frame capture ───────────────────────────
