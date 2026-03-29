@@ -6,6 +6,7 @@ import { formatEther } from "viem";
 import { useActiveMarket } from "@/hooks/useActiveMarket";
 import { useMarketContract } from "@/hooks/useMarketContract";
 import { useStats } from "@/hooks/useStats";
+import { useTilesContract } from "@/hooks/useTilesContract";
 import { useRoundHistory } from "@/hooks/useRoundHistory";
 import Header from "@/components/Header";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -621,12 +622,19 @@ function WhyRush() {
 
 function TilesPreview() {
   const TOTAL_TILES = 100;
+  const tilesContract = useTilesContract();
 
-  const miniTiles = Array.from({ length: 25 }, (_, i) => ({
-    id: i,
-    owned: false,
-    mine: false,
-  }));
+  const ownedCount = tilesContract.totalActiveTiles;
+  const totalDist = parseFloat(tilesContract.totalDistributed);
+  const treasury = parseFloat(tilesContract.treasuryBalance);
+
+  const miniTiles = tilesContract.tiles.length > 0
+    ? tilesContract.tiles.slice(0, 25).map((t, i) => ({
+        id: i,
+        owned: t.owner !== "0x0000000000000000000000000000000000000000",
+        mine: false,
+      }))
+    : Array.from({ length: 25 }, (_, i) => ({ id: i, owned: false, mine: false }));
 
   return (
     <section
@@ -667,8 +675,9 @@ function TilesPreview() {
       <div className="flex gap-4 mb-3">
         {[
           { label: "TOTAL TILES", value: String(TOTAL_TILES) },
-          { label: "OWNED", value: "0" },
-          { label: "DISTRIBUTED", value: "0.00 ETH" },
+          { label: "OWNED", value: String(ownedCount) },
+          { label: "DISTRIBUTED", value: `${totalDist.toFixed(4)} ETH` },
+          { label: "TREASURY", value: `${treasury.toFixed(4)} ETH` },
         ].map((s) => (
           <div key={s.label}>
             <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>{s.label}</div>
@@ -687,8 +696,8 @@ function TilesPreview() {
             key={t.id}
             className="aspect-square rounded-sm"
             style={{
-              background: "#1a1a1a",
-              border: "1px solid #222",
+              background: t.owned ? "rgba(255,215,0,0.25)" : "#1a1a1a",
+              border: t.owned ? "1px solid rgba(255,215,0,0.3)" : "1px solid #222",
             }}
           />
         ))}
