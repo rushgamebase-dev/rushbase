@@ -31,8 +31,8 @@
       "streamUrl": "https://www.youtube.com/watch?v=SETJ79HmwI0",
       "type": "youtube",
       "resolution": "1280x720",
-      "linePoints": "0.55,0.0,0.55,1.0",
-      "notes": "Lado canadense, angulo lateral, carros esquerda-direita, linha vertical"
+      "linePoints": "0.794,0.541,0.836,0.190",
+      "notes": "Lado canadense, angulo lateral, linha quase vertical na pista da direita"
     },
     {
       "id": "caltrans-100",
