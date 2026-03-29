@@ -58,7 +58,7 @@ class VehicleCounter:
     - Never recounts same ID
     """
 
-    def __init__(self, model_name='yolov8s.pt', confidence=0.25,
+    def __init__(self, model_name='yolov8n.pt', confidence=0.30,
                  line_position=0.45, line_angle=10, line_points=None,
                  count_mode='line', min_frames=5, lanes=None, **_kwargs):
         self.count_mode = count_mode
