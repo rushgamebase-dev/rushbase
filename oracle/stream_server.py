@@ -45,7 +45,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 1920
+OUTPUT_WIDTH = 1280
 
 
 class VehicleCounter:
@@ -626,6 +626,8 @@ class StreamServer:
 
         print(f"\n[Stream] Opening video...")
         cap = cv2.VideoCapture(direct_url)
+        # Buffer size: reduce to 1 frame to avoid stale frames from HLS lag
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         if not cap.isOpened():
             print("[ERROR] Could not open video stream!")
