@@ -711,6 +711,70 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
+        # Buffered reader thread — preserves full HLS burst (~60 frames).
+        # cap.read() delivers 1600+ fps from FFmpeg internal buffer, then
+        # blocks until next HLS segment. Queue(60) keeps the whole burst
+        # so main loop consumes at YOLO speed without losing frames.
+        import threading
+        import queue as _queue
+
+        _frame_q = _queue.Queue(maxsize=60)
+        _reader_alive = [True]
+
+        def _reader():
+            nonlocal cap
+            while _reader_alive[0]:
+                if cap is None or not cap.isOpened():
+                    print("[Reader] Reconnecting HLS...")
+                    try:
+                        if cap is not None:
+                            cap.release()
+                        new_url = get_stream_url(self.stream_url)
+                        cap = cv2.VideoCapture(new_url)
+                        if not cap.isOpened():
+                            print("[Reader] Reopen failed — retry in 2s")
+                            time.sleep(2)
+                            continue
+                        print("[Reader] Reconnected")
+                    except Exception as e:
+                        print(f"[Reader] Error: {e}")
+                        time.sleep(2)
+                        continue
+
+                ret, f = cap.read()
+                if ret and f is not None:
+                    try:
+                        _frame_q.put_nowait(f)
+                    except _queue.Full:
+                        # Drop oldest, keep newest (rare — only if YOLO can't keep up)
+                        try:
+                            _frame_q.get_nowait()
+                        except _queue.Empty:
+                            pass
+                        _frame_q.put_nowait(f)
+                else:
+                    print("[Reader] cap.read() failed — reconnecting")
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    cap = None
+                    time.sleep(0.5)
+
+        reader_thread = threading.Thread(target=_reader, daemon=True)
+        reader_thread.start()
+
+        # Wait for first frame
+        print("[Stream] Waiting for first frame...")
+        try:
+            first = _frame_q.get(timeout=30)
+            _frame_q.put(first)  # put it back for the main loop
+            print(f"[Stream] First frame received (queue size: {_frame_q.qsize()})")
+        except _queue.Empty:
+            print("[Stream] No frames after 30s — aborting")
+            _reader_alive[0] = False
+            return
+
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -756,9 +820,10 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                ret, frame = cap.read()
-                if not ret:
-                    await asyncio.sleep(0.02)
+                try:
+                    frame = _frame_q.get_nowait()
+                except _queue.Empty:
+                    await asyncio.sleep(0.005)
                     continue
 
                 frame_idx += 1
@@ -810,7 +875,9 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
-            cap.release()
+            _reader_alive[0] = False
+            if cap is not None:
+                cap.release()
             self.running = False
 
     async def handler(self, ws):
