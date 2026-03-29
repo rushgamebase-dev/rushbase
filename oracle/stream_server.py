@@ -45,7 +45,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 1280
+OUTPUT_WIDTH = 960
 
 
 class VehicleCounter:
@@ -481,7 +481,7 @@ class StreamServer:
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.15, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=15, **kwargs):
+                 count_mode='uid', lanes=None, target_fps=10, **kwargs):
         self.stream_url = stream_url
         self.duration = duration
         self.host = host
@@ -721,7 +721,7 @@ class StreamServer:
                 # Timer removed — frontend handles countdown display
 
                 # Encode to JPEG
-                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 45])
 
                 # Broadcast binary frame
                 await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
