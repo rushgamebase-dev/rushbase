@@ -48,7 +48,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 1920
+OUTPUT_WIDTH = 960
 
 
 class VehicleCounter:
@@ -804,7 +804,7 @@ class StreamServer:
                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
                 # Encode to JPEG
-                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 45])
 
                 # Broadcast binary frame
                 await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
@@ -820,8 +820,12 @@ class StreamServer:
                 if self.duration - elapsed < frame_interval * 2:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
-                # Yield to event loop
-                await asyncio.sleep(0)
+                # Pace to target_fps — without this, the threaded reader
+                # lets YOLO run at full GPU speed (~13fps) flooding clients.
+                # Original cap.read() naturally blocked at stream rate.
+                process_time = time.time() - frame_start
+                sleep_time = max(0, frame_interval - process_time)
+                await asyncio.sleep(sleep_time)
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
