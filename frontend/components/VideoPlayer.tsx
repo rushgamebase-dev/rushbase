@@ -7,6 +7,7 @@ interface VideoPlayerProps {
   isLive?: boolean;
   cameraName?: string;
   onCountUpdate?: (count: number) => void;
+  marketAddress?: string;
 }
 
 interface OracleCountMsg {
@@ -14,6 +15,9 @@ interface OracleCountMsg {
   count: number;
   elapsed: number;
   remaining: number;
+  marketAddress?: string;
+  cameraId?: string;
+  roundId?: number;
 }
 
 interface OracleInitMsg {
@@ -21,12 +25,18 @@ interface OracleInitMsg {
   stream: string;
   duration: number;
   count: number;
+  marketAddress?: string;
+  cameraId?: string;
+  roundId?: number;
 }
 
 interface OracleFinalMsg {
   type: "final";
   count: number;
   duration: number;
+  marketAddress?: string;
+  cameraId?: string;
+  roundId?: number;
 }
 
 type OracleMsg = OracleInitMsg | OracleCountMsg | OracleFinalMsg;
@@ -45,6 +55,7 @@ export default function VideoPlayer({
   isLive = true,
   cameraName = "LIVE CAMERA",
   onCountUpdate,
+  marketAddress,
 }: VideoPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -156,13 +167,13 @@ export default function VideoPlayer({
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
-          if (msg.type === "count") {
-            setOracleCount(msg.count);
-            onCountUpdate?.(msg.count);
-          } else if (msg.type === "init") {
-            setOracleCount(msg.count);
-            onCountUpdate?.(msg.count);
-          } else if (msg.type === "final") {
+          // Validate market address — reject stale counts from previous rounds
+          const msgMarket = msg.marketAddress;
+          if (msgMarket && marketAddress && msgMarket.toLowerCase() !== marketAddress.toLowerCase()) {
+            return;
+          }
+
+          if (msg.type === "count" || msg.type === "init" || msg.type === "final") {
             setOracleCount(msg.count);
             onCountUpdate?.(msg.count);
           }
@@ -186,7 +197,7 @@ export default function VideoPlayer({
         connectOracle();
       }, delay);
     };
-  }, [oracleWsUrl]);
+  }, [oracleWsUrl, marketAddress, onCountUpdate]);
 
   // Connect on mount or when URL changes, clean up on unmount
   useEffect(() => {

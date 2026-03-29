@@ -489,10 +489,14 @@ class StreamSubprocess:
         camera: dict,
         duration: int,
         ws_port: int,
+        market_address: str = '',
+        round_id: int = 0,
     ) -> None:
         self.camera = camera
         self.duration = duration
         self.ws_port = ws_port
+        self.market_address = market_address
+        self.round_id = round_id
         self._proc: Optional[asyncio.subprocess.Process] = None
 
     async def start(self) -> None:
@@ -508,6 +512,9 @@ class StreamSubprocess:
             "--camera", cam_id,
             "--duration", str(self.duration),
             "--port", str(self.ws_port),
+            "--market-address", self.market_address,
+            "--camera-id", self.camera["id"],
+            "--round-id", str(self.round_id),
         ]
 
         log.info("Spawning stream_server.py: %s", " ".join(cmd))
@@ -772,6 +779,7 @@ class RushRoundManager:
                     "threshold": threshold,
                     "lockTime": lock_time_val,
                     "description": description,
+                    "cameraId": camera["id"],
                     "ts": int(time.time() * 1000),
                 })
                 break
@@ -796,6 +804,8 @@ class RushRoundManager:
             camera=camera,
             duration=self.cfg.round_duration,
             ws_port=self.cfg.ws_port,
+            market_address=market_address,
+            round_id=self.round_number,
         )
 
         count: Optional[int] = None

@@ -456,12 +456,15 @@ class StreamServer:
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.15, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=8):
+                 count_mode='uid', lanes=None, target_fps=8, **kwargs):
         self.stream_url = stream_url
         self.duration = duration
         self.host = host
         self.port = port
         self.target_fps = target_fps
+        self.market_address = kwargs.get('market_address', '')
+        self.camera_id = kwargs.get('camera_id', '')
+        self.round_id = kwargs.get('round_id', 0)
 
         self.counter = VehicleCounter(model_name=model, confidence=confidence,
                                        line_position=line_pos, line_angle=line_angle,
@@ -487,7 +490,10 @@ class StreamServer:
             "type": "init",
             "stream": self.stream_url,
             "duration": self.duration,
-            "count": self.counter.total_count
+            "count": self.counter.total_count,
+            "marketAddress": self.market_address,
+            "cameraId": self.camera_id,
+            "roundId": self.round_id,
         }))
 
     async def unregister(self, ws):
@@ -506,6 +512,9 @@ class StreamServer:
             "count_out": self.counter.count_out,
             "elapsed": round(elapsed, 1),
             "remaining": max(0, round(self.duration - elapsed, 1)),
+            "marketAddress": self.market_address,
+            "cameraId": self.camera_id,
+            "roundId": self.round_id,
         })
 
         dead = set()
@@ -789,6 +798,9 @@ def main():
     parser.add_argument('--mode', choices=['line', 'uid'], default='uid',
                        help='Counting mode: line=crossing, uid=unique IDs (default: uid)')
     parser.add_argument('--fps', type=int, default=8, help='Target output FPS')
+    parser.add_argument('--market-address', type=str, default='', help='Market contract address for this round')
+    parser.add_argument('--camera-id', type=str, default='', help='Camera ID for this round')
+    parser.add_argument('--round-id', type=int, default=0, help='Round number')
 
     args = parser.parse_args()
 
@@ -822,7 +834,10 @@ def main():
         line_points2=args.line_points2,
         count_mode=args.mode,
         lanes=cam_lanes,
-        target_fps=args.fps
+        target_fps=args.fps,
+        market_address=args.market_address,
+        camera_id=args.camera_id,
+        round_id=args.round_id,
     )
 
     try:

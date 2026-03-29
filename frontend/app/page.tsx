@@ -277,6 +277,7 @@ export default function Home() {
               isLive={hasActiveMarket}
               cameraName={cameraName}
               onCountUpdate={setLiveCount}
+              marketAddress={marketAddress || undefined}
             />
 
             <BetToast bets={market.recentBets} />
