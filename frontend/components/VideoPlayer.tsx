@@ -42,8 +42,8 @@ interface OracleFinalMsg {
 
 type OracleMsg = OracleInitMsg | OracleCountMsg | OracleFinalMsg;
 
-const DEFAULT_YOUTUBE_EMBED_URL =
-  "https://www.youtube.com/embed/DnUFAShZKus?autoplay=1&mute=1&controls=0";
+// YouTube embed removed — some cameras block external embedding.
+// Fallback shows "Connecting to oracle..." instead.
 
 // Static env var fallback — but dynamic URL from API takes priority
 const STATIC_ORACLE_WS_URL =
@@ -53,11 +53,13 @@ const STATIC_ORACLE_WS_URL =
 
 export default function VideoPlayer({
   vehicleCount: externalVehicleCount,
-  isLive = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isLive: _isLive = true,
   cameraName = "LIVE CAMERA",
   onCountUpdate,
   marketAddress,
-  streamUrl,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  streamUrl: _streamUrl,
 }: VideoPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -295,117 +297,19 @@ export default function VideoPlayer({
           aria-label="Live CCTV feed with oracle vehicle detection"
         />
       ) : (
-        /* No oracle: show YouTube live stream embed */
-        <>
-          <iframe
-            src={streamUrl ? streamUrl.replace("watch?v=", "embed/") + "?autoplay=1&mute=1&controls=0" : DEFAULT_YOUTUBE_EMBED_URL}
-            title="Live camera feed"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{
-              width: "100%",
-              height: "100%",
-              border: "none",
-              display: "block",
-            }}
-          />
-
-          {/* HUD overlay on top of YouTube embed */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            aria-hidden="true"
-          >
-            {/* LIVE badge */}
-            {isLive && (
-              <div
-                className="absolute top-2 right-2 flex items-center gap-1.5"
-                style={{
-                  background: "rgba(255,68,68,0.15)",
-                  border: "1px solid rgba(255,68,68,0.5)",
-                  padding: "3px 8px",
-                }}
-              >
-                <span
-                  className="inline-block w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: "#ff4444",
-                    animation: "livePulse 1.2s ease-in-out infinite",
-                    boxShadow: "0 0 4px rgba(255,68,68,0.8)",
-                  }}
-                />
-                <span
-                  style={{
-                    color: "#ff4444",
-                    fontFamily: "monospace",
-                    fontSize: 9,
-                    fontWeight: 700,
-                  }}
-                >
-                  LIVE
-                </span>
-              </div>
-            )}
-
-            {/* Camera name + clock */}
-            <div
-              className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-2"
-              style={{
-                background: "rgba(0,0,0,0.5)",
-                height: 24,
-              }}
-            >
-              <span
-                style={{
-                  color: "rgba(0,255,136,0.7)",
-                  fontFamily: "monospace",
-                  fontSize: 9,
-                }}
-              >
-                {cameraName}
-              </span>
-              <LiveClock />
-            </div>
-          </div>
-        </>
+        /* No oracle connection: show connecting state */
+        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "#0a0a0a" }}>
+          <div className="w-6 h-6 rounded-full border-2 border-t-transparent mb-3" style={{ borderColor: "#00ff8855", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
+          <span className="text-sm font-black tracking-widest" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+            CONNECTING TO ORACLE...
+          </span>
+          <span className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
+            {cameraName}
+          </span>
+        </div>
       )}
     </div>
   );
 }
 
-// Clock component that ticks every second
-function LiveClock() {
-  const [time, setTime] = useState<string>("");
-
-  useEffect(() => {
-    function tick() {
-      const now = new Date();
-      const date = now.toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      });
-      const t = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
-      setTime(`${date}  ${t}`);
-    }
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <span
-      style={{
-        color: "rgba(200,200,200,0.6)",
-        fontFamily: "monospace",
-        fontSize: 9,
-      }}
-    >
-      {time}
-    </span>
-  );
-}
+// LiveClock removed — was only used in YouTube embed fallback
