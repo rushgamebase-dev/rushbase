@@ -820,10 +820,17 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
+                # Get frame from queue — process new, rebroadcast last during gaps
+                _last_jpeg = getattr(self, '_last_jpeg', None)
+                _last_count = getattr(self, '_last_count', 0)
+
                 try:
                     frame = _frame_q.get_nowait()
                 except _queue.Empty:
-                    await asyncio.sleep(0.005)
+                    # No new frame — rebroadcast last JPEG to keep stream alive
+                    if _last_jpeg is not None:
+                        await self.broadcast_frame(_last_jpeg, _last_count, elapsed)
+                    await asyncio.sleep(frame_interval)
                     continue
 
                 frame_idx += 1
@@ -838,13 +845,10 @@ class StreamServer:
                 # Process with YOLO + Supervision
                 annotated, count = self.counter.process_frame(frame)
 
-                # Timer removed — frontend handles countdown display
-
-                # Frame age overlay (proves freshness)
+                # Frame age overlay
                 yolo_done = time.time()
                 frame_age_ms = int((yolo_done - frame_start) * 1000)
                 fps_actual = frame_idx / max(elapsed, 0.1)
-                # Small debug text in bottom-right corner
                 dbg = f"seq:{frame_idx} age:{frame_age_ms}ms fps:{fps_actual:.1f}"
                 h_ann, w_ann = annotated.shape[:2]
                 cv2.putText(annotated, dbg, (w_ann - 320, h_ann - 8),
@@ -852,18 +856,20 @@ class StreamServer:
 
                 # Encode to JPEG
                 _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                jpeg_bytes = jpeg.tobytes()
 
-                # Broadcast binary frame
-                await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
+                # Cache for rebroadcast during gaps
+                self._last_jpeg = jpeg_bytes
+                self._last_count = count
+
+                # Broadcast
+                await self.broadcast_frame(jpeg_bytes, count, elapsed)
 
                 # ── Evidence frame capture ───────────────────────────
-                # Save a frame every EVIDENCE_INTERVAL seconds
                 if elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed)
                     self._last_evidence_time = elapsed
 
-                # If this is the last frame before duration expires,
-                # save it as the final proof frame
                 if self.duration - elapsed < frame_interval * 2:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
