@@ -148,6 +148,13 @@ MARKET_ABI = [
         "inputs": [],
         "outputs": [],
     },
+    {
+        "name": "refundAll",
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "inputs": [],
+        "outputs": [],
+    },
 ]
 
 FACTORY_READ_ABI = [
@@ -468,6 +475,27 @@ class ChainClient:
             log.warning("distributeAll failed for %s: %s", market_address, exc)
         return None
 
+    # ── refundAll ─────────────────────────────────────────────────────────────
+
+    def refund_all(self, market_address: str) -> Optional[str]:
+        """Call PredictionMarket.refundAll() to auto-refund all bettors after cancel."""
+        try:
+            market = self.w3.eth.contract(
+                address=Web3.to_checksum_address(market_address),
+                abi=MARKET_ABI,
+            )
+            fn_call = market.functions.refundAll()
+            tx_hash = self._send_tx(fn_call, gas=3_000_000)
+            receipt = self.wait_for_receipt(tx_hash)
+            if receipt["status"] == 1:
+                log.info("Refunds distributed: %s (tx: %s)", market_address, tx_hash)
+                return tx_hash
+            else:
+                log.warning("refundAll reverted for %s", market_address)
+        except Exception as exc:
+            log.warning("refundAll failed for %s: %s", market_address, exc)
+        return None
+
 
 # ── Subprocess runner (stream_server.py) ──────────────────────────────────────
 
@@ -732,6 +760,7 @@ class RushRoundManager:
                             "marketAddress": addr,
                             "ts": int(time.time() * 1000),
                         })
+                        self.chain.refund_all(addr)
                     log.info("Cancelled %d orphan market(s) — proceeding to create new one", len(active))
                 else:
                     log.warning(
@@ -836,6 +865,7 @@ class RushRoundManager:
                 "marketAddress": market_address,
                 "ts": int(time.time() * 1000),
             })
+            self.chain.refund_all(addr)
             raise
 
         except Exception as exc:
@@ -846,6 +876,7 @@ class RushRoundManager:
                 "marketAddress": market_address,
                 "ts": int(time.time() * 1000),
             })
+            self.chain.refund_all(addr)
             return
 
         # ── Step 2.5: Check pool before resolving ─────────────────────────────
@@ -867,6 +898,7 @@ class RushRoundManager:
                     "marketAddress": market_address,
                     "ts": int(time.time() * 1000),
                 })
+                self.chain.refund_all(addr)
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,
@@ -903,6 +935,7 @@ class RushRoundManager:
                     "marketAddress": market_address,
                     "ts": int(time.time() * 1000),
                 })
+                self.chain.refund_all(addr)
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,

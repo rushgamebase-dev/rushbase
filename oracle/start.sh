@@ -33,7 +33,7 @@ if [ -f "$ROOT_DIR/.env" ]; then
 fi
 
 # Ensure FACTORY_ADDRESS is set (not in .env by default)
-export FACTORY_ADDRESS="${FACTORY_ADDRESS:-0x96A43C28e1f102f5A8acE3d1b7c151b87f6BB41E}"
+export FACTORY_ADDRESS="${FACTORY_ADDRESS:-0x5b04F3DFaE780A7e109066E754d27f491Af55Af9}"
 
 WS_PORT="${WS_PORT:-8765}"
 API_URL="${API_URL:-https://www.rushgame.vip/api/oracle-url}"

@@ -347,6 +347,38 @@ contract PredictionMarket {
         emit Refunded(msg.sender, totalRefund);
     }
 
+    /**
+     * @notice Refund a specific user. Anyone can call.
+     */
+    function refundFor(address user) public inState(MarketState.CANCELLED) {
+        Bet[] storage userBets = betsByUser[user];
+        uint256 totalRefund = 0;
+
+        for (uint256 i = 0; i < userBets.length; i++) {
+            if (!userBets[i].claimed) {
+                userBets[i].claimed = true;
+                totalRefund += userBets[i].amount;
+            }
+        }
+
+        if (totalRefund > 0) {
+            bool ok = _safeTransfer(user, totalRefund);
+            if (!ok) {
+                _transfer(feeRecipient, totalRefund);
+            }
+            emit Refunded(user, totalRefund);
+        }
+    }
+
+    /**
+     * @notice Refund ALL bettors in one call. Oracle calls after cancelMarket().
+     */
+    function refundAll() external inState(MarketState.CANCELLED) {
+        for (uint256 i = 0; i < bettorList.length; i++) {
+            refundFor(bettorList[i]);
+        }
+    }
+
     // ─── Internal ───────────────────────────────────────────────────────
 
     function _transfer(address to, uint256 amount) internal {

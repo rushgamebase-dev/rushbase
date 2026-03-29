@@ -71,7 +71,7 @@ export const MARKET_ABI = parseAbi([
   "function resolveMarket(uint256)",
   "function claimWinnings()",
   "function cancelMarket()",
-  "function refund()",
+  "function refund()","function refundFor(address) public","function refundAll() external",
   "function claimWinningsFor(address) public",
   "function distributeAll() external",
 
@@ -199,8 +199,8 @@ export const STATE_COLORS: Record<string, string> = {
 
 // ─── Contract addresses — fill in after deploy ─────────────────────────────
 
-export const FACTORY_ADDRESS = "0x96A43C28e1f102f5A8acE3d1b7c151b87f6BB41E" as `0x${string}`;
-export const RUSH_TILES_ADDRESS = "0xB9e21286e0d4Ae1da68067E6307991e69BDb9ed8" as `0x${string}`;
+export const FACTORY_ADDRESS = "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9" as `0x${string}`;
+export const RUSH_TILES_ADDRESS = "0xD84F5375aeA010195e70C16537710157d6E1d0e2" as `0x${string}`;
 
 // USDC on Base mainnet (for future token mode)
 export const USDC_ADDRESS_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
