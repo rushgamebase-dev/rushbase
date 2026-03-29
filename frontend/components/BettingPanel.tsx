@@ -32,7 +32,7 @@ function formatEth(n: number): string {
 
 export default function BettingPanel({ market, marketAddress, winningRangeIndex = -1, lockTime = 0 }: BettingPanelProps) {
   const { address: walletAddress, isConnected } = useAccount();
-  const { claimableWei } = useClaimWinnings(marketAddress ?? null);
+  useClaimWinnings(marketAddress ?? null); // keep hook active for claim polling
   const { openModal: openConnectModal, WalletModalComponent } = useWalletModal();
   const { data: balanceData } = useBalance({ address: walletAddress });
 
