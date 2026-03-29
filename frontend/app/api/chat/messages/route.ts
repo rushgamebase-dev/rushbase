@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const MAX_MESSAGES = 200;
 const MAX_TEXT_LENGTH = 200;
 
-const getLimiter = createRateLimiter({ max: 30, windowMs: 60_000, route: "chat:messages:get" });
+const getLimiter = createRateLimiter({ max: 120, windowMs: 60_000, route: "chat:messages:get" });
 const postLimiter = createRateLimiter({ max: 5, windowMs: 60_000, route: "chat:messages:post" });
 
 interface ChatMsg {

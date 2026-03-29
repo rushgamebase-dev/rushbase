@@ -37,7 +37,7 @@ export default function RootLayout({
         <meta name="twitter:image" content="https://rushgame.vip/og-image.png" />
         <meta name="twitter:site" content="@rushgamebase" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <WagmiProvider config={wagmiConfig}>
           <QueryClientProvider client={queryClient}>
             {children}
