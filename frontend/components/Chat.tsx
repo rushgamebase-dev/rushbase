@@ -22,7 +22,7 @@ function timeAgo(ts: number): string {
 
 export default function Chat({ onCollapse }: ChatProps) {
   const { address } = useAccount();
-  const { messages, onlineCount, sendMessage } = useChat(address);
+  const { messages, status, sendMessage } = useChat(address);
   const [input, setInput] = useState("");
   const [lastSent, setLastSent] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -211,19 +211,20 @@ export default function Chat({ onCollapse }: ChatProps) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderBottom: "1px solid #1a1a1a", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span className="live-dot-green" />
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%", display: "inline-block",
+            background: status === "connected" ? "#00ff88" : status === "connecting" ? "#ffaa00" : "#ff4444",
+            boxShadow: status === "connected" ? "0 0 6px #00ff88" : "none",
+          }} />
           <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#e0e0e0", fontFamily: "monospace" }}>
-            LIVE CHAT
+            CHAT
           </span>
           <span style={{
             fontSize: 9,
-            color: onlineCount > 0 ? "#00ff88" : "#444",
+            color: status === "connected" ? "#00ff88" : status === "connecting" ? "#ffaa00" : "#ff4444",
             fontFamily: "monospace",
-            background: onlineCount > 0 ? "rgba(0,255,136,0.08)" : "transparent",
-            padding: "1px 5px",
-            borderRadius: 3,
           }}>
-            {onlineCount} online
+            {status === "connected" ? "live" : status === "connecting" ? "connecting..." : "offline"}
           </span>
         </div>
         {opts.showCollapse && (

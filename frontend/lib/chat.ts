@@ -28,19 +28,22 @@ function colorFromAddress(address?: string): string {
   return `hsl(${Math.abs(hash % 360)}, 70%, 60%)`;
 }
 
+export type ChatStatus = "connecting" | "connected" | "disconnected";
+
 /**
  * Real-time chat via Ably WebSocket.
- * Messages are instant (<100ms) between all connected clients.
+ * Exposes connection status for UI feedback.
  */
 export function useChat(walletAddress?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [onlineCount] = useState(0);
+  const [status, setStatus] = useState<ChatStatus>("connecting");
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
+    setStatus("connecting");
 
     async function init() {
       try {
@@ -54,6 +57,23 @@ export function useChat(walletAddress?: string) {
           autoConnect: true,
         });
         ablyRef.current = ably;
+
+        // Connection state tracking
+        ably.connection.on("connected", () => {
+          if (mountedRef.current) setStatus("connected");
+        });
+        ably.connection.on("disconnected", () => {
+          if (mountedRef.current) setStatus("disconnected");
+        });
+        ably.connection.on("suspended", () => {
+          if (mountedRef.current) setStatus("disconnected");
+        });
+        ably.connection.on("closed", () => {
+          if (mountedRef.current) setStatus("disconnected");
+        });
+        ably.connection.on("failed", () => {
+          if (mountedRef.current) setStatus("disconnected");
+        });
 
         const channel = ably.channels.get(CHANNEL_NAME);
         channelRef.current = channel;
@@ -70,7 +90,7 @@ export function useChat(walletAddress?: string) {
           }
         });
 
-        // Load history (no presence — Ably free tier rejects it)
+        // Load history
         try {
           const history = await channel.history({ limit: 50, direction: "forwards" });
           if (mountedRef.current && history.items.length > 0) {
@@ -79,9 +99,9 @@ export function useChat(walletAddress?: string) {
               .map((item: Ably.Message) => item.data as ChatMessage);
             setMessages(hist.slice(-MAX_MESSAGES));
           }
-        } catch { /* history might fail on free tier */ }
-      } catch (err) {
-        console.error("Ably init error:", err);
+        } catch { /* history might fail */ }
+      } catch {
+        if (mountedRef.current) setStatus("disconnected");
       }
     }
 
@@ -115,5 +135,5 @@ export function useChat(walletAddress?: string) {
     [walletAddress],
   );
 
-  return { messages, onlineCount, sendMessage };
+  return { messages, status, sendMessage };
 }
