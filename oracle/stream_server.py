@@ -695,8 +695,9 @@ class StreamServer:
                         _reader_frame[0] = f
                         _reader_fresh[0] = True
                         _reader_ts[0] = time.time()
+                    time.sleep(0.03)  # ~30fps cap — don't drain HLS buffer faster than delivery
                 else:
-                    time.sleep(0.01)
+                    time.sleep(0.05)
 
         reader_thread = threading.Thread(target=_reader, daemon=True)
         reader_thread.start()
