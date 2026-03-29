@@ -730,19 +730,7 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # cap.read() with timeout — reopens stream if HLS dies
-                import concurrent.futures
-                try:
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                        future = pool.submit(cap.read)
-                        ret, frame = future.result(timeout=5)
-                except concurrent.futures.TimeoutError:
-                    print("[Stream] cap.read() blocked >5s — reopening stream")
-                    cap.release()
-                    direct_url = get_stream_url(self.stream_url)
-                    cap = cv2.VideoCapture(direct_url)
-                    await asyncio.sleep(1)
-                    continue
+                ret, frame = cap.read()
                 if not ret:
                     await asyncio.sleep(0.02)
                     continue
