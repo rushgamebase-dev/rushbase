@@ -48,7 +48,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 854
+OUTPUT_WIDTH = 1920
 
 
 class VehicleCounter:
@@ -547,7 +547,7 @@ class StreamServer:
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=10, **kwargs):
+                 count_mode='uid', lanes=None, target_fps=8, **kwargs):
         self.stream_url = stream_url
         self.duration = duration
         self.host = host
@@ -591,9 +591,12 @@ class StreamServer:
         self.clients.discard(ws)
         print(f"[WS] Client disconnected ({len(self.clients)} total)")
 
-    def _set_pending_frame(self, jpeg_bytes, count, elapsed):
-        """Store latest frame for async broadcast. Latest wins — no queue."""
-        self._pending_frame = (jpeg_bytes, json.dumps({
+    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
+        """Send frame + count to all connected clients."""
+        if not self.clients:
+            return
+
+        count_msg = json.dumps({
             "type": "count",
             "count": count,
             "count_in": self.counter.count_in,
@@ -603,33 +606,19 @@ class StreamServer:
             "marketAddress": self.market_address,
             "cameraId": self.camera_id,
             "roundId": self.round_id,
-        }))
+        })
 
-    async def _broadcast_loop(self):
-        """Async task: sends latest pending frame. Runs independently from processing."""
-        while self.running:
-            pending = getattr(self, '_pending_frame', None)
-            if pending is None or not self.clients:
-                await asyncio.sleep(0.01)
-                continue
+        dead = set()
 
-            jpeg_bytes, count_msg = pending
-            self._pending_frame = None  # consumed — next frame will overwrite if we're slow
+        async def send_to(ws):
+            try:
+                await ws.send(count_msg)
+                await ws.send(jpeg_bytes)
+            except websockets.exceptions.ConnectionClosed:
+                dead.add(ws)
 
-            dead = set()
-            async def send_to(ws):
-                try:
-                    await ws.send(count_msg)
-                    await ws.send(jpeg_bytes)
-                except websockets.exceptions.ConnectionClosed:
-                    dead.add(ws)
-
-            await asyncio.gather(*(send_to(ws) for ws in self.clients))
-            self.clients -= dead
-
-    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
-        """Non-blocking: stores frame for async broadcast task."""
-        self._set_pending_frame(jpeg_bytes, count, elapsed)
+        await asyncio.gather(*(send_to(ws) for ws in self.clients))
+        self.clients -= dead
 
     def _ensure_evidence_dir(self) -> None:
         """Create evidence/ directory and clean up old evidence if needed."""
@@ -722,69 +711,6 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
-        # Buffered reader thread — preserves full HLS burst (~60 frames).
-        # cap.read() delivers 1600+ fps from FFmpeg internal buffer, then
-        # blocks until next HLS segment. Queue(60) keeps the whole burst
-        # so main loop consumes at YOLO speed without losing frames.
-        import threading
-        import queue as _queue
-
-        _frame_q = _queue.Queue(maxsize=60)
-        _reader_alive = [True]
-
-        def _reader():
-            nonlocal cap
-            while _reader_alive[0]:
-                if cap is None or not cap.isOpened():
-                    print("[Reader] Reconnecting HLS...")
-                    try:
-                        if cap is not None:
-                            cap.release()
-                        new_url = get_stream_url(self.stream_url)
-                        cap = cv2.VideoCapture(new_url)
-                        if not cap.isOpened():
-                            print("[Reader] Reopen failed — retry in 2s")
-                            time.sleep(2)
-                            continue
-                        print("[Reader] Reconnected")
-                    except Exception as e:
-                        print(f"[Reader] Error: {e}")
-                        time.sleep(2)
-                        continue
-
-                ret, f = cap.read()
-                if ret and f is not None:
-                    try:
-                        _frame_q.put_nowait((f, time.time()))  # tuple: (frame, read_timestamp)
-                    except _queue.Full:
-                        try:
-                            _frame_q.get_nowait()
-                        except _queue.Empty:
-                            pass
-                        _frame_q.put_nowait((f, time.time()))
-                else:
-                    print("[Reader] cap.read() failed — reconnecting")
-                    try:
-                        cap.release()
-                    except Exception:
-                        pass
-                    cap = None
-                    time.sleep(0.5)
-
-        reader_thread = threading.Thread(target=_reader, daemon=True)
-        reader_thread.start()
-
-        # Wait for first frame
-        print("[Stream] Waiting for first frame...")
-        try:
-            first_item = _frame_q.get(timeout=30)
-            _frame_q.put(first_item)  # put it back for the main loop
-            print(f"[Stream] First frame received (queue size: {_frame_q.qsize()})")
-        except _queue.Empty:
-            print("[Stream] No frames after 30s — aborting")
-            _reader_alive[0] = False
-            return
-
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -830,10 +756,9 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                try:
-                    frame, _frame_read_ts = _frame_q.get_nowait()
-                except _queue.Empty:
-                    await asyncio.sleep(0.005)
+                ret, frame = cap.read()
+                if not ret:
+                    await asyncio.sleep(0.02)
                     continue
 
                 frame_idx += 1
@@ -862,7 +787,7 @@ class StreamServer:
                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
                 # Encode to JPEG
-                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 38])
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
                 jpeg_bytes = jpeg.tobytes()
 
                 # Broadcast (non-blocking — stored for async send)
@@ -884,9 +809,7 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
-            _reader_alive[0] = False
-            if cap is not None:
-                cap.release()
+            cap.release()
             self.running = False
 
     async def handler(self, ws):
@@ -913,14 +836,8 @@ class StreamServer:
         print(f"  Target FPS: {self.target_fps}")
         print(f"{'='*55}\n")
 
-        self._pending_frame = None
         async with websockets.serve(self.handler, self.host, self.port):
-            # Broadcast runs as independent task — never blocks processing
-            broadcast_task = asyncio.create_task(self._broadcast_loop())
-            try:
-                await self.process_video()
-            finally:
-                broadcast_task.cancel()
+            await self.process_video()
 
 
 def load_camera(camera_id):
