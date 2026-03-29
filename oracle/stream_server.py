@@ -680,46 +680,6 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
-        # Threaded frame reader — cap.read() is blocking and can stall
-        # the entire async loop when HLS buffers. This thread reads
-        # continuously and we always grab the LATEST frame.
-        import threading
-        latest_frame = [None]  # mutable container for thread
-        frame_lock = threading.Lock()
-        reader_alive = [True]
-
-        last_frame_time = [time.time()]
-        cap_holder = [cap]  # mutable ref for thread
-
-        def reader_thread():
-            while reader_alive[0]:
-                c = cap_holder[0]
-                if c is None or not c.isOpened():
-                    time.sleep(0.1)
-                    continue
-                ret, f = c.read()
-                if ret:
-                    with frame_lock:
-                        latest_frame[0] = f
-                    last_frame_time[0] = time.time()
-                else:
-                    if time.time() - last_frame_time[0] > 10:
-                        print("[Reader] No frames for 10s — reopening stream")
-                        try:
-                            c.release()
-                            new_url = get_stream_url(self.stream_url)
-                            new_cap = cv2.VideoCapture(new_url)
-                            new_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                            cap_holder[0] = new_cap
-                            last_frame_time[0] = time.time()
-                        except Exception as e:
-                            print(f"[Reader] Reopen failed: {e}")
-                            time.sleep(5)
-                    time.sleep(0.05)
-
-        reader = threading.Thread(target=reader_thread, daemon=True)
-        reader.start()
-
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -772,11 +732,9 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # Grab latest frame from reader thread (never blocks)
-                with frame_lock:
-                    frame = latest_frame[0]
-                if frame is None:
-                    await asyncio.sleep(0.005)
+                ret, frame = cap.read()
+                if not ret:
+                    await asyncio.sleep(0.02)
                     continue
 
                 frame_idx += 1
@@ -828,7 +786,6 @@ class StreamServer:
             import traceback
             traceback.print_exc()
         finally:
-            reader_alive[0] = False
             cap.release()
             self.running = False
 
