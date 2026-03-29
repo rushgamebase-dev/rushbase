@@ -702,6 +702,18 @@ class StreamServer:
         reader_thread = threading.Thread(target=_reader, daemon=True)
         reader_thread.start()
 
+        # Wait for first frame before entering main loop
+        print("[Stream] Waiting for first frame...")
+        for _ in range(300):  # 30s max
+            if _reader_fresh[0]:
+                print("[Stream] First frame received — starting processing")
+                break
+            await asyncio.sleep(0.1)
+        else:
+            print("[Stream] No frames after 30s — aborting")
+            _reader_alive[0] = False
+            return
+
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
