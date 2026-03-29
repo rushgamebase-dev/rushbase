@@ -869,7 +869,7 @@ class RushRoundManager:
                 "marketAddress": market_address,
                 "ts": int(time.time() * 1000),
             })
-            self.chain.refund_all(addr)
+            self.chain.refund_all(market_address)
             raise
 
         except Exception as exc:
@@ -880,7 +880,7 @@ class RushRoundManager:
                 "marketAddress": market_address,
                 "ts": int(time.time() * 1000),
             })
-            self.chain.refund_all(addr)
+            self.chain.refund_all(market_address)
             return
 
         # ── Step 2.5: Check pool before resolving ─────────────────────────────
@@ -902,7 +902,7 @@ class RushRoundManager:
                     "marketAddress": market_address,
                     "ts": int(time.time() * 1000),
                 })
-                self.chain.refund_all(addr)
+                self.chain.refund_all(market_address)
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,
@@ -939,7 +939,7 @@ class RushRoundManager:
                     "marketAddress": market_address,
                     "ts": int(time.time() * 1000),
                 })
-                self.chain.refund_all(addr)
+                self.chain.refund_all(market_address)
                 self._post_ledger({
                     "address": market_address,
                     "createdAt": int(time.time()) - self.cfg.round_duration,
