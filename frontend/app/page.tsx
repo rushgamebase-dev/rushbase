@@ -278,6 +278,8 @@ export default function Home() {
                     status={market.status}
                     finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
                     winningRangeIndex={winningRangeIndex}
+                    liveCount={displayCount}
+                    threshold={market.threshold}
                   />
                 </div>
               ) : (

@@ -12,6 +12,10 @@ interface CountdownProps {
   finalCount?: number;
   /** Index of winning range: 1 = OVER, 0 = UNDER. -1 = unknown */
   winningRangeIndex?: number;
+  /** Live vehicle count from oracle (shown during counting phase) */
+  liveCount?: number;
+  /** Threshold for OVER/UNDER */
+  threshold?: number;
 }
 
 export default function Countdown({
@@ -20,6 +24,8 @@ export default function Countdown({
   totalDuration = 300,
   status,
   roundNumber,
+  liveCount = 0,
+  threshold = 0,
   finalCount,
   winningRangeIndex = -1,
 }: CountdownProps) {
@@ -84,17 +90,41 @@ export default function Countdown({
 
   // ── BETTING CLOSED, COUNTING IN PROGRESS ──
   // lockTime passed but contract is still OPEN (oracle hasn't resolved yet).
-  // Bets are rejected by the contract. Show "counting" state.
+  // Show live vehicle count vs threshold — the thing everyone is watching.
   if (effectiveStatus === "open" && timeLeft <= 0) {
+    const isOver = liveCount > threshold;
+    const countColor = isOver ? "#00ff88" : "#ff4444";
+    const diff = isOver ? liveCount - threshold : threshold - liveCount;
+
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", borderRadius: 12 }}>
+      <div className="w-full py-4 text-center" style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${countColor}44`, borderRadius: 12 }}>
         <div className="flex items-center justify-center gap-2 mb-1">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#ffaa00", animation: "pulse 0.8s ease-in-out infinite", boxShadow: "0 0 12px rgba(255,170,0,0.8)" }} />
-          <span className="text-lg font-black tracking-widest" style={{ color: "#ffaa00", fontFamily: "monospace" }}>
-            COUNTING...
+          <div className="w-3 h-3 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite", boxShadow: `0 0 12px ${countColor}` }} />
+          <span className="text-xs font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
+            BETS CLOSED — COUNTING
           </span>
         </div>
-        <span className="text-xs" style={{ color: "#888" }}>Bets closed — watching the count</span>
+        <div
+          className="font-black tabular-nums"
+          style={{
+            fontFamily: "ui-monospace, SFMono-Regular, monospace",
+            fontSize: 48,
+            color: countColor,
+            textShadow: `0 0 24px ${countColor}66`,
+            lineHeight: 1,
+          }}
+        >
+          {String(liveCount).padStart(3, "0")}
+        </div>
+        {threshold > 0 && (
+          <div className="text-xs mt-2" style={{ color: "#888", fontFamily: "monospace" }}>
+            threshold: <span style={{ color: "#ffd700" }}>{threshold}</span>
+            {" · "}
+            <span style={{ color: countColor, fontWeight: 700 }}>
+              {isOver ? `+${diff} over` : `${diff} to go`}
+            </span>
+          </div>
+        )}
       </div>
     );
   }
