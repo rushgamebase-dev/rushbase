@@ -276,7 +276,7 @@ export default function VideoPlayer({
     <div
       className="relative w-full"
       style={{
-        aspectRatio: "16/9",
+        aspectRatio: "4/3",
         background: "#000",
         borderRadius: "4px",
         overflow: "hidden",

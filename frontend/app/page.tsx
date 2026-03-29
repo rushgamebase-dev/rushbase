@@ -280,10 +280,10 @@ export default function Home() {
 
             <BetToast bets={market.recentBets} />
 
-            {/* Countdown overlaid on video */}
-            <div className="absolute bottom-3 left-3 right-3 z-10" style={{ pointerEvents: "auto" }}>
+            {/* Countdown overlaid on video — top for mobile visibility */}
+            <div className="absolute bottom-2 left-2 right-2 z-10" style={{ pointerEvents: "auto" }}>
               {hasActiveMarket ? (
-                <div style={{ background: "rgba(0,0,0,0.75)", borderRadius: 12 }}>
+                <div>
                   <Countdown
                     lockTime={lockTime > 0 ? lockTime : undefined}
                     status={market.status}
