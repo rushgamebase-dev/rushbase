@@ -47,8 +47,8 @@ VEHICLE_NAMES = {2: 'car', 3: 'moto', 5: 'bus', 7: 'truck'}
 NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
-# Output frame width — matches canvas size to avoid unnecessary data
-OUTPUT_WIDTH = 640
+# Output frame width — higher = better detection but larger JPEG
+OUTPUT_WIDTH = 960
 
 
 class VehicleCounter:
@@ -803,17 +803,11 @@ class StreamServer:
                 cv2.putText(annotated, dbg, (w_ann - 320, h_ann - 8),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
-                # Broadcast at target_fps, not at YOLO processing speed.
-                # YOLO processes every frame for counting accuracy,
-                # but clients only need target_fps for smooth video.
-                time_since_last_broadcast = frame_start - getattr(self, '_last_broadcast', 0)
-                if time_since_last_broadcast >= frame_interval:
-                    # Encode to JPEG
-                    _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 35])
+                # Encode to JPEG
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 45])
 
-                    # Broadcast binary frame
-                    await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
-                    self._last_broadcast = frame_start
+                # Broadcast binary frame
+                await self.broadcast_frame(jpeg.tobytes(), count, elapsed)
 
                 # ── Evidence frame capture ───────────────────────────
                 # Save a frame every EVIDENCE_INTERVAL seconds

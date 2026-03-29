@@ -108,8 +108,8 @@ export default function VideoPlayer({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
-  const latestBufferRef = useRef<ArrayBuffer | null>(null);  // raw frame, decoded in rAF
-  const decodingRef = useRef(false);  // prevent concurrent decodes
+  const frameSeqRef = useRef(0);
+  const renderedSeqRef = useRef(0);
 
   const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
   const prevCountRef = useRef(vehicleCount);
@@ -174,8 +174,14 @@ export default function VideoPlayer({
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        // Store latest buffer only — old frames dropped, decoded in rAF loop
-        latestBufferRef.current = event.data;
+        const seq = ++frameSeqRef.current;
+        const blob = new Blob([event.data], { type: "image/jpeg" });
+        createImageBitmap(blob).then((bitmap) => {
+          if (seq >= renderedSeqRef.current) {
+            renderedSeqRef.current = seq;
+            oracleImageRef.current = bitmap as unknown as HTMLImageElement;
+          }
+        }).catch(() => {});
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
@@ -257,18 +263,6 @@ export default function VideoPlayer({
       const W = canvas.width;
       const H = canvas.height;
       const currentFrame = ++frameRef.current;
-
-      // Decode latest frame if available and no decode in-flight
-      if (latestBufferRef.current && !decodingRef.current) {
-        decodingRef.current = true;
-        const buffer = latestBufferRef.current;
-        latestBufferRef.current = null; // drop — next frame will overwrite anyway
-        const blob = new Blob([buffer], { type: "image/jpeg" });
-        createImageBitmap(blob).then((bitmap) => {
-          oracleImageRef.current = bitmap as unknown as HTMLImageElement;
-          decodingRef.current = false;
-        }).catch(() => { decodingRef.current = false; });
-      }
 
       if (oracleImageRef.current) {
         ctx.drawImage(oracleImageRef.current, 0, 0, W, H);
