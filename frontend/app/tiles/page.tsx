@@ -51,17 +51,26 @@ function LeftSidebar() {
           </span>
         </div>
 
-        {/* $RUSH token — coming soon */}
+        {/* $RUSH token */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="text-sm font-bold"
+          <a
+            href="https://basescan.org/token/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-bold hover:underline"
             style={{ color: "#ffd700", fontFamily: "monospace" }}
           >
             $RUSH
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "#1a1a1a", color: "#555", fontFamily: "monospace" }}>
-            Coming Soon
-          </span>
+          </a>
+          <a
+            href="https://app.uniswap.org/swap?outputCurrency=0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b&chain=base"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-0.5 rounded hover:opacity-80"
+            style={{ background: "#1a2a1a", color: "#00ff88", fontFamily: "monospace", border: "1px solid #00ff8833" }}
+          >
+            Buy on Uniswap
+          </a>
         </div>
 
         {/* Creator */}
