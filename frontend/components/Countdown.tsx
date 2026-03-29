@@ -23,7 +23,7 @@ export default function Countdown({
   timeLeft: timeLeftProp,
   totalDuration = 300,
   status,
-  roundNumber,
+  // roundNumber kept in props interface but not used in compact layout
   liveCount = 0,
   threshold = 0,
   finalCount,
@@ -142,42 +142,24 @@ export default function Countdown({
     const cSs = String(countingTimeLeft % 60).padStart(2, "0");
 
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${countColor}44`, borderRadius: 12 }}>
-        <div className="flex items-center justify-between px-4 mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite", boxShadow: `0 0 12px ${countColor}` }} />
-            <span className="text-xs font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
-              COUNTING
+      <div className="w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${countColor}33`, borderRadius: 8 }}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite" }} />
+          <span className="text-xs font-black" style={{ color: "#666", fontFamily: "monospace" }}>COUNTING</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-black tabular-nums" style={{ fontFamily: "monospace", fontSize: 28, color: countColor, lineHeight: 1 }}>
+            {String(liveCount).padStart(3, "0")}
+          </span>
+          {threshold > 0 && (
+            <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
+              /{threshold} <span style={{ color: countColor, fontWeight: 700 }}>{isOver ? `+${diff}` : `-${diff}`}</span>
             </span>
-          </div>
-          <span
-            className="text-sm font-black tabular-nums"
-            style={{ color: "#ffaa00", fontFamily: "monospace" }}
-          >
+          )}
+          <span className="text-xs font-black tabular-nums" style={{ color: "#ffaa00", fontFamily: "monospace" }}>
             {cMm}:{cSs}
           </span>
         </div>
-        <div
-          className="font-black tabular-nums"
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, monospace",
-            fontSize: 48,
-            color: countColor,
-            textShadow: `0 0 24px ${countColor}66`,
-            lineHeight: 1,
-          }}
-        >
-          {String(liveCount).padStart(3, "0")}
-        </div>
-        {threshold > 0 && (
-          <div className="text-xs mt-2" style={{ color: "#888", fontFamily: "monospace" }}>
-            threshold: <span style={{ color: "#ffd700" }}>{threshold}</span>
-            {" · "}
-            <span style={{ color: countColor, fontWeight: 700 }}>
-              {isOver ? `+${diff} over` : `${diff} to go`}
-            </span>
-          </div>
-        )}
       </div>
     );
   }
@@ -185,16 +167,11 @@ export default function Countdown({
   // ── CANCELLED (no bets / one-sided) ──
   if (effectiveStatus === "cancelled") {
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(100,100,100,0.08)", border: "1px solid rgba(100,100,100,0.3)", borderRadius: 12 }}>
-        <span className="text-lg font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
-          ROUND CANCELLED
+      <div className="w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid #33333366", borderRadius: 8 }}>
+        <span className="text-xs font-black" style={{ color: "#888", fontFamily: "monospace" }}>ROUND CANCELLED</span>
+        <span className="text-xs font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+          {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
         </span>
-        <div className="text-xs mt-1" style={{ color: "#555" }}>No bets placed</div>
-        {nextRoundCountdown > 0 && (
-          <div className="text-sm font-black mt-2" style={{ color: "#00ff88", fontFamily: "monospace" }}>
-            Next round in {nextRoundCountdown}s
-          </div>
-        )}
       </div>
     );
   }
@@ -221,57 +198,18 @@ export default function Countdown({
     const winLabel = winningSide === "over" ? "OVER WINS" : winningSide === "under" ? "UNDER WINS" : "ROUND COMPLETE";
 
     return (
-      <div
-        className="result-reveal-flash w-full py-4 text-center"
-        style={{
-          border: `1px solid ${winColor}55`,
-          borderRadius: 12,
-        }}
-      >
-        {/* Final count — large pop-in */}
-        {finalCount !== undefined && finalCount > 0 && (
-          <div className="result-count-pop mb-1">
-            <div
-              className="text-xs font-bold tracking-widest mb-1"
-              style={{ color: "#555", fontFamily: "monospace" }}
-            >
-              FINAL COUNT
-            </div>
-            <div
-              className="font-black tabular-nums"
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                fontSize: 40,
-                color: winColor,
-                textShadow: `0 0 24px ${winColor}99, 0 0 48px ${winColor}44`,
-                lineHeight: 1,
-              }}
-            >
+      <div className="result-reveal-flash w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${winColor}44`, borderRadius: 8 }}>
+        <div className="flex items-center gap-2">
+          {finalCount !== undefined && finalCount > 0 && (
+            <span className="font-black tabular-nums" style={{ fontFamily: "monospace", fontSize: 28, color: winColor, lineHeight: 1 }}>
               {String(finalCount).padStart(3, "0")}
-            </div>
-          </div>
-        )}
-
-        {/* Winning side label */}
-        <div
-          className="font-black tracking-widest"
-          style={{
-            fontFamily: "monospace",
-            fontSize: 18,
-            color: winColor,
-            textShadow: `0 0 16px ${winColor}88`,
-            letterSpacing: "0.14em",
-          }}
-        >
-          {winLabel}
-        </div>
-        <div className="text-xs mt-1.5" style={{ color: "#555", fontFamily: "monospace" }}>
-          {nextRoundCountdown > 0 ? (
-            <span>Next round in <span style={{ color: "#00ff88", fontWeight: 700 }}>{nextRoundCountdown}s</span></span>
-          ) : (
-            "Next round starting..."
+            </span>
           )}
+          <span className="text-xs font-black tracking-wider" style={{ color: winColor, fontFamily: "monospace" }}>{winLabel}</span>
         </div>
+        <span className="text-xs font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+          {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
+        </span>
       </div>
     );
   }
@@ -279,85 +217,46 @@ export default function Countdown({
   // ── LOCKED (betting closed) ──
   if (effectiveStatus === "locked") {
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 12 }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-lg font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>
-            BETS CLOSED
-          </span>
-        </div>
-        <span className="text-xs" style={{ color: "#888" }}>Watching the count...</span>
+      <div className="w-full px-3 py-2 flex items-center justify-center gap-2" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 8 }}>
+        <span className="text-xs font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>BETS CLOSED</span>
+        <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>Watching the count...</span>
       </div>
     );
   }
 
   // ── OPEN (betting active) ──
+  const timerColor = isUrgent ? "#ff4444" : "#00ff88";
   return (
-    <div className="w-full" style={{ background: "rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 12, padding: "12px 16px" }}>
-      {/* Status label */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="w-full px-3 py-2" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${timerColor}33`, borderRadius: 8 }}>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#00ff88" }} />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: "#00ff88" }} />
+          <div className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: timerColor }} />
+            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: timerColor }} />
           </div>
-          <span className="text-sm font-black tracking-widest" style={{ color: "#00ff88", fontFamily: "monospace" }}>
-            BETS OPEN
+          <span className="text-xs font-black" style={{ color: timerColor, fontFamily: "monospace" }}>
+            {isUrgent ? "CLOSING" : "BETS OPEN"}
           </span>
         </div>
-        {roundNumber !== undefined && (
-          <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
-            ROUND #{roundNumber}
-          </span>
-        )}
-      </div>
-
-      {/* Big message */}
-      <div className="text-center mb-3">
-        <span className="text-xs font-bold tracking-wider" style={{ color: "#888" }}>
-          BETS CLOSE IN
-        </span>
-      </div>
-
-      {/* Giant timer */}
-      <div className="text-center mb-3">
         <span
           className="font-black tabular-nums"
           style={{
-            fontFamily: "ui-monospace, SFMono-Regular, monospace",
-            fontSize: isUrgent ? 48 : 42,
-            color: isUrgent ? "#ff4444" : "#00ff88",
-            textShadow: isUrgent
-              ? "0 0 20px rgba(255,68,68,0.6), 0 0 40px rgba(255,68,68,0.3)"
-              : "0 0 20px rgba(0,255,136,0.4), 0 0 40px rgba(0,255,136,0.2)",
+            fontFamily: "monospace",
+            fontSize: 22,
+            color: timerColor,
             animation: isUrgent ? "pulse 0.8s ease-in-out infinite" : "none",
-            letterSpacing: "0.08em",
           }}
         >
           {mm}:{ss}
         </span>
       </div>
-
-      {/* Urgent warning */}
-      {isUrgent && (
-        <div className="text-center mb-2">
-          <span className="text-xs font-bold tracking-wider" style={{ color: "#ff4444", animation: "pulse 1s ease-in-out infinite" }}>
-            ⚡ HURRY — CLOSING SOON! ⚡
-          </span>
-        </div>
-      )}
-
-      {/* Progress bar */}
-      <div className="relative h-2 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
+      {/* Thin progress bar */}
+      <div className="relative h-1 rounded-full overflow-hidden mt-1.5" style={{ background: "#1a1a1a" }}>
         <div
           className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000"
           style={{
             width: `${(1 - progress) * 100}%`,
-            background: isUrgent
-              ? "linear-gradient(90deg, #ff4444, #ff8888)"
-              : "linear-gradient(90deg, #00ff88, #00cc70)",
-            boxShadow: isUrgent
-              ? "0 0 8px rgba(255,68,68,0.6)"
-              : "0 0 8px rgba(0,255,136,0.5)",
+            background: timerColor,
           }}
         />
       </div>
