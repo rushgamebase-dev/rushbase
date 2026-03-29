@@ -287,43 +287,77 @@ function TileModal({
               </button>
             )}
 
-            {tile.isActive && !tile.isMine && (
-              <button
-                onClick={() => onAction("buyout")}
-                disabled={busy}
-                className="w-full py-2.5 rounded text-sm font-bold transition-all"
-                style={{ background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)", color: "#00aaff", fontFamily: "monospace" }}
-              >
-                {busy ? "BUYING OUT..." : `BUYOUT — ${(tile.price * 1.1).toFixed(4)} ETH`}
-              </button>
-            )}
+            {tile.isActive && !tile.isMine && (() => {
+              // Buyout cost breakdown:
+              // effectivePrice + buyoutFee(10%) + appTax(30% of appreciation) + minDeposit(5% of newPrice)
+              // Default newPrice = current price (no appreciation tax)
+              const effPrice = tile.price; // TODO: account for decay
+              const buyoutFee = effPrice * 0.10;
+              const minDeposit = effPrice * 0.05;
+              const totalMin = effPrice + buyoutFee + minDeposit;
+              return (
+                <div className="flex flex-col gap-2">
+                  <div className="text-[10px] px-1" style={{ color: "#555", fontFamily: "monospace" }}>
+                    Cost: {effPrice.toFixed(4)} + {buyoutFee.toFixed(4)} fee + {minDeposit.toFixed(4)} deposit
+                  </div>
+                  <button
+                    onClick={() => onAction("buyout")}
+                    disabled={busy}
+                    className="w-full py-2.5 rounded text-sm font-bold transition-all"
+                    style={{ background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)", color: "#00aaff", fontFamily: "monospace" }}
+                  >
+                    {busy ? "BUYING OUT..." : `BUYOUT — ${(totalMin * 1.05).toFixed(4)} ETH`}
+                  </button>
+                </div>
+              );
+            })()}
 
             {tile.isMine && (
               <>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="New price (ETH)"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded text-xs input-base"
-                    style={{ fontFamily: "monospace" }}
-                    min="0.01"
-                    step="0.001"
-                  />
-                  <button
-                    onClick={() => onAction("setprice")}
-                    disabled={!newPrice || busy}
-                    className="px-3 py-2 rounded text-xs font-bold transition-all"
-                    style={{
-                      background: newPrice ? "rgba(0,255,136,0.15)" : "#0d0d0d",
-                      border: `1px solid ${newPrice ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
-                      color: newPrice ? "#00ff88" : "#444",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    SET
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setNewPrice(String(v))}
+                        className="px-2 py-1 rounded text-[10px] font-bold transition-all"
+                        style={{
+                          background: newPrice === String(v) ? "rgba(0,255,136,0.15)" : "#0d0d0d",
+                          border: `1px solid ${newPrice === String(v) ? "rgba(0,255,136,0.4)" : "#222"}`,
+                          color: newPrice === String(v) ? "#00ff88" : "#666",
+                          fontFamily: "monospace",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {v} ETH
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="New price (ETH)"
+                      value={newPrice}
+                      onChange={(e) => setNewPrice(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded text-xs input-base"
+                      style={{ fontFamily: "monospace" }}
+                      min="0.01"
+                      step="0.01"
+                    />
+                    <button
+                      onClick={() => onAction("setprice")}
+                      disabled={!newPrice || busy}
+                      className="px-3 py-2 rounded text-xs font-bold transition-all"
+                      style={{
+                        background: newPrice ? "rgba(0,255,136,0.15)" : "#0d0d0d",
+                        border: `1px solid ${newPrice ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
+                        color: newPrice ? "#00ff88" : "#444",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      SET
+                    </button>
+                  </div>
                 </div>
                 <button
                   onClick={() => onAction("abandon")}
@@ -392,13 +426,26 @@ export default function TilesPage() {
         await tilesContract.claimTile(selectedTile.id, "0.01", "0.0105");
         break;
       case "buyout": {
-        const buyPrice = (selectedTile.price * 1.1).toFixed(6);
-        const totalCost = (selectedTile.price * 1.1 * 1.1).toFixed(6);
-        await tilesContract.buyoutTile(selectedTile.id, buyPrice, totalCost);
+        // Keep same price as current (no appreciation tax)
+        const effPrice = selectedTile.price;
+        const buyoutNewPrice = effPrice; // same price, no appreciation
+        const buyoutFee = effPrice * 0.10;
+        const minDeposit = effPrice * 0.05;
+        // totalCost = effPrice + buyoutFee + minDeposit + 5% buffer for rounding/gas
+        const totalCost = (effPrice + buyoutFee + minDeposit) * 1.05;
+        await tilesContract.buyoutTile(selectedTile.id, buyoutNewPrice.toFixed(6), totalCost.toFixed(6));
         break;
       }
       case "setprice":
-        if (newPrice) await tilesContract.setPrice(selectedTile.id, newPrice);
+        if (newPrice) {
+          const np = parseFloat(newPrice);
+          const current = selectedTile.price;
+          // If raising price, pay 30% appreciation tax on the increase (+ 5% buffer for rounding)
+          const appTax = np > current
+            ? ((np - current) * 0.30 * 1.05).toFixed(6)
+            : "0";
+          await tilesContract.setPrice(selectedTile.id, newPrice, appTax);
+        }
         break;
       case "abandon":
         await tilesContract.abandonTile(selectedTile.id);
