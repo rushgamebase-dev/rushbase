@@ -72,8 +72,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const bettingExpired = lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime;
   const isOpen = market.status === "open" && !bettingExpired;
   const amountNum = parseFloat(amount) || 0;
-  const hasEnoughBalance = ethBalance === null || ethBalance >= amountNum + 0.0005;
-  const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10 && hasEnoughBalance;
+  const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;
 
   const selectedOdds = selectedSide === "over" ? market.overOdds : market.underOdds;
   const potentialReturn = amountNum > 0 ? amountNum * selectedOdds : 0;
@@ -621,8 +620,6 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               "SELECT SIDE"
             ) : !amountNum ? (
               "ENTER AMOUNT"
-            ) : !hasEnoughBalance ? (
-              "INSUFFICIENT BALANCE"
             ) : !isOpen ? (
               "BETTING CLOSED"
             ) : (
