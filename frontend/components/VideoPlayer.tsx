@@ -90,8 +90,9 @@ export default function VideoPlayer({
   const wsRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
-  const prevBlobUrlRef = useRef<string | null>(null);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
+  const frameSeqRef = useRef(0);        // monotonic sequence counter
+  const renderedSeqRef = useRef(0);     // last seq drawn to canvas
 
   const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
   const prevCountRef = useRef(vehicleCount);
@@ -154,20 +155,19 @@ export default function VideoPlayer({
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        // Binary JPEG frame — draw on canvas
+        // Sequence-guarded frame decode — prevents old async decodes
+        // from overwriting newer frames (the fake-loop bug).
+        const seq = ++frameSeqRef.current;
         const blob = new Blob([event.data], { type: "image/jpeg" });
-        const url = URL.createObjectURL(blob);
 
-        if (prevBlobUrlRef.current) {
-          URL.revokeObjectURL(prevBlobUrlRef.current);
-        }
-        prevBlobUrlRef.current = url;
-
-        const img = new Image();
-        img.onload = () => {
-          oracleImageRef.current = img;
-        };
-        img.src = url;
+        createImageBitmap(blob).then((bitmap) => {
+          // Only accept if this is still the newest frame
+          if (seq >= renderedSeqRef.current) {
+            renderedSeqRef.current = seq;
+            oracleImageRef.current = bitmap as unknown as HTMLImageElement;
+          }
+          // bitmap is lightweight, no URL to revoke
+        }).catch(() => {});
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
@@ -219,10 +219,7 @@ export default function VideoPlayer({
         wsRef.current.close();
         wsRef.current = null;
       }
-      if (prevBlobUrlRef.current) {
-        URL.revokeObjectURL(prevBlobUrlRef.current);
-        prevBlobUrlRef.current = null;
-      }
+      // No blob URLs to clean — createImageBitmap handles memory
     };
   }, [connectOracle]);
 
