@@ -14,7 +14,7 @@ import Chat from "@/components/Chat";
 import Countdown from "@/components/Countdown";
 import RoundHistory from "@/components/RoundHistory";
 import StatsBar from "@/components/StatsBar";
-import ClaimBanner from "@/components/ClaimBanner";
+// ClaimBanner removed — distributeAll auto-pays winners, no manual claim needed
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -166,7 +166,7 @@ export default function Home() {
   const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
-  const contractState = contractData.state;
+  // contractState removed — was only used by ClaimBanner (now removed)
   const winningRangeIndex = contractData.winningRangeIndex;
 
   // Dynamic camera name from contract description (e.g. "Peace Bridge — USA/Canada Border — How many vehicles in 5 min?")
@@ -203,12 +203,6 @@ export default function Home() {
             borderRight: "1px solid #1a1a1a",
           }}
         >
-          {/* Claim winnings banner */}
-          <ClaimBanner
-            marketAddress={marketAddress}
-            marketState={contractState}
-          />
-
           {/* Hero tagline */}
           <motion.div
             initial="hidden"

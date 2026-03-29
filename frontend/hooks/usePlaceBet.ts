@@ -19,11 +19,15 @@ export function usePlaceBet(marketAddress: `0x${string}` | null) {
   } = useWriteContract();
 
   const {
+    data: receipt,
     isLoading: isConfirming,
     isSuccess: isConfirmed,
   } = useWaitForTransactionReceipt({
     hash: txHash,
   });
+
+  // TX must be confirmed AND not reverted (status === "success")
+  const txSucceeded = isConfirmed && receipt?.status === "success";
 
   const placeBet = useCallback(
     async (rangeIndex: number, amountEth: string) => {
@@ -44,8 +48,8 @@ export function usePlaceBet(marketAddress: `0x${string}` | null) {
   return {
     placeBet,
     isLoading: isPending || isConfirming,
-    isSuccess: isConfirmed,
-    error: writeError ? writeError.message : null,
+    isSuccess: txSucceeded,
+    error: writeError ? writeError.message : (isConfirmed && !txSucceeded) ? "Transaction reverted" : null,
     txHash: txHash ?? null,
     isConfirming,
     reset,

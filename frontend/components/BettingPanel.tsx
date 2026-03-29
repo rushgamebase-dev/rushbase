@@ -50,7 +50,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     isLoading: isBetLoading,
     isSuccess: isBetSuccess,
     txHash: betTxHash,
-    // reset available via usePlaceBet but not needed here
+    error: betError,
   } = usePlaceBet(marketAddress ?? null);
 
   const [selectedSide, setSelectedSide] = useState<"over" | "under" | null>(null);
@@ -95,11 +95,17 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   // Reset placing state on error (user rejected, tx failed, etc.)
   useEffect(() => {
     if (isBetLoading === false && isPlacing && !isBetSuccess) {
-      // wagmi finished (not loading) but no success → error or rejection
       const timer = setTimeout(() => setIsPlacing(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isBetLoading, isPlacing, isBetSuccess]);
+
+  // Hard timeout: if isPlacing stays true for 60s, force reset
+  useEffect(() => {
+    if (!isPlacing) return;
+    const timeout = setTimeout(() => setIsPlacing(false), 60000);
+    return () => clearTimeout(timeout);
+  }, [isPlacing]);
 
   // Odds flash on change
   useEffect(() => {
@@ -245,6 +251,18 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
             View on Basescan
             <ExternalLink size={10} />
           </a>
+        </div>
+      )}
+
+      {/* Error banner — shown when bet TX fails or reverts */}
+      {betError && !showTxSuccess && (
+        <div
+          className="px-4 py-2 animate-fade-in-up"
+          style={{ background: "rgba(255,68,68,0.08)", borderBottom: "1px solid rgba(255,68,68,0.2)" }}
+        >
+          <span className="text-xs font-bold" style={{ color: "#ff4444", fontFamily: "monospace" }}>
+            BET FAILED: {betError.length > 80 ? betError.slice(0, 80) + "..." : betError}
+          </span>
         </div>
       )}
 
@@ -575,8 +593,20 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         );
       })()}
 
-      {/* BET button — hidden when market is resolved (claim section takes over) */}
-      {market.status !== "resolved" && (
+      {/* Cancelled card */}
+      {market.status === "cancelled" && (
+        <div className="px-4 py-4 shrink-0 text-center" style={{ borderBottom: "1px solid #1a1a1a" }}>
+          <div className="text-sm font-black tracking-widest mb-1" style={{ color: "#888", fontFamily: "monospace" }}>
+            ROUND CANCELLED
+          </div>
+          <div className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
+            No bets placed — next round starting soon
+          </div>
+        </div>
+      )}
+
+      {/* BET button — hidden when market is resolved or cancelled */}
+      {market.status !== "resolved" && market.status !== "cancelled" && (
         <div className="px-4 py-3 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <button
             onClick={handleBet}
