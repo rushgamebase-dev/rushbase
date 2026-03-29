@@ -718,16 +718,44 @@ class StreamServer:
         _frame_q = _queue.Queue(maxsize=2)
         _reader_alive = [True]
 
+        _cap_holder = [cap]
+        _last_frame_time = [time.time()]
+
         def _reader():
             while _reader_alive[0]:
-                ret, f = cap.read()
-                if ret and f is not None:
+                c = _cap_holder[0]
+                if c is None or not c.isOpened():
+                    print("[Reader] Reconnecting...")
                     try:
-                        _frame_q.put(f, timeout=1)  # blocks if queue full — natural backpressure
+                        if c is not None:
+                            c.release()
+                        new_url = get_stream_url(self.stream_url)
+                        _cap_holder[0] = cv2.VideoCapture(new_url)
+                        _last_frame_time[0] = time.time()
+                        print("[Reader] Reconnected")
+                    except Exception as e:
+                        print(f"[Reader] Error: {e}")
+                        time.sleep(2)
+                    continue
+
+                ret, f = c.read()
+                if ret and f is not None:
+                    _last_frame_time[0] = time.time()
+                    try:
+                        _frame_q.put(f, timeout=1)
                     except _queue.Full:
-                        pass  # drop frame if main loop can't keep up
+                        pass
                 else:
-                    time.sleep(0.02)
+                    # No frame for too long — reconnect
+                    if time.time() - _last_frame_time[0] > 10:
+                        print("[Reader] No frames 10s — forcing reconnect")
+                        try:
+                            c.release()
+                        except Exception:
+                            pass
+                        _cap_holder[0] = None
+                    else:
+                        time.sleep(0.02)
 
         threading.Thread(target=_reader, daemon=True).start()
 
