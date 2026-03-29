@@ -1,25 +1,19 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
 import { MARKET_ABI } from "@/lib/contracts";
-import { IS_DEMO_MODE } from "@/lib/mock";
 
 /**
  * Places an ETH bet on a PredictionMarket.
- * Falls back to mock (setTimeout) if no market address.
+ * No mock mode — if no market address, bet button is disabled upstream.
  */
 export function usePlaceBet(marketAddress: `0x${string}` | null) {
-  const [mockLoading, setMockLoading] = useState(false);
-  const [mockSuccess, setMockSuccess] = useState(false);
-  const [mockError, setMockError] = useState<string | null>(null);
-  const [mockTxHash, setMockTxHash] = useState<string | null>(null);
-
   const {
     writeContract,
     data: txHash,
-    isPending: isWritePending,
+    isPending,
     error: writeError,
     reset,
   } = useWriteContract();
@@ -33,21 +27,8 @@ export function usePlaceBet(marketAddress: `0x${string}` | null) {
 
   const placeBet = useCallback(
     async (rangeIndex: number, amountEth: string) => {
-      if (IS_DEMO_MODE || !marketAddress) {
-        // Mock mode
-        setMockLoading(true);
-        setMockSuccess(false);
-        setMockError(null);
-        const fakeTx = "0x" + Math.random().toString(16).slice(2).padEnd(64, "0");
-        setMockTxHash(fakeTx);
+      if (!marketAddress) return;
 
-        await new Promise((r) => setTimeout(r, 1400));
-        setMockLoading(false);
-        setMockSuccess(true);
-        return;
-      }
-
-      // Real contract call
       reset();
       writeContract({
         address: marketAddress,
@@ -57,28 +38,12 @@ export function usePlaceBet(marketAddress: `0x${string}` | null) {
         value: parseEther(amountEth),
       });
     },
-    [marketAddress, writeContract, reset]
+    [marketAddress, writeContract, reset],
   );
-
-  if (IS_DEMO_MODE || !marketAddress) {
-    return {
-      placeBet,
-      isLoading: mockLoading,
-      isSuccess: mockSuccess,
-      error: mockError,
-      txHash: mockTxHash as `0x${string}` | null,
-      isConfirming: false,
-      reset: () => {
-        setMockSuccess(false);
-        setMockError(null);
-        setMockTxHash(null);
-      },
-    };
-  }
 
   return {
     placeBet,
-    isLoading: isWritePending || isConfirming,
+    isLoading: isPending || isConfirming,
     isSuccess: isConfirmed,
     error: writeError ? writeError.message : null,
     txHash: txHash ?? null,

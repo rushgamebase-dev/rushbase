@@ -120,7 +120,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   }, []);
 
   async function handleBet() {
-    if (!isConnected && !IS_DEMO_MODE) {
+    if (!isConnected) {
       openConnectModal();
       return;
     }
@@ -132,13 +132,6 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     const rangeIndex = selectedSide === "over" ? 1 : 0;
 
     await placeBetContract(rangeIndex, amount);
-
-    // In demo mode, the mock resolves immediately
-    if (IS_DEMO_MODE) {
-      setIsPlacing(false);
-      setAmount("");
-      setSelectedSide(null);
-    }
   }
 
   const statusColor =
@@ -581,19 +574,19 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         <div className="px-4 py-3 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <button
             onClick={handleBet}
-            disabled={(!isConnected && !IS_DEMO_MODE) ? false : (!canBet || isPlacing || isBetLoading)}
+            disabled={!isConnected ? false : (!canBet || isPlacing || isBetLoading)}
             className="w-full py-3.5 rounded font-black text-sm tracking-widest transition-all btn-primary"
             style={{
               fontFamily: "monospace",
               letterSpacing: "0.12em",
             }}
             aria-label={
-              !isConnected && !IS_DEMO_MODE
+              !isConnected
                 ? "Connect Wallet"
                 : `Place ${selectedSide ? selectedSide.toUpperCase() : ""} bet`
             }
           >
-            {!isConnected && !IS_DEMO_MODE ? (
+            {!isConnected ? (
               "CONNECT WALLET"
             ) : isPlacing || isBetLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -659,7 +652,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               className="inline-block w-1.5 h-1.5 rounded-full"
               style={{ background: "#00ff88" }}
             />
-            {IS_DEMO_MODE ? "DEMO" : "ON-CHAIN"}
+            ON-CHAIN
           </span>
         </div>
       </div>
