@@ -711,68 +711,6 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
-        # Latest-frame queue reader — isolates blocking cap.read() in a thread.
-        # Queue(maxsize=1) + drain-before-put = always only the newest frame.
-        # No sleep in thread, no flag, no race conditions.
-        import threading
-        import queue as _queue
-
-        _frame_q = _queue.Queue(maxsize=1)
-        _reader_alive = [True]
-
-        def _reader():
-            nonlocal cap
-            while _reader_alive[0]:
-                if cap is None or not cap.isOpened():
-                    # Reconnect
-                    print("[Reader] Reconnecting HLS...")
-                    try:
-                        if cap is not None:
-                            cap.release()
-                        new_url = get_stream_url(self.stream_url)
-                        cap = cv2.VideoCapture(new_url)
-                        if not cap.isOpened():
-                            print("[Reader] Reopen failed — retry in 2s")
-                            time.sleep(2)
-                            continue
-                        print("[Reader] Reconnected")
-                    except Exception as e:
-                        print(f"[Reader] Reconnect error: {e}")
-                        time.sleep(2)
-                        continue
-
-                ret, f = cap.read()
-                if ret and f is not None:
-                    # Drain old frame, keep only newest
-                    while not _frame_q.empty():
-                        try:
-                            _frame_q.get_nowait()
-                        except _queue.Empty:
-                            break
-                    _frame_q.put(f)
-                else:
-                    # HLS stall or expiry — force reconnect
-                    print("[Reader] cap.read() failed — will reconnect")
-                    try:
-                        cap.release()
-                    except Exception:
-                        pass
-                    cap = None
-                    time.sleep(0.5)
-
-        reader_thread = threading.Thread(target=_reader, daemon=True)
-        reader_thread.start()
-
-        # Wait for first frame
-        print("[Stream] Waiting for first frame...")
-        try:
-            _frame_q.get(timeout=30)
-            print("[Stream] First frame received — starting processing")
-        except _queue.Empty:
-            print("[Stream] No frames after 30s — aborting")
-            _reader_alive[0] = False
-            return
-
         # Prepare evidence directory
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -818,11 +756,9 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # Grab latest frame — non-blocking
-                try:
-                    frame = _frame_q.get_nowait()
-                except _queue.Empty:
-                    await asyncio.sleep(0.001)
+                ret, frame = cap.read()
+                if not ret:
+                    await asyncio.sleep(0.02)
                     continue
 
                 frame_idx += 1
@@ -866,22 +802,15 @@ class StreamServer:
                 if self.duration - elapsed < frame_interval * 2:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
-                # Pace to target_fps
-                process_time = time.time() - frame_start
-                sleep_time = max(0, frame_interval - process_time)
-                if sleep_time > 0:
-                    await asyncio.sleep(sleep_time)
-                else:
-                    await asyncio.sleep(0)
+                # Yield to event loop
+                await asyncio.sleep(0)
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             import traceback
             traceback.print_exc()
         finally:
-            _reader_alive[0] = False
-            if cap is not None:
-                cap.release()
+            cap.release()
             self.running = False
 
     async def handler(self, ws):
