@@ -108,7 +108,8 @@ export default function VideoPlayer({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const oracleImageRef = useRef<HTMLImageElement | null>(null);
-  const prevBlobUrlRef = useRef<string | null>(null);
+  const latestFrameRef = useRef<ArrayBuffer | null>(null);
+  const processingRef = useRef(false);
 
   const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
   const prevCountRef = useRef(vehicleCount);
@@ -173,19 +174,8 @@ export default function VideoPlayer({
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        const blob = new Blob([event.data], { type: "image/jpeg" });
-        const url = URL.createObjectURL(blob);
-
-        if (prevBlobUrlRef.current) {
-          URL.revokeObjectURL(prevBlobUrlRef.current);
-        }
-        prevBlobUrlRef.current = url;
-
-        const img = new Image();
-        img.onload = () => {
-          oracleImageRef.current = img;
-        };
-        img.src = url;
+        // Store only latest frame — old ones dropped, consumed in rAF loop
+        latestFrameRef.current = event.data;
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
@@ -267,6 +257,26 @@ export default function VideoPlayer({
       const W = canvas.width;
       const H = canvas.height;
       const currentFrame = ++frameRef.current;
+
+      // Consume at most 1 frame per tick — never pile up decodes
+      if (latestFrameRef.current && !processingRef.current) {
+        processingRef.current = true;
+        const buffer = latestFrameRef.current;
+        latestFrameRef.current = null;
+        const blob = new Blob([buffer], { type: "image/jpeg" });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          oracleImageRef.current = img;
+          URL.revokeObjectURL(url);
+          processingRef.current = false;
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          processingRef.current = false;
+        };
+        img.src = url;
+      }
 
       if (oracleImageRef.current) {
         ctx.drawImage(oracleImageRef.current, 0, 0, W, H);
