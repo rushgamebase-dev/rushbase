@@ -108,13 +108,9 @@ export function useChat(walletAddress?: string) {
 
     return () => {
       mountedRef.current = false;
-      if (channelRef.current) {
-        channelRef.current.presence.leave().catch(() => {});
-        channelRef.current.unsubscribe();
-      }
-      if (ablyRef.current) {
-        ablyRef.current.close();
-      }
+      try { channelRef.current?.presence.leave().catch(() => {}); } catch {}
+      try { channelRef.current?.unsubscribe(); } catch {}
+      try { ablyRef.current?.close(); } catch {}
       ablyRef.current = null;
       channelRef.current = null;
     };

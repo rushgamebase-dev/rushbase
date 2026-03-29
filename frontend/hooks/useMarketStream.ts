@@ -90,8 +90,8 @@ export function useMarketStream(onEvent?: (event: MarketEvent) => void) {
 
     return () => {
       mountedRef.current = false;
-      channelRef.current?.unsubscribe();
-      ablyRef.current?.close();
+      try { channelRef.current?.unsubscribe(); } catch {}
+      try { ablyRef.current?.close(); } catch {}
       ablyRef.current = null;
       channelRef.current = null;
     };

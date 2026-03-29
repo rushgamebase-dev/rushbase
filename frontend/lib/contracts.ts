@@ -1,6 +1,8 @@
+import { parseAbi } from "viem";
+
 // ─── MarketFactory ABI — matches MarketFactory.sol exactly ──────────────────
 
-export const FACTORY_ABI = [
+export const FACTORY_ABI = parseAbi([
   // State variables
   "function admin() view returns (address)",
   "function oracle() view returns (address)",
@@ -30,7 +32,7 @@ export const FACTORY_ABI = [
   "event OracleChanged(address indexed oldOracle, address indexed newOracle)",
   "event FeeRecipientChanged(address indexed oldRecipient, address indexed newRecipient)",
   "event DefaultFeeChanged(uint256 oldFee, uint256 newFee)",
-] as const;
+]);
 
 // ─── PredictionMarket ABI — matches PredictionMarket.sol exactly ────────────
 

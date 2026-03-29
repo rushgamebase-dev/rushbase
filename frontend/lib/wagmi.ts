@@ -10,11 +10,10 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.base.org";
 
 export const WSS_URL = process.env.NEXT_PUBLIC_WSS_URL || "";
 
-// HTTP transport is ALWAYS the primary — reliable, works everywhere.
-// WebSocket is added as secondary for event subscriptions when available.
-// Previous fallback([webSocket, http]) broke silently when WSS failed to init.
+// Use WebSocket transport for real-time event subscriptions (BetPlaced, etc.)
+// Falls back to HTTP if WSS unavailable.
 const transport = WSS_URL
-  ? fallback([http(RPC_URL), webSocket(WSS_URL)])
+  ? fallback([webSocket(WSS_URL), http(RPC_URL)])
   : http(RPC_URL);
 
 export const wagmiConfig = createConfig({
@@ -28,10 +27,6 @@ export const wagmiConfig = createConfig({
   transports: {
     [base.id]: transport,
   },
-  // Disable multicall batching — it silently drops all reads when one fails.
-  // Individual eth_call requests are more reliable for our use case.
-  batch: { multicall: false },
-  pollingInterval: 2_000,
 });
 
 export { base };
