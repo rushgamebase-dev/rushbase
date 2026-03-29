@@ -719,7 +719,7 @@ function TilesPreview() {
       </div>
 
       <div className="mt-2 text-xs flex items-center gap-2 flex-wrap" style={{ color: "#444", fontFamily: "monospace" }}>
-        <span>Harberger tax model · 5%/week · buyout anytime</span>
+        <span>Become a partner · Earn from every trade</span>
         <span style={{ color: "#333" }}>|</span>
         <a
           href="https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
