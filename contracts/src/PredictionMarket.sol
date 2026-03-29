@@ -200,7 +200,7 @@ contract PredictionMarket {
      */
     function lockMarket() external onlyOracle inState(MarketState.OPEN) {
         state = MarketState.LOCKED;
-        lockTime = block.timestamp;
+        // lockTime stays at createdAt + roundDurationSecs — immutable countdown target
         emit MarketLocked(lockTime);
     }
 
@@ -217,7 +217,7 @@ contract PredictionMarket {
         // Auto-lock if still open
         if (state == MarketState.OPEN) {
             state = MarketState.LOCKED;
-            lockTime = block.timestamp;
+            // lockTime unchanged — keeps original countdown target
         }
 
         actualCarCount = _actualCarCount;

@@ -802,16 +802,9 @@ class RushRoundManager:
         try:
             await stream.start()
 
-            # Lock betting after the betting window
-            lock_delay = self.cfg.betting_window
-            if 0 < lock_delay < self.cfg.round_duration:
-                log.info("Locking bets after %ds...", lock_delay)
-                await asyncio.sleep(lock_delay)
-                self.chain.lock_market(market_address)
-                self._publish_ably("market_locked", {
-                    "marketAddress": market_address,
-                    "ts": int(time.time() * 1000),
-                })
+            # No explicit lockMarket() call needed — the contract rejects bets
+            # automatically when block.timestamp >= lockTime. The oracle just
+            # waits for counting to finish and then resolves.
 
             returncode = await stream.wait()
             if returncode != 0:

@@ -17,6 +17,8 @@ interface BettingPanelProps {
   marketAddress?: `0x${string}` | null;
   /** 0 = UNDER wins, 1 = OVER wins, -1 = unknown */
   winningRangeIndex?: number;
+  /** Unix timestamp (seconds) when betting closes on-chain */
+  lockTime?: number;
 }
 
 const QUICK_AMOUNTS = [0.001, 0.005, 0.01, 0.05];
@@ -28,7 +30,7 @@ function formatEth(n: number): string {
   return n.toFixed(2);
 }
 
-export default function BettingPanel({ market, marketAddress, winningRangeIndex = -1 }: BettingPanelProps) {
+export default function BettingPanel({ market, marketAddress, winningRangeIndex = -1, lockTime = 0 }: BettingPanelProps) {
   const { address: walletAddress, isConnected } = useAccount();
   const { claimableWei } = useClaimWinnings(marketAddress ?? null);
   const { openModal: openConnectModal, WalletModalComponent } = useWalletModal();
@@ -56,7 +58,10 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const [showTxSuccess, setShowTxSuccess] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
-  const isOpen = market.status === "open";
+  // Enforce the SAME rule as the contract: require(block.timestamp < lockTime)
+  // This prevents users from clicking bet when the chain would revert anyway.
+  const bettingExpired = lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime;
+  const isOpen = market.status === "open" && !bettingExpired;
   const amountNum = parseFloat(amount) || 0;
   const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;
 

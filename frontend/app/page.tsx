@@ -424,7 +424,7 @@ export default function Home() {
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
-            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} />
+            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} />
           </div>
         </div>
 

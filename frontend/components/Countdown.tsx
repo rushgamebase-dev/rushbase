@@ -75,10 +75,9 @@ export default function Countdown({
   const mm = String(minutes).padStart(2, "0");
   const ss = String(seconds).padStart(2, "0");
 
-  const effectiveStatus =
-    lockTime && lockTime > 0 && timeLeft <= 0 && status === "open"
-      ? "locked"
-      : status;
+  // No heuristic — trust contract state only. Frontend disables bet buttons
+  // via lockTime comparison, but doesn't fake state transitions.
+  const effectiveStatus = status;
 
   const progress = totalDuration > 0 ? Math.max(0, timeLeft / totalDuration) : 0;
   const isUrgent = timeLeft <= 30 && effectiveStatus === "open";

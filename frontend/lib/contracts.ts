@@ -199,8 +199,8 @@ export const STATE_COLORS: Record<string, string> = {
 
 // ─── Contract addresses — fill in after deploy ─────────────────────────────
 
-export const FACTORY_ADDRESS = "0x80E6c49C6A694a259A4cC7fB9ABa97A876Ffc9fC" as `0x${string}`;
-export const RUSH_TILES_ADDRESS = "0x1c36D127ef239d13D2BA04249D0423ddf5d29Ae8" as `0x${string}`;
+export const FACTORY_ADDRESS = "0x96A43C28e1f102f5A8acE3d1b7c151b87f6BB41E" as `0x${string}`;
+export const RUSH_TILES_ADDRESS = "0xB9e21286e0d4Ae1da68067E6307991e69BDb9ed8" as `0x${string}`;
 
 // USDC on Base mainnet (for future token mode)
 export const USDC_ADDRESS_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
