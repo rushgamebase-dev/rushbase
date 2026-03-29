@@ -93,7 +93,10 @@ contract RushTilesTest is Test {
         rush.claimTile{value: uint256(deposit2) + uint256(fee2)}(1, BASE_PRICE);
 
         assertEq(alice.balance, balBefore - deposit2 - fee2);
-        assertEq(rush.treasuryBalance(), fee2);
+        // 60% of claim fee → dev, 40% → treasury
+        uint96 devCut2 = uint96((uint256(fee2) * 6000) / 10_000);
+        assertEq(rush.treasuryBalance(), fee2 - devCut2);
+        assertEq(rush.devPending(), devCut2);
     }
 
     function test_claimRevertsIfAlreadyOwned() public {
@@ -154,9 +157,11 @@ contract RushTilesTest is Test {
         vm.prank(bob);
         rush.buyoutTile{value: totalCost}(0, newPrice);
 
-        // Buyout fee → treasury; appreciation tax → dev
-        assertEq(rush.treasuryBalance(), buyoutFee);
-        assertEq(rush.devPending(), appTax);
+        // 60% of (buyoutFee + appTax) → dev, 40% → treasury
+        uint256 totalFees = buyoutFee + appTax;
+        uint256 devCut = (totalFees * 6000) / 10_000;
+        assertEq(rush.treasuryBalance(), totalFees - devCut);
+        assertEq(rush.devPending(), devCut);
     }
 
     function test_revertBuyoutSelf() public {
@@ -220,9 +225,10 @@ contract RushTilesTest is Test {
         rush.pokeTax(0);
         uint256 treasuryAfter = rush.treasuryBalance();
 
-        // 1 week at 5% → ~0.005 ether tax (all to treasury)
+        // 1 week at 5% → ~0.005 ether tax, 50% to treasury, 50% to dev
         uint256 expectedTax = (uint256(BASE_PRICE) * 500) / 10_000;
-        assertApproxEqAbs(treasuryAfter - treasuryBefore, expectedTax, 100);
+        uint256 expectedTreasury = expectedTax - (expectedTax * 5000) / 10_000;
+        assertApproxEqAbs(treasuryAfter - treasuryBefore, expectedTreasury, 100);
     }
 
     function test_harbergerTaxGoesToTreasury() public {
@@ -231,9 +237,11 @@ contract RushTilesTest is Test {
 
         rush.pokeTax(0);
 
-        // 0% dev cut — all tax to treasury
-        assertEq(rush.devPending(), 0);
+        // 50% of tax to dev, 50% to treasury
+        assertGt(rush.devPending(), 0);
         assertGt(rush.treasuryBalance(), 0);
+        // Dev and treasury should be roughly equal (50/50 split)
+        assertApproxEqAbs(rush.devPending(), rush.treasuryBalance(), 100);
     }
 
     function test_taxForeclosure() public {
@@ -320,7 +328,10 @@ contract RushTilesTest is Test {
         vm.prank(alice);
         rush.setPrice{value: appTax}(0, newPrice);
 
-        assertEq(rush.devPending(), devBefore + appTax);
+        // 60% of appTax → dev, 40% → treasury
+        uint256 devCut = (appTax * 6000) / 10_000;
+        assertEq(rush.devPending(), devBefore + devCut);
+        assertEq(rush.treasuryBalance(), appTax - devCut);
     }
 
     function test_setPrice_noTaxWhenLowering() public {

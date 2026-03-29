@@ -55,8 +55,8 @@ interface IRushTiles {
 
     event DepositAdded(uint8 indexed tileIndex, uint96 amount);
     event DepositWithdrawn(uint8 indexed tileIndex, uint96 amount);
-    event ClaimFeeCollected(uint8 indexed tileIndex, uint96 fee);
-    event TaxCollected(uint8 indexed tileIndex, uint96 taxAmount);
+    event ClaimFeeCollected(uint8 indexed tileIndex, uint96 fee, uint96 devCut);
+    event TaxCollected(uint8 indexed tileIndex, uint96 taxAmount, uint96 devCut);
     event TileForeclosed(uint8 indexed tileIndex, address indexed formerOwner);
     event FeesDistributed(uint96 amount);
     event FeesClaimed(address indexed player, uint96 amount);

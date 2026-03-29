@@ -29,7 +29,12 @@ contract RushTiles is IRushTiles, ReentrancyGuard, IERC721Receiver {
     uint256 public constant APPRECIATION_TAX_BPS  = 3000;        // 30% of appreciation   → dev
 
     // Claim fee (2nd+ tile)
-    uint256 public constant CLAIM_FEE_BPS         = 1000;        // 10% of declared price → treasury
+    uint256 public constant CLAIM_FEE_BPS         = 1000;        // 10% of declared price
+
+    // Dev share splits (matching 4FEES engine)
+    uint256 public constant DEV_TAX_SHARE_BPS     = 5000;        // 50% of Harberger tax → dev
+    uint256 public constant DEV_BUYOUT_SHARE_BPS  = 6000;        // 60% of buyout+appreciation fees → dev
+    uint256 public constant DEV_CLAIM_SHARE_BPS   = 6000;        // 60% of claim fee → dev
 
     // Price decay: 20% per 2-week period
     uint256 public constant PRICE_DECAY_BPS       = 2000;
@@ -126,8 +131,10 @@ contract RushTiles is IRushTiles, ReentrancyGuard, IERC721Receiver {
         uint96 depositAmount = uint96(msg.value) - claimFee;
 
         if (claimFee > 0) {
-            treasuryBalance += claimFee;
-            emit ClaimFeeCollected(tileIndex, claimFee);
+            uint96 devCut = uint96(_bps(claimFee, DEV_CLAIM_SHARE_BPS));
+            devPending += devCut;
+            treasuryBalance += claimFee - devCut;
+            emit ClaimFeeCollected(tileIndex, claimFee, devCut);
         }
 
         // Settle fees before changing share count
@@ -197,8 +204,12 @@ contract RushTiles is IRushTiles, ReentrancyGuard, IERC721Receiver {
         // Buyer deposit = everything above effPrice + fees
         uint96 newDeposit = uint96(msg.value - uint256(effPrice) - buyoutFee - appTax);
 
-        devPending      += uint96(appTax);
-        treasuryBalance += uint96(buyoutFee);
+        // Fee split: combine buyout fee + appreciation tax, then split dev/treasury
+        uint256 totalFees = buyoutFee + appTax;
+        uint256 devCut = _bps(totalFees, DEV_BUYOUT_SHARE_BPS);
+        uint256 treasuryCut = totalFees - devCut;
+        devPending      += uint96(devCut);
+        treasuryBalance += uint96(treasuryCut);
 
         address seller = tile.owner;
         uint96 sellerDeposit = tile.deposit;
@@ -293,7 +304,9 @@ contract RushTiles is IRushTiles, ReentrancyGuard, IERC721Receiver {
         if (newPrice > oldPrice) {
             appTax = _bps(uint256(newPrice) - uint256(oldPrice), APPRECIATION_TAX_BPS);
             if (msg.value < appTax) revert InsufficientPayment();
-            devPending += uint96(appTax);
+            uint256 setPriceDevCut = _bps(appTax, DEV_BUYOUT_SHARE_BPS);
+            devPending += uint96(setPriceDevCut);
+            treasuryBalance += uint96(appTax - setPriceDevCut);
             // Refund any overpayment as deposit top-up
             if (msg.value > appTax) {
                 tile.deposit += uint96(msg.value - appTax);
@@ -539,16 +552,20 @@ contract RushTiles is IRushTiles, ReentrancyGuard, IERC721Receiver {
         if (tile.deposit >= uint96(taxOwed)) {
             tile.deposit    -= uint96(taxOwed);
             tile.lastTaxTime = now_;
-            treasuryBalance += uint96(taxOwed);
+            uint96 taxDevCut = uint96(_bps(taxOwed, DEV_TAX_SHARE_BPS));
+            devPending += taxDevCut;
+            treasuryBalance += uint96(taxOwed) - taxDevCut;
             unchecked { totalTaxCollected += uint96(taxOwed); }
-            emit TaxCollected(tileIndex, uint96(taxOwed));
+            emit TaxCollected(tileIndex, uint96(taxOwed), taxDevCut);
         } else {
             // Insufficient deposit → foreclosure
             uint96 partialTax = tile.deposit;
             if (partialTax > 0) {
-                treasuryBalance += partialTax;
+                uint96 partialDevCut = uint96(_bps(partialTax, DEV_TAX_SHARE_BPS));
+                devPending += partialDevCut;
+                treasuryBalance += partialTax - partialDevCut;
                 unchecked { totalTaxCollected += partialTax; }
-                emit TaxCollected(tileIndex, partialTax);
+                emit TaxCollected(tileIndex, partialTax, partialDevCut);
             }
             _forecloseTile(tileIndex);
         }

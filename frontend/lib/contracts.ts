@@ -170,8 +170,8 @@ export const RUSH_TILES_ABI = parseAbi([
   "event PriceChanged(uint8 indexed tileIndex, uint80 oldPrice, uint80 newPrice, uint256 appreciationTax)",
   "event DepositAdded(uint8 indexed tileIndex, uint96 amount)",
   "event DepositWithdrawn(uint8 indexed tileIndex, uint96 amount)",
-  "event ClaimFeeCollected(uint8 indexed tileIndex, uint96 fee)",
-  "event TaxCollected(uint8 indexed tileIndex, uint96 taxAmount)",
+  "event ClaimFeeCollected(uint8 indexed tileIndex, uint96 fee, uint96 devCut)",
+  "event TaxCollected(uint8 indexed tileIndex, uint96 taxAmount, uint96 devCut)",
   "event TileForeclosed(uint8 indexed tileIndex, address indexed formerOwner)",
   "event FeesDistributed(uint96 amount)",
   "event FeesClaimed(address indexed player, uint96 amount)",
@@ -200,7 +200,7 @@ export const STATE_COLORS: Record<string, string> = {
 // ─── Contract addresses — fill in after deploy ─────────────────────────────
 
 export const FACTORY_ADDRESS = "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9" as `0x${string}`;
-export const RUSH_TILES_ADDRESS = "0xD84F5375aeA010195e70C16537710157d6E1d0e2" as `0x${string}`;
+export const RUSH_TILES_ADDRESS = "0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4" as `0x${string}`;
 
 // USDC on Base mainnet (for future token mode)
 export const USDC_ADDRESS_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
