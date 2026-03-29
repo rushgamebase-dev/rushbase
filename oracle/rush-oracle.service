@@ -1,0 +1,21 @@
+[Unit]
+Description=Rush Oracle (YOLO + Prediction Market)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lumen
+WorkingDirectory=/home/lumen/.gemini/antigravity/scratch/rush/oracle
+EnvironmentFile=/home/lumen/.gemini/antigravity/scratch/rush/.env
+Environment=FACTORY_ADDRESS=0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+Environment=PATH=/home/lumen/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+ExecStart=/bin/bash start.sh --rounds 0
+ExecStop=/bin/bash -c "pkill -f round_manager_rush.py; pkill -f stream_server.py; pkill -f 'watchdog.py --rounds'; sleep 2; pkill -9 -f round_manager_rush.py; pkill -9 -f stream_server.py"
+Restart=always
+RestartSec=5
+StartLimitBurst=3
+StartLimitIntervalSec=120
+
+[Install]
+WantedBy=multi-user.target

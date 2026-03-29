@@ -59,15 +59,8 @@ echo "  Rush Oracle Launcher"
 echo "  WebSocket port: $WS_PORT"
 echo "═══════════════════════════════════════════════════"
 
-# ── Start ngrok tunnel (more stable than cloudflared) ──────────────────────
-pkill -f "ngrok http" 2>/dev/null || true
-sleep 1
-ngrok http "$WS_PORT" --log /tmp/rush_ngrok.log --log-format logfmt &
-TUNNEL_PID=$!
-echo "[Launcher] Ngrok PID: $TUNNEL_PID"
-
-# ── Wait for tunnel URL (up to 30s) ─────────────────────────────────────────
-echo "[Launcher] Waiting for ngrok URL..."
+# ── Register ngrok URL with frontend (ngrok managed by separate systemd service) ──
+echo "[Launcher] Fetching ngrok tunnel URL..."
 TUNNEL_URL=""
 for i in $(seq 1 30); do
     TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | python3 -c "import json,sys; [print(t['public_url']) for t in json.load(sys.stdin).get('tunnels',[])]" 2>/dev/null | head -1)
@@ -78,23 +71,20 @@ for i in $(seq 1 30); do
 done
 
 if [ -z "$TUNNEL_URL" ]; then
-    echo "[ERROR] Failed to get ngrok URL after 30s"
-    kill "$TUNNEL_PID" 2>/dev/null || true
-    exit 1
+    echo "[WARN] No ngrok tunnel found — oracle will run but WS won't be accessible externally"
 fi
 
-# Convert https to wss for WebSocket
-WSS_URL="wss://$(echo "$TUNNEL_URL" | sed 's|https://||')"
-echo "[Launcher] Tunnel URL: $WSS_URL"
-
-# ── Register URL with frontend API ──────────────────────────────────────────
-echo "[Launcher] Registering URL with frontend..."
-curl -s -X POST \
-    -H "Content-Type: application/json" \
-    -H "X-Api-Key: $LEDGER_API_KEY" \
-    -d "{\"url\":\"$WSS_URL\"}" \
+if [ -n "$TUNNEL_URL" ]; then
+    WSS_URL="wss://$(echo "$TUNNEL_URL" | sed 's|https://||')"
+    echo "[Launcher] Tunnel URL: $WSS_URL"
+    echo "[Launcher] Registering URL with frontend..."
+    curl -s -X POST \
+        -H "Content-Type: application/json" \
+        -H "X-Api-Key: $LEDGER_API_KEY" \
+        -d "{\"url\":\"$WSS_URL\"}" \
     "$API_URL" || echo "[WARN] Could not register URL (API may be down)"
-echo ""
+    echo ""
+fi
 
 # ── Graceful shutdown handler ────────────────────────────────────────────────
 # Catches SIGTERM and SIGINT, kills both the tunnel and the watchdog cleanly.
@@ -155,14 +145,14 @@ if $STREAM_ONLY; then
     python3 -u stream_server.py --camera peace-bridge --duration "$DURATION" --port "$WS_PORT" &
     WATCHDOG_PID=$!
 else
-    echo "[Launcher] Mode: Supervised Round Manager (watchdog.py)"
-    python3 -u watchdog.py "$@" &
-    WATCHDOG_PID=$!
+    echo "[Launcher] Mode: Supervised Round Manager (watchdog.py) — FOREGROUND"
+    # exec replaces this shell with watchdog — PID stays the same
+    # systemd monitors this PID directly
+    exec python3 -u watchdog.py "$@"
 fi
 
+# Only reached in stream-only mode
 echo "[Launcher] Watchdog/server PID: $WATCHDOG_PID"
-
-# ── Wait for the supervised process to finish (or for a signal) ──────────────
 wait "$WATCHDOG_PID"
 EXIT_CODE=$?
 

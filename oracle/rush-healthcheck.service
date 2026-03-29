@@ -1,0 +1,18 @@
+[Unit]
+Description=Rush Oracle Health Check Run
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '\
+  HEARTBEAT=/tmp/rush_oracle_heartbeat.json; \
+  if [ ! -f "$HEARTBEAT" ]; then \
+    echo "[healthcheck] No heartbeat file — restarting oracle"; \
+    systemctl restart rush-oracle; \
+    exit 0; \
+  fi; \
+  AGE=$(($(date +%%s) - $(python3 -c "import json; print(int(json.load(open(\"$HEARTBEAT\"))[\"timestamp\"]))"))); \
+  echo "[healthcheck] Heartbeat age: ${AGE}s"; \
+  if [ "$AGE" -gt 400 ]; then \
+    echo "[healthcheck] Heartbeat stale (${AGE}s > 400s) — restarting oracle"; \
+    systemctl restart rush-oracle; \
+  fi'
