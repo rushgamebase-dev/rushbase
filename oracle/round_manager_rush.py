@@ -748,7 +748,7 @@ class RushRoundManager:
                 market_address, create_tx = self.chain.create_market(
                     stream_url=stream_url,
                     description=description,
-                    duration_secs=self.cfg.round_duration,
+                    duration_secs=self.cfg.betting_window,
                     threshold=threshold,
                 )
                 log.info(
