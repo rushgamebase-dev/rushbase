@@ -711,38 +711,64 @@ class StreamServer:
         frame_interval = 1.0 / self.target_fps
         round_timestamp = int(self.start_time)
 
-        # Minimal reader thread — only isolates blocking cap.read().
-        # No buffering, no processing, no drain. Just reads + timestamps.
+        # Latest-frame queue reader — isolates blocking cap.read() in a thread.
+        # Queue(maxsize=1) + drain-before-put = always only the newest frame.
+        # No sleep in thread, no flag, no race conditions.
         import threading
-        _reader_frame = [None]      # single slot, overwritten each read
-        _reader_fresh = [False]     # flag: new frame available
-        _reader_ts = [time.time()]  # last successful read timestamp
+        import queue as _queue
+
+        _frame_q = _queue.Queue(maxsize=1)
         _reader_alive = [True]
-        _reader_lock = threading.Lock()
 
         def _reader():
+            nonlocal cap
             while _reader_alive[0]:
+                if cap is None or not cap.isOpened():
+                    # Reconnect
+                    print("[Reader] Reconnecting HLS...")
+                    try:
+                        if cap is not None:
+                            cap.release()
+                        new_url = get_stream_url(self.stream_url)
+                        cap = cv2.VideoCapture(new_url)
+                        if not cap.isOpened():
+                            print("[Reader] Reopen failed — retry in 2s")
+                            time.sleep(2)
+                            continue
+                        print("[Reader] Reconnected")
+                    except Exception as e:
+                        print(f"[Reader] Reconnect error: {e}")
+                        time.sleep(2)
+                        continue
+
                 ret, f = cap.read()
-                if ret:
-                    with _reader_lock:
-                        _reader_frame[0] = f
-                        _reader_fresh[0] = True
-                        _reader_ts[0] = time.time()
-                    time.sleep(0.03)  # ~30fps cap — don't drain HLS buffer faster than delivery
+                if ret and f is not None:
+                    # Drain old frame, keep only newest
+                    while not _frame_q.empty():
+                        try:
+                            _frame_q.get_nowait()
+                        except _queue.Empty:
+                            break
+                    _frame_q.put(f)
                 else:
-                    time.sleep(0.05)
+                    # HLS stall or expiry — force reconnect
+                    print("[Reader] cap.read() failed — will reconnect")
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    cap = None
+                    time.sleep(0.5)
 
         reader_thread = threading.Thread(target=_reader, daemon=True)
         reader_thread.start()
 
-        # Wait for first frame before entering main loop
+        # Wait for first frame
         print("[Stream] Waiting for first frame...")
-        for _ in range(300):  # 30s max
-            if _reader_fresh[0]:
-                print("[Stream] First frame received — starting processing")
-                break
-            await asyncio.sleep(0.1)
-        else:
+        try:
+            _frame_q.get(timeout=30)
+            print("[Stream] First frame received — starting processing")
+        except _queue.Empty:
             print("[Stream] No frames after 30s — aborting")
             _reader_alive[0] = False
             return
@@ -792,32 +818,12 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
-                # Check for HLS stall — reopen if no frame for 10s
-                if time.time() - _reader_ts[0] > 10:
-                    print("[Stream] No frames for 10s — reopening stream")
-                    _reader_alive[0] = False
-                    reader_thread.join(timeout=2)
-                    cap.release()
-                    direct_url = get_stream_url(self.stream_url)
-                    cap = cv2.VideoCapture(direct_url)
-                    if not cap.isOpened():
-                        print("[Stream] Reopen failed — retrying in 5s")
-                        await asyncio.sleep(5)
-                        continue
-                    _reader_alive[0] = True
-                    _reader_ts[0] = time.time()
-                    reader_thread = threading.Thread(target=_reader, daemon=True)
-                    reader_thread.start()
-                    print("[Stream] Reopened successfully")
+                # Grab latest frame — non-blocking
+                try:
+                    frame = _frame_q.get_nowait()
+                except _queue.Empty:
+                    await asyncio.sleep(0.001)
                     continue
-
-                # Grab frame only if fresh — no duplicates
-                with _reader_lock:
-                    if not _reader_fresh[0]:
-                        await asyncio.sleep(0.02)
-                        continue
-                    frame = _reader_frame[0]
-                    _reader_fresh[0] = False
 
                 frame_idx += 1
 
@@ -860,8 +866,13 @@ class StreamServer:
                 if self.duration - elapsed < frame_interval * 2:
                     self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
 
-                # Yield to event loop — minimal sleep to not starve WS
-                await asyncio.sleep(0.001)
+                # Pace to target_fps
+                process_time = time.time() - frame_start
+                sleep_time = max(0, frame_interval - process_time)
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+                else:
+                    await asyncio.sleep(0)
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
@@ -869,7 +880,8 @@ class StreamServer:
             traceback.print_exc()
         finally:
             _reader_alive[0] = False
-            cap.release()
+            if cap is not None:
+                cap.release()
             self.running = False
 
     async def handler(self, ws):
