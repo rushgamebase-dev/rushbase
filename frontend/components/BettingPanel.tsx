@@ -66,18 +66,18 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const [showTxSuccess, setShowTxSuccess] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
+  const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
+
   // Enforce the SAME rule as the contract: require(block.timestamp < lockTime)
-  // This prevents users from clicking bet when the chain would revert anyway.
   const bettingExpired = lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime;
   const isOpen = market.status === "open" && !bettingExpired;
   const amountNum = parseFloat(amount) || 0;
-  const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;
+  const hasEnoughBalance = ethBalance === null || ethBalance >= amountNum + 0.0005;
+  const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10 && hasEnoughBalance;
 
   const selectedOdds = selectedSide === "over" ? market.overOdds : market.underOdds;
   const potentialReturn = amountNum > 0 ? amountNum * selectedOdds : 0;
   const profit = potentialReturn - amountNum;
-
-  const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
 
   // Handle successful bet — clear form and show banner
   useEffect(() => {
@@ -240,7 +240,13 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           style={{ background: "rgba(255,68,68,0.08)", borderBottom: "1px solid rgba(255,68,68,0.2)" }}
         >
           <span className="text-xs font-bold" style={{ color: "#ff4444", fontFamily: "monospace" }}>
-            BET FAILED: {betError.length > 80 ? betError.slice(0, 80) + "..." : betError}
+            {betError.includes("exceeds") || betError.includes("insufficient")
+              ? "Insufficient ETH balance for bet + gas"
+              : betError.includes("rejected") || betError.includes("denied")
+              ? "Transaction rejected in wallet"
+              : betError.includes("reverted") || betError.includes("BETTING_CLOSED")
+              ? "Betting is closed for this round"
+              : `Error: ${betError.length > 60 ? betError.slice(0, 60) + "..." : betError}`}
           </span>
         </div>
       )}
@@ -615,6 +621,8 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               "SELECT SIDE"
             ) : !amountNum ? (
               "ENTER AMOUNT"
+            ) : !hasEnoughBalance ? (
+              "INSUFFICIENT BALANCE"
             ) : !isOpen ? (
               "BETTING CLOSED"
             ) : (
