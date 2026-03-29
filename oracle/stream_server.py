@@ -699,14 +699,21 @@ class StreamServer:
                         json.dump(result, f, indent=2)
                     break
 
+                # Drain buffer — skip stale frames, keep only the newest.
+                # Without this, YOLO processing time causes cap.read() to
+                # return old buffered frames, creating the "loop/jump" effect.
                 ret, frame = cap.read()
                 if not ret:
                     await asyncio.sleep(0.02)
                     continue
+                # Grab up to 5 more frames to drain the HLS buffer
+                for _ in range(5):
+                    ret2, frame2 = cap.read()
+                    if not ret2:
+                        break
+                    frame = frame2  # keep the newest
 
                 frame_idx += 1
-
-                # No skip — 3090 Ti processes every frame for smooth video
 
                 # Resize
                 h, w = frame.shape[:2]
@@ -719,6 +726,16 @@ class StreamServer:
                 annotated, count = self.counter.process_frame(frame)
 
                 # Timer removed — frontend handles countdown display
+
+                # Frame age overlay (proves freshness)
+                yolo_done = time.time()
+                frame_age_ms = int((yolo_done - frame_start) * 1000)
+                fps_actual = frame_idx / max(elapsed, 0.1)
+                # Small debug text in bottom-right corner
+                dbg = f"seq:{frame_idx} age:{frame_age_ms}ms fps:{fps_actual:.1f}"
+                h_ann, w_ann = annotated.shape[:2]
+                cv2.putText(annotated, dbg, (w_ann - 320, h_ann - 8),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
                 # Encode to JPEG
                 _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 45])
