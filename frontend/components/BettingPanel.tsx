@@ -55,7 +55,6 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
 
   const [selectedSide, setSelectedSide] = useState<"over" | "under" | null>(null);
   const [amount, setAmount] = useState("");
-  const [isPlacing, setIsPlacing] = useState(false);
   const [lastBetIds, setLastBetIds] = useState<Set<string>>(new Set());
   const [flashBetId, setFlashBetId] = useState<string | null>(null);
   const prevOverOddsRef = useRef(market.overOdds);
@@ -80,32 +79,16 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
 
   const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
 
-  // Handle successful bet
+  // Handle successful bet — clear form and show banner
   useEffect(() => {
     if (isBetSuccess && betTxHash) {
       setLastTxHash(betTxHash);
       setShowTxSuccess(true);
       setAmount("");
       setSelectedSide(null);
-      setIsPlacing(false);
       setTimeout(() => setShowTxSuccess(false), 8000);
     }
   }, [isBetSuccess, betTxHash]);
-
-  // Reset placing state on error (user rejected, tx failed, etc.)
-  useEffect(() => {
-    if (isBetLoading === false && isPlacing && !isBetSuccess) {
-      const timer = setTimeout(() => setIsPlacing(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isBetLoading, isPlacing, isBetSuccess]);
-
-  // Hard timeout: if isPlacing stays true for 60s, force reset
-  useEffect(() => {
-    if (!isPlacing) return;
-    const timeout = setTimeout(() => setIsPlacing(false), 60000);
-    return () => clearTimeout(timeout);
-  }, [isPlacing]);
 
   // Odds flash on change
   useEffect(() => {
@@ -153,13 +136,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
       openConnectModal();
       return;
     }
-    if (!canBet) return;
+    if (!canBet || isBetLoading) return;
 
-    setIsPlacing(true);
-
-    // Map side to range index: over = 1, under = 0 (convention for 2-range markets)
     const rangeIndex = selectedSide === "over" ? 1 : 0;
-
     await placeBetContract(rangeIndex, amount);
   }
 
@@ -610,7 +589,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         <div className="px-4 py-3 shrink-0" style={{ borderBottom: "1px solid #1a1a1a" }}>
           <button
             onClick={handleBet}
-            disabled={!isConnected ? false : (!canBet || isPlacing || isBetLoading)}
+            disabled={!isConnected ? false : (!canBet || isBetLoading)}
             className="w-full py-3.5 rounded font-black text-sm tracking-widest transition-all btn-primary"
             style={{
               fontFamily: "monospace",
@@ -624,7 +603,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           >
             {!isConnected ? (
               "CONNECT WALLET"
-            ) : isPlacing || isBetLoading ? (
+            ) : isBetLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <span
                   className="inline-block w-4 h-4 rounded-full border-2 border-black border-t-transparent"
