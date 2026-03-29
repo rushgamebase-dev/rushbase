@@ -80,7 +80,7 @@ export default function VideoPlayer({
       } catch { /* use static fallback */ }
     }
     fetchUrl();
-    const interval = setInterval(fetchUrl, 30_000); // re-check every 30s
+    const interval = setInterval(fetchUrl, 5_000); // check every 5s for fast reconnect
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
