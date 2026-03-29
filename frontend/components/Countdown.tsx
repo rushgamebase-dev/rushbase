@@ -53,6 +53,8 @@ export default function Countdown({
     return Date.now() + clockOffsetRef.current;
   }
 
+  const COUNTING_DURATION = 150; // seconds of counting after bets close
+
   const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(() => {
     if (lockTime && lockTime > 0) {
       return Math.max(0, Math.floor(lockTime - Date.now() / 1000));
@@ -60,7 +62,11 @@ export default function Countdown({
     return timeLeftProp ?? 0;
   });
 
+  // Counting phase countdown (lockTime + 150s = round end)
+  const [countingTimeLeft, setCountingTimeLeft] = useState(0);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!lockTime || lockTime <= 0) {
@@ -74,6 +80,18 @@ export default function Countdown({
     intervalRef.current = setInterval(tick, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [lockTime, timeLeftProp]);
+
+  // Counting phase timer — ticks every second after betting closes
+  useEffect(() => {
+    if (!lockTime || lockTime <= 0) return;
+    const roundEnd = lockTime + COUNTING_DURATION;
+    function countingTick() {
+      setCountingTimeLeft(Math.max(0, Math.floor(roundEnd - correctedNow() / 1000)));
+    }
+    countingTick();
+    countingIntervalRef.current = setInterval(countingTick, 1000);
+    return () => { if (countingIntervalRef.current) clearInterval(countingIntervalRef.current); };
+  }, [lockTime]);
 
   const timeLeft = derivedTimeLeft;
   const minutes = Math.floor(timeLeft / 60);
@@ -96,14 +114,8 @@ export default function Countdown({
     const countColor = isOver ? "#00ff88" : "#ff4444";
     const diff = isOver ? liveCount - threshold : threshold - liveCount;
 
-    // Counting phase timer: lockTime + 150s (total round = betting + counting)
-    const COUNTING_DURATION = 150;
-    const roundEndTime = lockTime ? lockTime + COUNTING_DURATION : 0;
-    const countingRemaining = roundEndTime > 0
-      ? Math.max(0, Math.floor(roundEndTime - correctedNow() / 1000))
-      : 0;
-    const cMm = String(Math.floor(countingRemaining / 60)).padStart(2, "0");
-    const cSs = String(countingRemaining % 60).padStart(2, "0");
+    const cMm = String(Math.floor(countingTimeLeft / 60)).padStart(2, "0");
+    const cSs = String(countingTimeLeft % 60).padStart(2, "0");
 
     return (
       <div className="w-full py-4 text-center" style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${countColor}44`, borderRadius: 12 }}>
