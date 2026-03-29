@@ -45,7 +45,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 960
+OUTPUT_WIDTH = 1280
 
 
 class VehicleCounter:
@@ -58,7 +58,7 @@ class VehicleCounter:
     - Never recounts same ID
     """
 
-    def __init__(self, model_name='yolov8n.pt', confidence=0.30,
+    def __init__(self, model_name='yolov8x.pt', confidence=0.20,
                  line_position=0.45, line_angle=10, line_points=None,
                  count_mode='line', min_frames=5, lanes=None, **_kwargs):
         self.count_mode = count_mode
@@ -244,11 +244,11 @@ class VehicleCounter:
         lx1, ly1 = self.line_start
         lx2, ly2 = self.line_end
 
-        # Detect + track with BoT-SORT (imgsz=640 for speed, yolov8s is fast enough)
+        # Detect + track with BoT-SORT on GPU
         results = self.model.track(
             frame, verbose=False, conf=self.confidence,
             classes=VEHICLE_CLASSES, persist=True,
-            tracker="botsort_custom.yaml", imgsz=640
+            tracker="botsort_custom.yaml", imgsz=1280, device=0
         )[0]
 
         detections = sv.Detections.from_ultralytics(results)
@@ -481,7 +481,7 @@ class StreamServer:
     def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.15, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=6, **kwargs):
+                 count_mode='uid', lanes=None, target_fps=10, **kwargs):
         self.stream_url = stream_url
         self.duration = duration
         self.host = host
