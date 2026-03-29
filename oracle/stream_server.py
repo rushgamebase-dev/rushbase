@@ -655,14 +655,34 @@ class StreamServer:
         frame_lock = threading.Lock()
         reader_alive = [True]
 
+        last_frame_time = [time.time()]
+        cap_holder = [cap]  # mutable ref for thread
+
         def reader_thread():
-            while reader_alive[0] and cap.isOpened():
-                ret, f = cap.read()
+            while reader_alive[0]:
+                c = cap_holder[0]
+                if c is None or not c.isOpened():
+                    time.sleep(0.1)
+                    continue
+                ret, f = c.read()
                 if ret:
                     with frame_lock:
                         latest_frame[0] = f
+                    last_frame_time[0] = time.time()
                 else:
-                    time.sleep(0.01)
+                    if time.time() - last_frame_time[0] > 10:
+                        print("[Reader] No frames for 10s — reopening stream")
+                        try:
+                            c.release()
+                            new_url = get_stream_url(self.stream_url)
+                            new_cap = cv2.VideoCapture(new_url)
+                            new_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                            cap_holder[0] = new_cap
+                            last_frame_time[0] = time.time()
+                        except Exception as e:
+                            print(f"[Reader] Reopen failed: {e}")
+                            time.sleep(5)
+                    time.sleep(0.05)
 
         reader = threading.Thread(target=reader_thread, daemon=True)
         reader.start()
