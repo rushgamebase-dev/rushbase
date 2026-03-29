@@ -35,7 +35,7 @@ export interface MarketData {
 // Polling is just a safety net — 30s is enough to catch anything missed.
 // Critical data polled frequently — events are unreliable with HTTP transport.
 // State/pools/count MUST update within seconds, not 30s.
-const FAST_POLL = 5_000;
+const POLL_INTERVAL = 15_000;
 
 /**
  * Reads all data from a specific PredictionMarket contract.
@@ -58,7 +58,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "state",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: POLL_INTERVAL },
   });
 
   // Total pool
@@ -66,7 +66,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalPool",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: POLL_INTERVAL },
   });
 
   // Lock time
@@ -82,7 +82,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "totalBettors",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: POLL_INTERVAL },
   });
 
   // Actual car count
@@ -90,7 +90,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "actualCarCount",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: POLL_INTERVAL },
   });
 
   // Winning range index
@@ -98,7 +98,7 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     address: addr,
     abi: MARKET_ABI,
     functionName: "winningRangeIndex",
-    query: { enabled, refetchInterval: FAST_POLL },
+    query: { enabled, refetchInterval: POLL_INTERVAL },
   });
 
   // All ranges
@@ -132,28 +132,28 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(0)],
-    query: { enabled: enabled && rangeCount > 0, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 0, refetchInterval: POLL_INTERVAL },
   });
   const { data: pool1 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(1)],
-    query: { enabled: enabled && rangeCount > 1, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 1, refetchInterval: POLL_INTERVAL },
   });
   const { data: pool2 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(2)],
-    query: { enabled: enabled && rangeCount > 2, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 2, refetchInterval: POLL_INTERVAL },
   });
   const { data: pool3 } = useReadContract({
     address: addr,
     abi: MARKET_ABI,
     functionName: "poolByRange",
     args: [BigInt(3)],
-    query: { enabled: enabled && rangeCount > 3, refetchInterval: FAST_POLL },
+    query: { enabled: enabled && rangeCount > 3, refetchInterval: POLL_INTERVAL },
   });
 
   // Watch BetPlaced events — instant detection via WebSocket
