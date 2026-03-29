@@ -24,6 +24,17 @@
       "notes": "Single horizontal line across all 3 lanes at 55% Y. Tightened to road surface only (x=0.24 to 0.73), avoids counting outside bridge rails."
     },
     {
+      "id": "peace-bridge-plaza",
+      "name": "Peace Bridge — CND Inspection Plaza",
+      "region": "Fort Erie, ON, Canada",
+      "source": "Peace Bridge Authority",
+      "streamUrl": "https://www.youtube.com/watch?v=WPMgP2C3_co",
+      "type": "youtube",
+      "resolution": "1280x720",
+      "linePoints": "0.266,0.502,0.763,0.499",
+      "notes": "Canadian inspection plaza, horizontal line across all lanes at ~50% Y"
+    },
+    {
       "id": "peace-bridge-qew",
       "name": "Peace Bridge — QEW to CND Duty Free",
       "region": "Fort Erie, ON, Canada",
