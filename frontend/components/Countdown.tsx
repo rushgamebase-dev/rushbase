@@ -96,12 +96,29 @@ export default function Countdown({
     const countColor = isOver ? "#00ff88" : "#ff4444";
     const diff = isOver ? liveCount - threshold : threshold - liveCount;
 
+    // Counting phase timer: lockTime + 150s (total round = betting + counting)
+    const COUNTING_DURATION = 150;
+    const roundEndTime = lockTime ? lockTime + COUNTING_DURATION : 0;
+    const countingRemaining = roundEndTime > 0
+      ? Math.max(0, Math.floor(roundEndTime - correctedNow() / 1000))
+      : 0;
+    const cMm = String(Math.floor(countingRemaining / 60)).padStart(2, "0");
+    const cSs = String(countingRemaining % 60).padStart(2, "0");
+
     return (
       <div className="w-full py-4 text-center" style={{ background: "rgba(0,0,0,0.6)", border: `1px solid ${countColor}44`, borderRadius: 12 }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <div className="w-3 h-3 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite", boxShadow: `0 0 12px ${countColor}` }} />
-          <span className="text-xs font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
-            BETS CLOSED — COUNTING
+        <div className="flex items-center justify-between px-4 mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite", boxShadow: `0 0 12px ${countColor}` }} />
+            <span className="text-xs font-black tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>
+              COUNTING
+            </span>
+          </div>
+          <span
+            className="text-sm font-black tabular-nums"
+            style={{ color: "#ffaa00", fontFamily: "monospace" }}
+          >
+            {cMm}:{cSs}
           </span>
         </div>
         <div
