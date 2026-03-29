@@ -8,8 +8,8 @@
       "streamUrl": "https://www.youtube.com/watch?v=Jy1Y9f8NEY0",
       "type": "youtube",
       "resolution": "1280x720",
-      "linePoints": "0.65,0.70,0.25,0.60",
-      "notes": "Dutch highway with roundabout, heavy traffic during day. Line crosses main lanes above ramp."
+      "linePoints": "0.821,0.541,0.541,0.412",
+      "notes": "Dutch highway, line crosses main road lanes diagonally"
     },
     {
       "id": "peace-bridge",
