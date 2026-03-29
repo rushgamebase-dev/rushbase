@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount, useBalance, useReadContract } from "wagmi";
 import { useWalletModal } from "@/components/WalletButton";
 import { formatEther } from "viem";
 import type { Bet, LiveMarket } from "@/lib/mock";
 import { timeAgo } from "@/lib/mock";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
-import { BASE_MAINNET } from "@/lib/contracts";
+import { BASE_MAINNET, MARKET_ABI } from "@/lib/contracts";
 import ClaimSection from "@/components/ClaimSection";
 import { useClaimWinnings } from "@/hooks/useClaimWinnings";
 
@@ -35,6 +35,15 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const { claimableWei } = useClaimWinnings(marketAddress ?? null);
   const { openModal: openConnectModal, WalletModalComponent } = useWalletModal();
   const { data: balanceData } = useBalance({ address: walletAddress });
+
+  // Read user's bets for this market (to show personalized result)
+  const { data: userBetsData } = useReadContract({
+    address: marketAddress || undefined,
+    abi: MARKET_ABI,
+    functionName: "getUserBets",
+    args: walletAddress ? [walletAddress] : undefined,
+    query: { enabled: !!marketAddress && !!walletAddress && market.status === "resolved" },
+  });
 
   const {
     placeBet: placeBetContract,
@@ -486,93 +495,76 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         marketState={market.status === "resolved" ? 2 : market.status === "locked" ? 1 : 0}
       />
 
-      {/* Result section — always visible for all users after resolution */}
-      {market.status === "resolved" && (
-        <div
-          className="px-4 py-3 shrink-0 animate-fade-in-up"
-          style={{ borderBottom: "1px solid #1a1a1a" }}
-        >
-          {/* Final count + winning side */}
-          {market.vehicleCount > 0 && (
-            <div
-              className="p-3 rounded mb-2"
-              style={{
-                background: "#0d0d0d",
-                border: "1px solid #1f1f1f",
-              }}
-            >
-              <div
-                className="text-xs font-bold tracking-widest mb-1"
-                style={{ color: "#555", fontFamily: "monospace" }}
-              >
-                RESULT
+      {/* Result section — personalized for winner / loser / spectator */}
+      {market.status === "resolved" && (() => {
+        const winSide = winningRangeIndex === 1 ? "over" : winningRangeIndex === 0 ? "under" : null;
+        const winColor = winSide === "over" ? "#00ff88" : "#ff4444";
+        const winLabel = winSide === "over" ? "OVER WINS" : "UNDER WINS";
+
+        // Parse user's bets to determine outcome
+        const userBets = (userBetsData as unknown as { rangeIndex: bigint; amount: bigint; claimed: boolean }[] | undefined) ?? [];
+        const didParticipate = isConnected && userBets.length > 0;
+        const userSide = didParticipate ? (Number(userBets[0].rangeIndex) === 1 ? "over" : "under") : null;
+        const userWon = didParticipate && userSide === winSide;
+        const userTotalBet = userBets.reduce((sum, b) => sum + Number(formatEther(b.amount)), 0);
+        const wasPaid = didParticipate && userBets.some(b => b.claimed);
+
+        return (
+          <div className="px-4 py-3 shrink-0 animate-fade-in-up" style={{ borderBottom: "1px solid #1a1a1a" }}>
+            {/* Market result */}
+            <div className="p-3 rounded mb-2" style={{ background: "#0d0d0d", border: "1px solid #1f1f1f" }}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold tracking-widest" style={{ color: "#555", fontFamily: "monospace" }}>RESULT</span>
+                <span className="text-sm font-black" style={{ color: winColor, fontFamily: "monospace", textShadow: `0 0 8px ${winColor}88` }}>{winLabel}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span
-                  className="text-xs"
-                  style={{ color: "#888", fontFamily: "monospace" }}
-                >
-                  Final count:
-                </span>
-                <span
-                  className="text-sm font-black tabular"
-                  style={{ color: "#e0e0e0", fontFamily: "monospace" }}
-                >
-                  {market.vehicleCount}
-                </span>
+                <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>Final count:</span>
+                <span className="text-sm font-black tabular" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>{market.vehicleCount}</span>
               </div>
-              {winningRangeIndex !== -1 && (
-                <div className="flex items-center justify-between mt-1">
-                  <span
-                    className="text-xs"
-                    style={{ color: "#888", fontFamily: "monospace" }}
-                  >
-                    Outcome:
-                  </span>
-                  <span
-                    className="text-sm font-black"
-                    style={{
-                      color: winningRangeIndex === 1 ? "#00ff88" : "#ff4444",
-                      fontFamily: "monospace",
-                      textShadow:
-                        winningRangeIndex === 1
-                          ? "0 0 8px rgba(0,255,136,0.5)"
-                          : "0 0 8px rgba(255,68,68,0.5)",
-                    }}
-                  >
-                    {winningRangeIndex === 1 ? "OVER WINS" : "UNDER WINS"}
-                  </span>
-                </div>
-              )}
             </div>
-          )}
 
-          {/* Loser feedback — shown when connected user has NO claimable winnings */}
-          {isConnected && claimableWei === BigInt(0) && (
-            <div
-              className="text-center py-2"
-              style={{
-                background: "rgba(255,68,68,0.04)",
-                border: "1px solid rgba(255,68,68,0.12)",
-                borderRadius: 6,
-              }}
-            >
-              <div
-                className="text-xs font-bold tracking-widest"
-                style={{ color: "#555", fontFamily: "monospace" }}
-              >
-                ROUND OVER
+            {/* Personalized outcome */}
+            {didParticipate ? (
+              userWon ? (
+                /* WINNER */
+                <div className="p-3 rounded" style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.25)", borderRadius: 8 }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-black" style={{ color: "#00ff88" }}>{userSide === "over" ? "\u25B2" : "\u25BC"}</span>
+                    <span className="text-sm font-black tracking-widest" style={{ color: "#00ff88", fontFamily: "monospace" }}>YOU WON!</span>
+                  </div>
+                  <div className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
+                    You bet {userSide?.toUpperCase()} — {userTotalBet.toFixed(4)} ETH
+                  </div>
+                  {wasPaid && (
+                    <div className="text-xs mt-1 font-bold" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+                      Winnings paid automatically to your wallet
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* LOSER */
+                <div className="p-3 rounded" style={{ background: "rgba(255,68,68,0.04)", border: "1px solid rgba(255,68,68,0.15)", borderRadius: 8 }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-black" style={{ color: "#ff4444" }}>{userSide === "over" ? "\u25B2" : "\u25BC"}</span>
+                    <span className="text-sm font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>YOU LOST</span>
+                  </div>
+                  <div className="text-xs" style={{ color: "#666", fontFamily: "monospace" }}>
+                    You bet {userSide?.toUpperCase()} — {userTotalBet.toFixed(4)} ETH
+                  </div>
+                  <div className="text-xs mt-1" style={{ color: "#444", fontFamily: "monospace" }}>
+                    Better luck next round
+                  </div>
+                </div>
+              )
+            ) : !isConnected ? null : (
+              /* SPECTATOR (connected but didn't bet) */
+              <div className="text-center py-2">
+                <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>You didn&apos;t bet this round</div>
               </div>
-              <div
-                className="text-xs mt-0.5"
-                style={{ color: "#444", fontFamily: "monospace" }}
-              >
-                Better luck next time
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
 
       {/* BET button — hidden when market is resolved (claim section takes over) */}
       {market.status !== "resolved" && (
