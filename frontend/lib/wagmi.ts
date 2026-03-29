@@ -28,8 +28,9 @@ export const wagmiConfig = createConfig({
   transports: {
     [base.id]: transport,
   },
-  // 2s polling for HTTP fallback — ensures contract reads + event detection
-  // stay responsive even when WSS is unavailable.
+  // Disable multicall batching — it silently drops all reads when one fails.
+  // Individual eth_call requests are more reliable for our use case.
+  batch: { multicall: false },
   pollingInterval: 2_000,
 });
 
