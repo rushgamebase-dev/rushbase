@@ -48,7 +48,7 @@ NEON_GREEN = (136, 255, 0)
 NEON_YELLOW = (0, 204, 255)
 
 # Output frame width — higher = better detection but larger JPEG
-OUTPUT_WIDTH = 1280
+OUTPUT_WIDTH = 854
 
 
 class VehicleCounter:
@@ -862,7 +862,7 @@ class StreamServer:
                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
                 # Encode to JPEG
-                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 38])
                 jpeg_bytes = jpeg.tobytes()
 
                 # Broadcast (non-blocking — stored for async send)
