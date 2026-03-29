@@ -783,10 +783,6 @@ class StreamServer:
                     continue
 
                 frame_idx += 1
-                # Instrumentation: queue state + frame age every 30 frames
-                if frame_idx % 30 == 0:
-                    frame_age_s = time.time() - _frame_read_ts
-                    print(f"[METRICS] frame={frame_idx} qsize={_frame_q.qsize()} age={frame_age_s:.2f}s elapsed={elapsed:.1f}s")
 
                 # Resize
                 h, w = frame.shape[:2]
