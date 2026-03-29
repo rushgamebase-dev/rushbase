@@ -204,7 +204,7 @@ export function useTilesContract() {
         rewardSnapshot: (playerData as { rewardSnapshot: bigint }).rewardSnapshot,
         accumulatedFees: (playerData as { accumulatedFees: bigint }).accumulatedFees,
         tileCount: Number((playerData as { tileCount: number }).tileCount),
-        tilesOwned: (playerData as { tilesOwned: number[] }).tilesOwned?.map(Number) ?? [],
+        tilesOwned: (playerData as unknown as { tilesOwned: number[] }).tilesOwned?.map(Number) ?? [],
       }
     : null;
 

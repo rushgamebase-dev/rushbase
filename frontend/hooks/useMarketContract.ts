@@ -218,8 +218,8 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     : [];
 
   // Parse market info tuple
-  const streamUrl = marketInfoData ? (marketInfoData as unknown[])[0] as string : "";
-  const description = marketInfoData ? (marketInfoData as unknown[])[1] as string : "";
+  const streamUrl = marketInfoData ? (marketInfoData as unknown as unknown[])[0] as string : "";
+  const description = marketInfoData ? (marketInfoData as unknown as unknown[])[1] as string : "";
 
   const totalPoolWei = (totalPoolData as bigint) ?? BigInt(0);
 

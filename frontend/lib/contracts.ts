@@ -36,7 +36,7 @@ export const FACTORY_ABI = parseAbi([
 
 // ─── PredictionMarket ABI — matches PredictionMarket.sol exactly ────────────
 
-export const MARKET_ABI = [
+export const MARKET_ABI = parseAbi([
   // Immutable state
   "function factory() view returns (address)",
   "function oracle() view returns (address)",
@@ -76,8 +76,8 @@ export const MARKET_ABI = [
   // View functions
   "function getRangeCount() view returns (uint256)",
   "function getRange(uint256) view returns (uint256 minCars, uint256 maxCars, string label)",
-  "function getAllRanges() view returns (tuple(uint256 minCars, uint256 maxCars, string label)[])",
-  "function getUserBets(address) view returns (tuple(uint256 rangeIndex, uint256 amount, bool claimed)[])",
+  "function getAllRanges() view returns ((uint256 minCars, uint256 maxCars, string label)[])",
+  "function getUserBets(address) view returns ((uint256 rangeIndex, uint256 amount, bool claimed)[])",
   "function getUserClaimable(address) view returns (uint256)",
   "function isClaimable() view returns (bool)",
   "function getMarketInfo() view returns (string _streamUrl, string _description, uint8 _state, uint256 _totalPool, uint256 _lockTime, uint256 _rangeCount)",
@@ -90,11 +90,11 @@ export const MARKET_ABI = [
   "event WinningsClaimed(address indexed user, uint256 amount)",
   "event MarketCancelled()",
   "event Refunded(address indexed user, uint256 amount)",
-] as const;
+]);
 
 // ─── RushTiles ABI — matches RushTiles.sol + IRushTiles.sol exactly ─────────
 
-export const RUSH_TILES_ABI = [
+export const RUSH_TILES_ABI = parseAbi([
   // Tile actions
   "function claimTile(uint8, uint80) payable",
   "function buyoutTile(uint8, uint80) payable",
@@ -118,9 +118,9 @@ export const RUSH_TILES_ABI = [
   "function execute(address, uint256, bytes) returns (bytes)",
 
   // View functions
-  "function getTile(uint8) view returns (tuple(address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime))",
-  "function getAllTiles() view returns (tuple(address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime)[100])",
-  "function getPlayer(address) view returns (tuple(uint128 rewardSnapshot, uint96 accumulatedFees, uint8 tileCount, uint8[5] tilesOwned))",
+  "function getTile(uint8) view returns ((address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime))",
+  "function getAllTiles() view returns ((address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime)[100])",
+  "function getPlayer(address) view returns ((uint128 rewardSnapshot, uint96 accumulatedFees, uint8 tileCount, uint8[5] tilesOwned))",
   "function pendingFees(address) view returns (uint96)",
   "function effectivePrice(uint8) view returns (uint80)",
 
@@ -176,7 +176,7 @@ export const RUSH_TILES_ABI = [
   "event EmergencyWithdraw(address indexed to, uint256 amount)",
   "event MemeStreamReceived(address indexed nft, uint256 tokenId)",
   "event FlaunchFeesClaimed(address indexed feeEscrow, uint256 amount)",
-] as const;
+]);
 
 // ─── Market state enum ──────────────────────────────────────────────────────
 
