@@ -82,6 +82,23 @@ export default function Countdown({
   const progress = totalDuration > 0 ? Math.max(0, timeLeft / totalDuration) : 0;
   const isUrgent = timeLeft <= 30 && effectiveStatus === "open";
 
+  // ── BETTING CLOSED, COUNTING IN PROGRESS ──
+  // lockTime passed but contract is still OPEN (oracle hasn't resolved yet).
+  // Bets are rejected by the contract. Show "counting" state.
+  if (effectiveStatus === "open" && timeLeft <= 0) {
+    return (
+      <div className="w-full py-4 text-center" style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", borderRadius: 12 }}>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <div className="w-3 h-3 rounded-full" style={{ background: "#ffaa00", animation: "pulse 0.8s ease-in-out infinite", boxShadow: "0 0 12px rgba(255,170,0,0.8)" }} />
+          <span className="text-lg font-black tracking-widest" style={{ color: "#ffaa00", fontFamily: "monospace" }}>
+            COUNTING...
+          </span>
+        </div>
+        <span className="text-xs" style={{ color: "#888" }}>Bets closed — watching the count</span>
+      </div>
+    );
+  }
+
   // ── RESOLVING ──
   if (effectiveStatus === "resolving") {
     return (
