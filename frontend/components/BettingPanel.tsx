@@ -92,6 +92,15 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     }
   }, [isBetSuccess, betTxHash]);
 
+  // Reset placing state on error (user rejected, tx failed, etc.)
+  useEffect(() => {
+    if (isBetLoading === false && isPlacing && !isBetSuccess) {
+      // wagmi finished (not loading) but no success → error or rejection
+      const timer = setTimeout(() => setIsPlacing(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isBetLoading, isPlacing, isBetSuccess]);
+
   // Odds flash on change
   useEffect(() => {
     if (market.overOdds !== prevOverOddsRef.current) {

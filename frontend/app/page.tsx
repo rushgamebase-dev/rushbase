@@ -173,7 +173,9 @@ export default function Home() {
   const marketDescription = contractData.description || "";
   const cameraName = marketDescription.split(" — ")[0] || "Live Camera";
 
-  const hasActiveMarket = !!marketAddress && !isWaiting;
+  // Market is "active" if we have a real address — either currently active or
+  // the last known one (for showing RESOLVED/CANCELLED state between rounds)
+  const hasActiveMarket = !!marketAddress;
 
   // Ref to scroll to BettingPanel from mobile sticky bar
   const bettingPanelRef = useRef<HTMLDivElement>(null);
