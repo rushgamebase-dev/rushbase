@@ -2,12 +2,10 @@ import { http, createConfig } from "wagmi";
 import { base } from "wagmi/chains";
 import { injected, coinbaseWallet } from "wagmi/connectors";
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.base.org";
+// Use Base public RPC — Chainstack free tier was hitting 429 rate limits.
+// Public RPC has no per-user rate limit.
+const RPC_URL = "https://mainnet.base.org";
 
-// HTTP-only transport. WebSocket RPC was causing infinite reconnect loops
-// (ol→or in console) when the WSS endpoint was unreachable.
-// Contract reads use polling (5s) which is fast enough.
-// Real-time events come from Ably, not wagmi WebSocket.
 const transport = http(RPC_URL);
 
 export const wagmiConfig = createConfig({

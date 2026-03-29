@@ -1,7 +1,7 @@
 "use client";
 
-import { useReadContract, useWatchContractEvent } from "wagmi";
-import { useQueryClient } from "@tanstack/react-query";
+import { useReadContract } from "wagmi";
+// useQueryClient removed — event watchers removed, Ably handles invalidation
 import { formatEther } from "viem";
 import { useState, useEffect } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
@@ -44,7 +44,7 @@ const POLL_INTERVAL = 15_000;
 export function useMarketContract(marketAddress: `0x${string}` | null) {
   const enabled = !!marketAddress;
   const addr = marketAddress || undefined;
-  const queryClient = useQueryClient();
+  // queryClient removed — no more event watchers here
 
   const [realtimeBets, setRealtimeBets] = useState<
     { user: string; rangeIndex: number; amount: bigint; txHash: string; timestamp: number }[]
@@ -156,64 +156,10 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     query: { enabled: enabled && rangeCount > 3, refetchInterval: POLL_INTERVAL },
   });
 
-  // Watch BetPlaced events — instant detection via WebSocket
-  // On event: update realtimeBets AND force-refetch all pool data
-  useWatchContractEvent({
-    address: addr,
-    abi: MARKET_ABI,
-    eventName: "BetPlaced",
-    enabled,
-    onLogs(logs) {
-      for (const log of logs) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const args = (log as any).args as { user?: string; rangeIndex?: bigint; amount?: bigint } | undefined;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const txHash = ((log as any).transactionHash as string) ?? "";
-        if (args?.user && args.rangeIndex !== undefined && args.amount !== undefined) {
-          setRealtimeBets((prev) => {
-            // Dedup by txHash to prevent double-counting
-            if (txHash && prev.some((b) => b.txHash === txHash)) return prev;
-            return [
-              {
-                user: args.user!,
-                rangeIndex: Number(args.rangeIndex),
-                amount: args.amount!,
-                txHash,
-                timestamp: Date.now(),
-              },
-              ...prev.slice(0, 49),
-            ];
-          });
-        }
-      }
-
-      // Force immediate refetch of ALL contract reads (pool, bettors, state)
-      // This is the key to real-time odds: event fires → data refetches → odds recalculate
-      queryClient.invalidateQueries({ queryKey: ["readContract"] });
-    },
-  });
-
-  // Also watch MarketResolved for instant resolution detection
-  useWatchContractEvent({
-    address: addr,
-    abi: MARKET_ABI,
-    eventName: "MarketResolved",
-    enabled,
-    onLogs() {
-      queryClient.invalidateQueries({ queryKey: ["readContract"] });
-    },
-  });
-
-  // Watch MarketLocked for instant lock detection
-  useWatchContractEvent({
-    address: addr,
-    abi: MARKET_ABI,
-    eventName: "MarketLocked",
-    enabled,
-    onLogs() {
-      queryClient.invalidateQueries({ queryKey: ["readContract"] });
-    },
-  });
+  // Event watchers REMOVED — they caused infinite eth_getLogs polling loops
+  // that triggered 429 rate limits on the RPC. Real-time updates now come
+  // exclusively from Ably (useMarketStream) which invalidates queries on
+  // market_created, market_resolved, and market_cancelled events.
 
   // Build pools array
   const pools = [pool0, pool1, pool2, pool3]
