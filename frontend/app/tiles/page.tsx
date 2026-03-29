@@ -361,25 +361,56 @@ function TileModal({
             )}
 
             {tile.isActive && !tile.isMine && (() => {
-              // Buyout cost breakdown:
-              // effectivePrice + buyoutFee(10%) + appTax(30% of appreciation) + minDeposit(5% of newPrice)
-              // Default newPrice = current price (no appreciation tax)
-              const effPrice = tile.price; // TODO: account for decay
+              // Buyout cost: effectivePrice + buyoutFee(10%) + appTax(30% of appreciation) + minDeposit(5% of newPrice)
+              const effPrice = tile.effectivePrice ?? tile.price;
+              const chosenPrice = newPrice ? parseFloat(newPrice) : effPrice;
               const buyoutFee = effPrice * 0.10;
-              const minDeposit = effPrice * 0.05;
-              const totalMin = effPrice + buyoutFee + minDeposit;
+              const appTax = chosenPrice > effPrice ? (chosenPrice - effPrice) * 0.30 : 0;
+              const minDeposit = chosenPrice * 0.05;
+              const totalCost = effPrice + buyoutFee + appTax + minDeposit;
               return (
-                <div className="flex flex-col gap-2">
-                  <div className="text-[10px] px-1" style={{ color: "#555", fontFamily: "monospace" }}>
-                    Cost: {effPrice.toFixed(4)} + {buyoutFee.toFixed(4)} fee + {minDeposit.toFixed(4)} deposit
+                <div className="flex flex-col gap-3">
+                  <div className="text-[10px] px-1 flex flex-col gap-0.5" style={{ color: "#555", fontFamily: "monospace" }}>
+                    <span>Effective price: {effPrice.toFixed(4)} ETH {effPrice < tile.price ? "(decayed)" : ""}</span>
+                    <span>Buyout fee (10%): {buyoutFee.toFixed(4)} ETH</span>
+                    {appTax > 0 && <span>Appreciation tax (30%): {appTax.toFixed(4)} ETH</span>}
+                    <span>Deposit (5%): {minDeposit.toFixed(4)} ETH</span>
                   </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[effPrice, effPrice * 1.5, effPrice * 2, effPrice * 3].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setNewPrice(v.toFixed(4))}
+                        className="px-2 py-1 rounded text-[10px] font-bold transition-all"
+                        style={{
+                          background: newPrice === v.toFixed(4) ? "rgba(0,170,255,0.15)" : "#0d0d0d",
+                          border: `1px solid ${newPrice === v.toFixed(4) ? "rgba(0,170,255,0.4)" : "#222"}`,
+                          color: newPrice === v.toFixed(4) ? "#00aaff" : "#666",
+                          fontFamily: "monospace",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {v.toFixed(4)}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="New price (ETH)"
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    className="w-full px-3 py-2 rounded text-xs input-base"
+                    style={{ fontFamily: "monospace" }}
+                    min={effPrice.toFixed(6)}
+                    step="0.001"
+                  />
                   <button
                     onClick={() => onAction("buyout")}
                     disabled={busy}
                     className="w-full py-2.5 rounded text-sm font-bold transition-all"
                     style={{ background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)", color: "#00aaff", fontFamily: "monospace" }}
                   >
-                    {busy ? "BUYING OUT..." : `BUYOUT — ${(totalMin * 1.05).toFixed(4)} ETH`}
+                    {busy ? "BUYING OUT..." : `BUYOUT — ${(totalCost * 1.05).toFixed(4)} ETH`}
                   </button>
                 </div>
               );
@@ -499,13 +530,13 @@ export default function TilesPage() {
         await tilesContract.claimTile(selectedTile.id, "0.01", "0.0105");
         break;
       case "buyout": {
-        // Keep same price as current (no appreciation tax)
-        const effPrice = selectedTile.price;
-        const buyoutNewPrice = effPrice; // same price, no appreciation
+        const effPrice = selectedTile.effectivePrice ?? selectedTile.price;
+        const buyoutNewPrice = newPrice ? parseFloat(newPrice) : effPrice;
         const buyoutFee = effPrice * 0.10;
-        const minDeposit = effPrice * 0.05;
-        // totalCost = effPrice + buyoutFee + minDeposit + 5% buffer for rounding/gas
-        const totalCost = (effPrice + buyoutFee + minDeposit) * 1.05;
+        const appTax = buyoutNewPrice > effPrice ? (buyoutNewPrice - effPrice) * 0.30 : 0;
+        const minDeposit = buyoutNewPrice * 0.05;
+        // 5% buffer for rounding
+        const totalCost = (effPrice + buyoutFee + appTax + minDeposit) * 1.05;
         await tilesContract.buyoutTile(selectedTile.id, buyoutNewPrice.toFixed(6), totalCost.toFixed(6));
         break;
       }

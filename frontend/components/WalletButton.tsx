@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain, useChainId } from "wagmi";
+import { base } from "wagmi/chains";
 import { formatEther } from "viem";
 import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -326,10 +327,10 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
       color: "#aaa",
     },
     {
-      label: "$RUSH Token — Coming Soon",
+      label: "Buy $RUSH",
       icon: <Plus size={13} />,
-      onClick: () => {},
-      color: "#555",
+      onClick: () => window.open("https://app.uniswap.org/swap?outputCurrency=0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b&chain=base", "_blank"),
+      color: "#ffd700",
     },
     {
       label: "Switch Wallet",
@@ -393,6 +394,9 @@ export function WalletButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { data: balanceData } = useBalance({ address });
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  const isWrongChain = isConnected && chainId !== base.id;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -406,6 +410,13 @@ export function WalletButton() {
     setTimeout(() => setModalOpen(true), 150);
   }, [disconnect]);
 
+  // Auto-switch to Base when on wrong chain
+  useEffect(() => {
+    if (isWrongChain && switchChain) {
+      switchChain({ chainId: base.id });
+    }
+  }, [isWrongChain, switchChain]);
+
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : "";
@@ -413,6 +424,27 @@ export function WalletButton() {
   const ethBalance = balanceData
     ? parseFloat(formatEther(balanceData.value)).toFixed(4)
     : null;
+
+  if (isWrongChain) {
+    return (
+      <>
+        <button
+          onClick={() => switchChain?.({ chainId: base.id })}
+          className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold tracking-wider transition-all animate-pulse"
+          style={{
+            background: "rgba(255,68,68,0.15)",
+            border: "1px solid rgba(255,68,68,0.4)",
+            color: "#ff4444",
+            fontFamily: "monospace",
+          }}
+          aria-label="Switch to Base network"
+        >
+          Switch to Base
+        </button>
+        <WalletModal isOpen={modalOpen} onClose={closeModal} />
+      </>
+    );
+  }
 
   if (!isConnected) {
     return (

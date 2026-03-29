@@ -32,6 +32,7 @@ export interface Tile {
   id: number;
   owner: string | null;
   price: number;
+  effectivePrice?: number;
   isActive: boolean;
   pendingFees: number;
   isMine: boolean;
