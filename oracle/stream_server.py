@@ -24,6 +24,9 @@ import sys
 import time
 import subprocess
 
+import faulthandler
+faulthandler.enable()
+
 try:
     import cv2
     import numpy as np
@@ -80,6 +83,10 @@ class VehicleCounter:
         self.prev_pos = {}        # tid -> last (cx, cy)
         self.counted_ids = set()  # IDs that crossed the line
         self.counted_number = {}  # tid -> sequential count number (#1, #2, #3...)
+        self._last_seen = {}      # tid -> frame_index when last observed
+        self._frame_count = 0
+        self._PRUNE_INTERVAL = 100  # prune every ~8s at 13fps
+        self._PRUNE_AGE = 90        # remove IDs not seen for ~7s
         self.total_count = 0
         self.count_in = 0         # crossed left-to-right
         self.count_out = 0        # crossed right-to-left
@@ -99,7 +106,7 @@ class VehicleCounter:
 
         # Annotators
         self.trace_annotator = sv.TraceAnnotator(
-            thickness=1, trace_length=50,
+            thickness=1, trace_length=20,
             color=sv.Color.from_hex("#00ff88")
         )
         self.smoother = sv.DetectionsSmoother(length=3)
@@ -121,6 +128,20 @@ class VehicleCounter:
         # Not a duplicate — record this crossing
         self._recent_crossings.append((cx, cy, now))
         return False
+
+    def _prune_stale_tracks(self):
+        """Remove tracker IDs not seen recently from tracking dicts.
+        Prevents unbounded memory growth that leads to SIGSEGV in C++ tracker."""
+        cutoff = self._frame_count - self._PRUNE_AGE
+        stale = [tid for tid, last in self._last_seen.items() if last < cutoff]
+        for tid in stale:
+            self.seen_frames.pop(tid, None)
+            self.prev_pos.pop(tid, None)
+            self.counted_number.pop(tid, None)
+            del self._last_seen[tid]
+        # NEVER prune counted_ids — must persist for recount prevention
+        if stale:
+            print(f"[Prune] Removed {len(stale)} stale IDs (frame {self._frame_count})")
 
     def _merge_overlapping(self, detections):
         """Remove smaller detections contained inside larger ones.
@@ -209,6 +230,7 @@ class VehicleCounter:
     def process_frame(self, frame):
         """Detect, track, count on angled line crossing, annotate."""
         h, w = frame.shape[:2]
+        self._frame_count += 1
         import math
 
         # Setup lanes on first frame
@@ -396,6 +418,17 @@ class VehicleCounter:
 
                     self.prev_pos[tid] = (cx, cy, side1, side2)
 
+            # Update last-seen timestamps for active tracker IDs
+            for i in range(len(detections)):
+                tid = detections.tracker_id[i]
+                if tid is not None:
+                    self._last_seen[tid] = self._frame_count
+
+        # Periodic pruning of stale tracker IDs to prevent memory bloat
+        if self._frame_count % self._PRUNE_INTERVAL == 0:
+            self._prune_stale_tracks()
+
+        if has_tracker:
             # Draw traces
             frame = self.trace_annotator.annotate(frame, detections)
 

@@ -134,7 +134,21 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 
 // ─── Home page ────────────────────────────────────────────────────────────────
 
+// Mount exactly ONE Chat instance based on viewport (avoids duplicate Ably connections)
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    setIsDesktop(mq.matches);
+    const h = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, []);
+  return isDesktop;
+}
+
 export default function Home() {
+  const isDesktop = useIsDesktop();
 
   const { marketAddress: activeMarketAddress, isWaiting, marketCount } = useActiveMarket();
 
@@ -448,21 +462,26 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right: Chat (20%) */}
-        <div
-          className="hidden lg:flex flex-col lg:sticky lg:top-0 lg:self-start"
-          style={{
-            flex: "0 0 20%",
-            maxWidth: "20%",
-            borderLeft: "1px solid #1a1a1a",
-            maxHeight: "100vh",
-          }}
-        >
-          <div className="flex flex-col h-full overflow-hidden" style={{ maxHeight: "100vh" }}>
-            <Chat />
+        {/* Right: Chat (20%) — only mount on desktop to avoid duplicate Ably connections */}
+        {isDesktop && (
+          <div
+            className="flex flex-col sticky top-0 self-start"
+            style={{
+              flex: "0 0 20%",
+              maxWidth: "20%",
+              borderLeft: "1px solid #1a1a1a",
+              maxHeight: "100vh",
+            }}
+          >
+            <div className="flex flex-col h-full overflow-hidden" style={{ maxHeight: "100vh" }}>
+              <Chat />
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Mobile chat — single instance, only mounted when not desktop */}
+      {!isDesktop && <Chat />}
 
       {/* Mobile sticky betting bar — only on small screens, only when market is OPEN and wallet is connected */}
       {hasActiveMarket && market.status === "open" && isConnected && (

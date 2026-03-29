@@ -2,14 +2,19 @@ import { http, createConfig } from "wagmi";
 import { base } from "wagmi/chains";
 import { injected, coinbaseWallet } from "wagmi/connectors";
 
-// Use Base public RPC — Chainstack free tier was hitting 429 rate limits.
-// Public RPC has no per-user rate limit.
-const RPC_URL = "https://mainnet.base.org";
+// Alchemy RPC — public Base RPC was also hitting 429 rate limits.
+const RPC_URL =
+  process.env.NEXT_PUBLIC_RPC_URL ||
+  "https://base-mainnet.g.alchemy.com/v2/yb-_ffZrf6Uk_dgEbvRQD";
 
-const transport = http(RPC_URL);
+const transport = http(RPC_URL, {
+  retryCount: 3,
+  retryDelay: 1000,
+});
 
 export const wagmiConfig = createConfig({
   chains: [base],
+  ssr: true, // Defer localStorage reads until after hydration — fixes React #418
   connectors: [
     injected(), // MetaMask + Phantom (both inject as window.ethereum on EVM)
     coinbaseWallet({

@@ -66,6 +66,14 @@ export default function VideoPlayer({
   const animRef = useRef<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Stable refs for values used inside WS callbacks — prevents dependency churn
+  const marketAddressRef = useRef(marketAddress);
+  const onCountUpdateRef = useRef(onCountUpdate);
+  const disposedRef = useRef(false);
+
+  useEffect(() => { marketAddressRef.current = marketAddress; }, [marketAddress]);
+  useEffect(() => { onCountUpdateRef.current = onCountUpdate; }, [onCountUpdate]);
+
   // Dynamic oracle URL — fetch ONCE on mount, retry with backoff if fails
   const [oracleWsUrl, setOracleWsUrl] = useState(STATIC_ORACLE_WS_URL);
 
@@ -135,9 +143,11 @@ export default function VideoPlayer({
     prevCountRef.current = vehicleCount;
   }, [vehicleCount, playBeep]);
 
-  // Oracle WebSocket
+  // Oracle WebSocket — deps reduced to [oracleWsUrl] only.
+  // marketAddress and onCountUpdate are read from refs inside callbacks
+  // so that prop changes do NOT tear down/reopen the WS connection.
   const connectOracle = useCallback(() => {
-    if (!oracleWsUrl) return;
+    if (!oracleWsUrl || disposedRef.current) return;
 
     if (wsRef.current) {
       wsRef.current.onclose = null;
@@ -159,36 +169,32 @@ export default function VideoPlayer({
 
     ws.onopen = () => {
       setOracleConnected(true);
-      retryCountRef.current = 0; // Reset backoff on successful connect
+      retryCountRef.current = 0;
     };
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        // Sequence-guarded frame decode — prevents old async decodes
-        // from overwriting newer frames (the fake-loop bug).
         const seq = ++frameSeqRef.current;
         const blob = new Blob([event.data], { type: "image/jpeg" });
 
         createImageBitmap(blob).then((bitmap) => {
-          // Only accept if this is still the newest frame
           if (seq >= renderedSeqRef.current) {
             renderedSeqRef.current = seq;
             oracleImageRef.current = bitmap as unknown as HTMLImageElement;
           }
-          // bitmap is lightweight, no URL to revoke
         }).catch(() => {});
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
-          // Validate market address — reject stale counts from previous rounds
           const msgMarket = msg.marketAddress;
-          if (msgMarket && marketAddress && msgMarket.toLowerCase() !== marketAddress.toLowerCase()) {
+          const currentMarket = marketAddressRef.current;
+          if (msgMarket && currentMarket && msgMarket.toLowerCase() !== currentMarket.toLowerCase()) {
             return;
           }
 
           if (msg.type === "count" || msg.type === "init" || msg.type === "final") {
             setOracleCount(msg.count);
-            onCountUpdate?.(msg.count);
+            onCountUpdateRef.current?.(msg.count);
           }
         } catch {
           // Non-JSON text, ignore
@@ -196,14 +202,17 @@ export default function VideoPlayer({
       }
     };
 
-    ws.onerror = () => {};
+    ws.onerror = (ev) => {
+      console.warn("[Oracle WS] error", ev);
+    };
 
     ws.onclose = () => {
       setOracleConnected(false);
       oracleImageRef.current = null;
       wsRef.current = null;
 
-      // Max 10 retries with exponential backoff, then stop
+      if (disposedRef.current) return;
+
       if (retryCountRef.current < 10) {
         const delay = Math.min(3000 * Math.pow(2, retryCountRef.current), 30_000);
         retryCountRef.current++;
@@ -212,13 +221,15 @@ export default function VideoPlayer({
         }, delay);
       }
     };
-  }, [oracleWsUrl, marketAddress, onCountUpdate]);
+  }, [oracleWsUrl]);
 
   // Connect on mount or when URL changes, clean up on unmount
   useEffect(() => {
+    disposedRef.current = false;
     connectOracle();
 
     return () => {
+      disposedRef.current = true;
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
@@ -230,11 +241,10 @@ export default function VideoPlayer({
         wsRef.current.close();
         wsRef.current = null;
       }
-      // No blob URLs to clean — createImageBitmap handles memory
     };
   }, [connectOracle]);
 
-  // Canvas HUD loop — only runs when oracle is connected
+  // Canvas draw loop — only runs when oracle is connected
   useEffect(() => {
     if (!oracleConnected) {
       cancelAnimationFrame(animRef.current);
@@ -246,10 +256,10 @@ export default function VideoPlayer({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // HUD removed — all count/timer/status displayed by frontend components outside the video
+    let running = true;
 
     function draw() {
-      if (!canvas || !ctx) return;
+      if (!running || !canvas || !ctx) return;
 
       const W = canvas.width;
       const H = canvas.height;
@@ -272,17 +282,18 @@ export default function VideoPlayer({
         sweepGrad.addColorStop(1, "rgba(0,255,136,0)");
         ctx.fillStyle = sweepGrad;
         ctx.fillRect(0, sweepY - 8, W, 16);
-
-        // Clean video — no HUD overlay
       }
 
       animRef.current = requestAnimationFrame(draw);
     }
 
     animRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animRef.current);
+    return () => {
+      running = false;
+      cancelAnimationFrame(animRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [oracleConnected, vehicleCount, cameraName]);
+  }, [oracleConnected]);
 
   return (
     <div
@@ -295,17 +306,17 @@ export default function VideoPlayer({
         border: "1px solid #1a1a1a",
       }}
     >
-      {oracleConnected ? (
-        /* Oracle connected: show YOLO-processed canvas */
-        <canvas
-          ref={canvasRef}
-          width={640}
-          height={360}
-          style={{ width: "100%", height: "100%", display: "block" }}
-          aria-label="Live CCTV feed with oracle vehicle detection"
-        />
-      ) : (
-        /* No oracle connection: show connecting state */
+      {/* Canvas always in DOM so ref is always populated */}
+      <canvas
+        ref={canvasRef}
+        width={640}
+        height={360}
+        style={{ width: "100%", height: "100%", display: "block" }}
+        aria-label="Live CCTV feed with oracle vehicle detection"
+      />
+
+      {/* Connecting overlay — shown on top of canvas when not connected */}
+      {!oracleConnected && (
         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "#0a0a0a" }}>
           <div className="w-6 h-6 rounded-full border-2 border-t-transparent mb-3" style={{ borderColor: "#00ff8855", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
           <span className="text-sm font-black tracking-widest" style={{ color: "#00ff88", fontFamily: "monospace" }}>

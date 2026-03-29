@@ -91,7 +91,11 @@ export function useMarketStream(onEvent?: (event: MarketEvent) => void) {
     return () => {
       mountedRef.current = false;
       try { channelRef.current?.unsubscribe(); } catch {}
-      try { ablyRef.current?.close(); } catch {}
+      // close() returns a Promise at runtime despite void TS type — catch the rejection
+      if (ablyRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Promise.resolve((ablyRef.current as any).close()).catch(() => {});
+      }
       ablyRef.current = null;
       channelRef.current = null;
     };

@@ -40,6 +40,9 @@ export function useChat(walletAddress?: string) {
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
   const mountedRef = useRef(true);
+  // Keep address in a ref so the Ably connection never re-creates on wallet change
+  const walletRef = useRef(walletAddress);
+  walletRef.current = walletAddress;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -47,13 +50,8 @@ export function useChat(walletAddress?: string) {
 
     async function init() {
       try {
-        const addr = walletAddress || "";
-        const tokenUrl = addr
-          ? `/api/ably-token?address=${addr}`
-          : "/api/ably-token";
-
         const ably = new Ably.Realtime({
-          authUrl: tokenUrl,
+          authUrl: "/api/ably-token",
           autoConnect: true,
         });
         ablyRef.current = ably;
@@ -110,29 +108,35 @@ export function useChat(walletAddress?: string) {
     return () => {
       mountedRef.current = false;
       try { channelRef.current?.unsubscribe(); } catch {}
-      try { ablyRef.current?.close(); } catch {}
+      // close() returns a Promise at runtime despite void TS type — catch the rejection
+      if (ablyRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Promise.resolve((ablyRef.current as any).close()).catch(() => {});
+      }
       ablyRef.current = null;
       channelRef.current = null;
     };
-  }, [walletAddress]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendMessage = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || !channelRef.current) return;
 
+      const addr = walletRef.current;
       const msg: ChatMessage = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        username: usernameFromAddress(walletAddress),
-        address: walletAddress || "",
-        color: colorFromAddress(walletAddress),
+        username: usernameFromAddress(addr),
+        address: addr || "",
+        color: colorFromAddress(addr),
         text: trimmed.slice(0, 200),
         timestamp: Date.now(),
       };
 
       channelRef.current.publish("message", msg);
     },
-    [walletAddress],
+    [],
   );
 
   return { messages, status, sendMessage };
