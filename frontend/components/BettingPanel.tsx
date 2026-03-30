@@ -8,6 +8,7 @@ import { formatEther } from "viem";
 import type { Bet, LiveMarket } from "@/lib/mock";
 import { timeAgo } from "@/lib/mock";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
+import { useBetStream } from "@/hooks/useBetStream";
 import { BASE_MAINNET, MARKET_ABI } from "@/lib/contracts";
 import ClaimSection from "@/components/ClaimSection";
 import { useClaimWinnings } from "@/hooks/useClaimWinnings";
@@ -53,6 +54,8 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     error: betError,
   } = usePlaceBet(marketAddress ?? null);
 
+  const { publishBet } = useBetStream();
+
   const [selectedSide, setSelectedSide] = useState<"over" | "under" | null>(null);
   const [amount, setAmount] = useState("");
   const [lastBetIds, setLastBetIds] = useState<Set<string>>(new Set());
@@ -86,16 +89,29 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const potentialReturn = amountNum > 0 ? amountNum * selectedOdds : 0;
   const profit = potentialReturn - amountNum;
 
-  // Handle successful bet — clear form and show banner
+  // Handle successful bet — clear form, show banner, publish to Ably
+  const publishedTxRef = useRef<string | null>(null);
   useEffect(() => {
-    if (isBetSuccess && betTxHash) {
+    if (isBetSuccess && betTxHash && betTxHash !== publishedTxRef.current) {
+      publishedTxRef.current = betTxHash;
       setLastTxHash(betTxHash);
       setShowTxSuccess(true);
       setAmount("");
+
+      // Publish bet to Ably for all clients
+      if (walletAddress && selectedSide) {
+        publishBet({
+          user: walletAddress,
+          side: selectedSide,
+          amount: parseFloat(amount || "0"),
+          txHash: betTxHash,
+        });
+      }
+
       setSelectedSide(null);
       setTimeout(() => setShowTxSuccess(false), 8000);
     }
-  }, [isBetSuccess, betTxHash]);
+  }, [isBetSuccess, betTxHash, walletAddress, selectedSide, amount, publishBet]);
 
   // Odds flash on change
   useEffect(() => {

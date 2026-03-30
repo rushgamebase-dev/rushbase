@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       capability: {
         "rush:chat": ["publish", "subscribe", "history"],
         "rush:market": ["subscribe"],
+        "rush:bets": ["publish", "subscribe"],
       },
       ttl: 3600 * 1000, // 1 hour
     });

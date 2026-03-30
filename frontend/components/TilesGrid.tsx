@@ -9,27 +9,41 @@ interface TilesGridProps {
   onTileClick: (tile: Tile) => void;
 }
 
-/** 5 raccoon tile images */
-const TILE_IMAGES = [
-  "/tiles/1.png", // Greedy Raccoon (green)
-  "/tiles/2.png", // Purple Velvet
-  "/tiles/3.png", // Skyfall Gangster (blue)
-  "/tiles/4.png", // Golden Tail
-  "/tiles/5.png", // Inferno Rusher (red)
+/** 20 raccoon tile images */
+const TILE_IMAGE_COUNT = 20;
+
+/** Raccoon names for the card */
+const RACCOON_NAMES = [
+  "Greedy Bandit", "Purple Velvet", "Skyfall Gangster", "Golden Tail", "Inferno Rusher",
+  "Voltage Rusher", "Shadow Drifter", "Frost Phantom", "Neon Prowler", "Magma Fury",
+  "Cyber Claw", "Storm Chaser", "Venom Striker", "Crystal Seer", "Clockwork Gear",
+  "Plasma Ghost", "Iron Whisker", "Cosmic Dash", "Blaze Runner", "Data Scavenger",
 ];
 
-function getTileImage(tileId: number): string {
-  return TILE_IMAGES[tileId % TILE_IMAGES.length];
+/** Deterministic raccoon index from owner address */
+function getRaccoonIndex(owner: string): number {
+  let hash = 0;
+  for (let i = 0; i < owner.length; i++) {
+    hash = (hash * 31 + owner.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % TILE_IMAGE_COUNT;
 }
 
-/** Deterministic color from an address string */
-function addressToColor(addr: string): string {
+function getTileImage(owner: string): string {
+  return `/tiles/${getRaccoonIndex(owner) + 1}.png`;
+}
+
+function getRaccoonName(owner: string): string {
+  return RACCOON_NAMES[getRaccoonIndex(owner)];
+}
+
+/** Deterministic hue from address */
+function addressHue(addr: string): number {
   let hash = 0;
   for (let i = 0; i < addr.length; i++) {
     hash = (hash * 31 + addr.charCodeAt(i)) | 0;
   }
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, 65%, 38%)`;
+  return Math.abs(hash) % 360;
 }
 
 export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
@@ -50,51 +64,53 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           0% { background-position: 0% 50%; }
           100% { background-position: 300% 50%; }
         }
+        @keyframes myTilePulse {
+          0%, 100% { box-shadow: 0 0 6px rgba(0,255,136,0.4), inset 0 0 8px rgba(0,255,136,0.1); }
+          50% { box-shadow: 0 0 14px rgba(0,255,136,0.7), inset 0 0 12px rgba(0,255,136,0.2); }
+        }
       `}</style>
       <div
-        className="grid gap-1 rounded-lg p-1"
-        style={{ gridTemplateColumns: "repeat(10, 1fr)", background: "#111" }}
+        className="grid gap-[3px] rounded-lg p-1"
+        style={{ gridTemplateColumns: "repeat(10, 1fr)", background: "#0a0a0a" }}
         role="grid"
         aria-label="Tiles grid 10 by 10"
       >
       {tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
+        const hasImage = tile.isActive && !!tile.owner;
 
-        // Background color logic
-        let bg = "#1a1a1a"; // empty
         let borderColor = "#222";
         let shadow = "none";
+        let animStyle = "";
 
         if (tile.isMine) {
-          bg = "rgba(0,255,136,0.18)";
-          borderColor = "rgba(0,255,136,0.55)";
-          shadow = "0 0 6px rgba(0,255,136,0.25)";
+          borderColor = "rgba(0,255,136,0.7)";
+          shadow = "0 0 8px rgba(0,255,136,0.4)";
+          animStyle = "myTilePulse 2s ease-in-out infinite";
         } else if (tile.isActive && tile.owner) {
-          bg = addressToColor(tile.owner);
-          borderColor = "rgba(255,255,255,0.08)";
+          const hue = addressHue(tile.owner);
+          borderColor = `hsla(${hue}, 60%, 50%, 0.3)`;
         }
 
         if (isHovered) {
-          borderColor = tile.isMine ? "rgba(0,255,136,0.9)" : "#444";
-          shadow = tile.isMine ? "0 0 10px rgba(0,255,136,0.4)" : "0 0 6px rgba(255,255,255,0.1)";
+          borderColor = tile.isMine ? "rgba(0,255,136,1)" : "#666";
+          shadow = "0 0 12px rgba(255,255,255,0.15)";
         }
-
-        const hasImage = tile.isActive;
 
         return (
           <button
             key={tile.id}
-            className="relative flex flex-col items-start justify-between rounded overflow-hidden"
+            className="relative flex flex-col items-start justify-between rounded-sm overflow-hidden"
             style={{
-              background: hasImage ? `url(${getTileImage(tile.id)}) center/cover` : bg,
-              border: `1px solid ${borderColor}`,
+              background: hasImage ? `url(${getTileImage(tile.owner!)}) center/cover` : "#141414",
+              border: `2px solid ${borderColor}`,
               boxShadow: shadow,
-              transition: "all 0.15s",
+              transition: "transform 0.15s, border-color 0.2s",
               cursor: "pointer",
-              transform: isHovered ? "scale(1.15)" : "scale(1)",
+              transform: isHovered ? "scale(1.18)" : "scale(1)",
               zIndex: isHovered ? 10 : 1,
-              padding: "3px 3px 2px",
               aspectRatio: "1",
+              animation: animStyle,
             }}
             onMouseEnter={() => setHoveredId(tile.id)}
             onMouseLeave={() => setHoveredId(null)}
@@ -102,45 +118,64 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
             aria-label={`Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}, ${tile.price.toFixed(4)} ETH`}
             role="gridcell"
           >
+            {/* Dark overlay for text readability */}
+            {hasImage && (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.7) 100%)",
+                  zIndex: 1,
+                }}
+              />
+            )}
+
             {/* Number top-left */}
             <span
               style={{
-                fontSize: 8,
+                fontSize: 10,
                 lineHeight: 1,
                 fontFamily: "monospace",
-                fontWeight: 700,
-                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#2a2a2a",
+                fontWeight: 800,
+                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
                 userSelect: "none",
-                textShadow: tile.isActive ? "0 1px 3px rgba(0,0,0,0.9)" : "none",
+                textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none",
                 position: "relative",
                 zIndex: 2,
+                padding: "2px",
               }}
             >
               {tile.id + 1}
             </span>
 
-            {/* Price bottom */}
+            {/* Price bottom-right */}
             <span
               style={{
-                fontSize: 7,
+                fontSize: 9,
                 lineHeight: 1,
                 fontFamily: "monospace",
-                color: tile.isMine ? "#00ff88" : tile.isActive ? "rgba(255,255,255,0.85)" : "#2a2a2a",
+                fontWeight: 700,
+                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
                 userSelect: "none",
                 alignSelf: "flex-end",
-                textShadow: tile.isActive ? "0 1px 3px rgba(0,0,0,0.9)" : "none",
+                textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none",
                 position: "relative",
                 zIndex: 2,
+                padding: "2px",
               }}
             >
               {tile.price.toFixed(3)}
             </span>
 
-            {/* My tile indicator dot */}
+            {/* My tile pulsing dot */}
             {tile.isMine && (
               <span
-                className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
-                style={{ background: "#00ff88", boxShadow: "0 0 4px rgba(0,255,136,0.8)" }}
+                className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                style={{
+                  background: "#00ff88",
+                  boxShadow: "0 0 6px rgba(0,255,136,0.9)",
+                  zIndex: 3,
+                  animation: "myTilePulse 2s ease-in-out infinite",
+                }}
                 aria-hidden="true"
               />
             )}
@@ -150,40 +185,39 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               <div
                 className="absolute z-20 pointer-events-none"
                 style={{
-                  bottom: "115%",
+                  bottom: "120%",
                   left: "50%",
                   transform: "translateX(-50%)",
                   whiteSpace: "nowrap",
-                  animation: "fadeInUp 0.12s ease-out forwards",
                 }}
               >
                 <div
-                  className="px-2.5 py-1.5 rounded text-xs"
+                  className="px-3 py-2 rounded-lg"
                   style={{
-                    background: "#1a1a1a",
+                    background: "#111",
                     border: "1px solid #333",
                     color: "#e0e0e0",
                     fontFamily: "monospace",
-                    fontSize: 10,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.7)",
+                    fontSize: 11,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.8)",
                   }}
                 >
                   <div className="font-bold mb-0.5">
                     {tile.isMine ? (
-                      <span style={{ color: "#00ff88" }}>YOURS</span>
+                      <span style={{ color: "#00ff88" }}>YOUR TILE</span>
                     ) : tile.isActive ? (
-                      <span style={{ color: "#aaa" }}>OWNED</span>
+                      <span style={{ color: "#ffd700" }}>{tile.owner ? getRaccoonName(tile.owner) : "OWNED"}</span>
                     ) : (
-                      <span style={{ color: "#555" }}>EMPTY</span>
+                      <span style={{ color: "#555" }}>AVAILABLE</span>
                     )}
                     <span style={{ color: "#444" }}> #{tile.id + 1}</span>
                   </div>
                   {tile.owner && (
-                    <div style={{ color: "#666" }}>
+                    <div style={{ color: "#666", fontSize: 10 }}>
                       {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
                     </div>
                   )}
-                  <div style={{ color: "#888" }}>{tile.price.toFixed(4)} ETH</div>
+                  <div style={{ color: "#00aaff", fontWeight: 700 }}>{tile.price.toFixed(4)} ETH</div>
                 </div>
               </div>
             )}

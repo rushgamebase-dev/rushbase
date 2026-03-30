@@ -24,6 +24,7 @@ import { timeAgo, type LiveMarket } from "@/lib/mock";
 import { useMarketStream } from "@/hooks/useMarketStream";
 import BetToast from "@/components/BetToast";
 import MascotOverlay from "@/components/MascotOverlay";
+import { useBetStream } from "@/hooks/useBetStream";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
@@ -121,16 +122,32 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
     overPct,
     underPct,
     bettors: contractData.totalBettors,
-    recentBets: contractData.realtimeBets.map((b) => ({
-      id: b.txHash || `${b.user}-${b.timestamp}`,
-      wallet: b.user,
-      shortWallet: `${b.user.slice(0, 6)}...${b.user.slice(-4)}`,
-      side: (b.rangeIndex === 1 ? "over" : "under") as "over" | "under",
-      amount: parseFloat(formatEther(b.amount)),
-      txHash: b.txHash,
-      timestamp: b.timestamp,
-      timeAgo: timeAgo(b.timestamp),
-    })),
+    recentBets: [
+      // On-chain polling bets
+      ...contractData.realtimeBets.map((b) => ({
+        id: b.txHash || `${b.user}-${b.timestamp}`,
+        wallet: b.user,
+        shortWallet: `${b.user.slice(0, 6)}...${b.user.slice(-4)}`,
+        side: (b.rangeIndex === 1 ? "over" : "under") as "over" | "under",
+        amount: parseFloat(formatEther(b.amount)),
+        txHash: b.txHash,
+        timestamp: b.timestamp,
+        timeAgo: timeAgo(b.timestamp),
+      })),
+      // Ably real-time bets (instant)
+      ...liveBets.map((b) => ({
+        id: b.id,
+        wallet: b.user,
+        shortWallet: b.shortWallet,
+        side: b.side,
+        amount: b.amount,
+        txHash: b.txHash,
+        timestamp: b.timestamp,
+        timeAgo: timeAgo(b.timestamp),
+      })),
+    ].filter((b, i, arr) => arr.findIndex(x => x.txHash === b.txHash) === i) // dedup by txHash
+     .sort((a, b) => b.timestamp - a.timestamp)
+     .slice(0, 20),
     roundHistory: [],
   };
 }
@@ -176,6 +193,9 @@ export default function Home() {
 
   // Subscribe to Ably market events for instant oracle broadcasts
   useMarketStream();
+
+  // Real-time bet stream via Ably
+  const { bets: liveBets } = useBetStream();
 
   // Reset live count when market changes (new round starts)
   useEffect(() => { setLiveCount(0); }, [activeMarketAddress]);
