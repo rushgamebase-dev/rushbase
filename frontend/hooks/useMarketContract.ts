@@ -1,7 +1,7 @@
 "use client";
 
-import { useReadContract, usePublicClient } from "wagmi";
-import { formatEther, parseAbiItem } from "viem";
+import { useReadContract } from "wagmi";
+import { formatEther } from "viem";
 import { useState, useEffect, useRef } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
 
@@ -54,56 +54,8 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     setRealtimeBets(prev => prev.filter(b => Date.now() - b.timestamp < 600_000));
   }, [marketAddress]);
 
-  // Poll BetPlaced events every 15s — replaces removed useWatchContractEvent
-  const publicClient = usePublicClient();
-  const lastBlockRef = useRef<bigint>(BigInt(0));
-
-  useEffect(() => {
-    if (!enabled || !addr || !publicClient) return;
-    let cancelled = false;
-
-    async function pollBets() {
-      try {
-        const currentBlock = await publicClient!.getBlockNumber();
-        const fromBlock = lastBlockRef.current > BigInt(0) ? lastBlockRef.current + BigInt(1) : currentBlock - BigInt(100);
-        if (fromBlock > currentBlock) return;
-
-        const logs = await publicClient!.getLogs({
-          address: addr,
-          event: parseAbiItem("event BetPlaced(address indexed user, uint256 rangeIndex, uint256 amount)"),
-          fromBlock,
-          toBlock: currentBlock,
-        });
-
-        lastBlockRef.current = currentBlock;
-
-        if (logs.length > 0 && !cancelled) {
-          const newBets = logs.map(log => ({
-            user: (log.args as { user: string }).user,
-            rangeIndex: Number((log.args as { rangeIndex: bigint }).rangeIndex),
-            amount: (log.args as { amount: bigint }).amount,
-            txHash: log.transactionHash || "",
-            timestamp: Date.now(),
-          }));
-          setRealtimeBets(prev => {
-            const existing = new Set(prev.map(b => b.txHash));
-            const unique = newBets.filter(b => !existing.has(b.txHash));
-            // Keep last 20, prune >10min old
-            const now = Date.now();
-            return [...prev, ...unique]
-              .filter(b => now - b.timestamp < 600_000)
-              .slice(-20);
-          });
-        }
-      } catch {
-        // Silently fail — safety net, not critical path
-      }
-    }
-
-    pollBets();
-    const interval = setInterval(pollBets, 15_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [enabled, addr, publicClient]);
+  // BetPlaced events come via Ably (useBetStream), not on-chain polling.
+  // getLogs removed — was causing Alchemy 400 errors.
 
   // State
   const { data: stateData } = useReadContract({
