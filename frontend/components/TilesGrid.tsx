@@ -178,7 +178,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                background: "linear-gradient(135deg, transparent 30%, rgba(0,255,200,0.12) 50%, transparent 70%)",
+                background: "linear-gradient(135deg, transparent 20%, rgba(0,255,200,0.28) 48%, rgba(0,180,255,0.18) 52%, transparent 80%)",
                 opacity: 0,
                 animation: `diagonalSweep 5s ${sweepDelay.toFixed(2)}s ease-in-out infinite`,
                 zIndex: 2,
