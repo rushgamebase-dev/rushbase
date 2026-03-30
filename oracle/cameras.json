@@ -1,6 +1,16 @@
 {
   "cameras": [
     {
+      "id": "serpong-toll-km14",
+      "name": "Serpong-Balaraja Toll Road KM 14",
+      "region": "Serpong, Indonesia",
+      "source": "Ser Baraja Toll Road",
+      "streamUrl": "https://info.serbaraja-tollroad.co.id:20443/LiveApp/streams/10009.m3u8",
+      "type": "hls",
+      "resolution": "1920x1080",
+      "notes": "Direct HLS — no YouTube, no yt-dlp. Timestamp overlay at bottom. Busy toll highway."
+    },
+    {
       "id": "netherlands-highway",
       "name": "Netherlands Highway — Live Traffic",
       "region": "Netherlands, EU",

@@ -46,6 +46,7 @@ pkill -f "watchdog.py --rounds" 2>/dev/null || true
 pkill -f "stream_server.py" 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 pkill -f "ngrok http" 2>/dev/null || true
+pkill -f "cloudflared tunnel" 2>/dev/null || true
 kill $(lsof -ti :"$WS_PORT") 2>/dev/null || true
 sleep 2
 # Force-kill any survivors
@@ -59,11 +60,15 @@ echo "  Rush Oracle Launcher"
 echo "  WebSocket port: $WS_PORT"
 echo "═══════════════════════════════════════════════════"
 
-# ── Register ngrok URL with frontend (ngrok managed by separate systemd service) ──
-echo "[Launcher] Fetching ngrok tunnel URL..."
+# ── Start cloudflared tunnel and register URL ──
+echo "[Launcher] Starting cloudflared tunnel..."
+cloudflared tunnel --url http://localhost:$WS_PORT &>/tmp/cloudflared.log &
+CF_PID=$!
+
+# Wait for tunnel URL
 TUNNEL_URL=""
-for i in $(seq 1 30); do
-    TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | python3 -c "import json,sys; [print(t['public_url']) for t in json.load(sys.stdin).get('tunnels',[])]" 2>/dev/null | head -1)
+for i in $(seq 1 20); do
+    TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/cloudflared.log 2>/dev/null | head -1)
     if [ -n "$TUNNEL_URL" ]; then
         break
     fi
@@ -71,10 +76,8 @@ for i in $(seq 1 30); do
 done
 
 if [ -z "$TUNNEL_URL" ]; then
-    echo "[WARN] No ngrok tunnel found — oracle will run but WS won't be accessible externally"
-fi
-
-if [ -n "$TUNNEL_URL" ]; then
+    echo "[WARN] No cloudflared tunnel found — oracle will run but WS won't be accessible externally"
+else
     WSS_URL="wss://$(echo "$TUNNEL_URL" | sed 's|https://||')"
     echo "[Launcher] Tunnel URL: $WSS_URL"
     echo "[Launcher] Registering URL with frontend..."
@@ -114,6 +117,12 @@ _cleanup() {
         kill -0 "$STREAM_PID" 2>/dev/null && kill -KILL "$STREAM_PID" 2>/dev/null || true
     fi
 
+    # Stop cloudflared tunnel
+    if [ -n "$CF_PID" ] && kill -0 "$CF_PID" 2>/dev/null; then
+        echo "[Launcher] Stopping cloudflared (PID $CF_PID)..."
+        kill "$CF_PID" 2>/dev/null || true
+    fi
+
     echo "[Launcher] Done."
     exit 0
 }
@@ -127,7 +136,7 @@ echo "[Launcher] Starting persistent stream server..."
 
 cd "$SCRIPT_DIR"
 
-CAMERA="${CAMERA:-peace-bridge}"
+CAMERA="${CAMERA:-serpong-toll-km14}"
 python3 -u stream_server.py --camera "$CAMERA" --port "$WS_PORT" &
 STREAM_PID=$!
 echo "[Launcher] Stream server PID: $STREAM_PID (camera: $CAMERA, port: $WS_PORT)"

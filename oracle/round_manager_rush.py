@@ -157,6 +157,16 @@ MARKET_ABI = [
     },
 ]
 
+MARKET_PLACEBET_ABI = [
+    {
+        "name": "placeBet",
+        "type": "function",
+        "stateMutability": "payable",
+        "inputs": [{"name": "rangeIndex", "type": "uint256"}],
+        "outputs": [],
+    },
+]
+
 FACTORY_READ_ABI = [
     {
         "name": "getActiveMarkets",
@@ -185,6 +195,10 @@ DEFAULT_GAS  = 3_000_000
 INTER_ROUND_SECS = 15
 MAX_TX_RETRIES = 3
 TX_WAIT_TIMEOUT = 120                 # seconds to wait for receipt
+
+# House bot — transparent liquidity seeder
+HOUSE_BOT_KEY = os.environ.get("HOUSE_BOT_KEY", "")
+HOUSE_BOT_BET_WEI = MIN_BET_WEI      # 0.001 ETH per side
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -243,7 +257,7 @@ def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     Rounds alternate: peace-bridge → netherlands-highway → peace-bridge → ...
     """
     by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["peace-bridge"]
+    primary_ids = ["serpong-toll-km14"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
     if not result:
         result = cameras[:1]
@@ -495,6 +509,59 @@ class ChainClient:
         except Exception as exc:
             log.warning("refundAll failed for %s: %s", market_address, exc)
         return None
+
+    # ── House bot — transparent liquidity seeder ─────────────────────────────
+
+    def house_bet(self, market_address: str) -> bool:
+        """
+        Place minimum bets on both sides of a market using the house bot wallet.
+        Returns True if both bets succeed, False otherwise.
+        """
+        if not HOUSE_BOT_KEY:
+            return False
+
+        try:
+            house_account = Account.from_key(HOUSE_BOT_KEY)
+            market = self.w3.eth.contract(
+                address=Web3.to_checksum_address(market_address),
+                abi=MARKET_PLACEBET_ABI,
+            )
+            gas_price = self.w3.eth.gas_price
+
+            # Bet on UNDER (range 0)
+            nonce = self.w3.eth.get_transaction_count(house_account.address, "pending")
+            tx0 = market.functions.placeBet(0).build_transaction({
+                "from": house_account.address,
+                "nonce": nonce,
+                "gas": 200_000,
+                "gasPrice": gas_price,
+                "value": HOUSE_BOT_BET_WEI,
+            })
+            signed0 = house_account.sign_transaction(tx0)
+            hash0 = self.w3.eth.send_raw_transaction(signed0.raw_transaction).hex()
+
+            # Bet on OVER (range 1)
+            nonce1 = nonce + 1
+            tx1 = market.functions.placeBet(1).build_transaction({
+                "from": house_account.address,
+                "nonce": nonce1,
+                "gas": 200_000,
+                "gasPrice": gas_price,
+                "value": HOUSE_BOT_BET_WEI,
+            })
+            signed1 = house_account.sign_transaction(tx1)
+            hash1 = self.w3.eth.send_raw_transaction(signed1.raw_transaction).hex()
+
+            log.info(
+                "House bot seeded %s: UNDER tx=%s, OVER tx=%s (%.4f ETH each)",
+                market_address, hash0[:10], hash1[:10],
+                HOUSE_BOT_BET_WEI / 10**18,
+            )
+            return True
+
+        except Exception as exc:
+            log.warning("House bot bet failed for %s: %s", market_address, exc)
+            return False
 
 
 # ── Stream client (connects to persistent stream_server.py via WS) ───────────
@@ -840,6 +907,9 @@ class RushRoundManager:
                     return
 
         assert market_address is not None
+
+        # ── Step 1.5: House bot seeds both sides ─────────────────────────────
+        self.chain.house_bet(market_address)
 
         # ── Step 2: Start counting on persistent stream_server ────────────────
         log.info("Counting vehicles for %ds...", self.cfg.round_duration)
