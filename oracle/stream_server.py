@@ -602,6 +602,9 @@ class StreamServer:
 
     def _request_camera_switch(self, camera_id):
         """Load camera config and request switch. Consumed by process_video loop."""
+        if camera_id == self.camera_id:
+            print(f"[Camera] Already on {camera_id} — skip switch")
+            return
         cam = load_camera(camera_id)
         stream_url = cam.get("streamUrl", cam.get("imageUrl", ""))
         line_points = cam.get("linePoints")
