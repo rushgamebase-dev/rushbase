@@ -169,13 +169,22 @@ else
     WATCHDOG_PID=$!
     echo "[Launcher] Watchdog PID: $WATCHDOG_PID"
 
-    # Wait for either to exit
-    wait -n "$STREAM_PID" "$WATCHDOG_PID" 2>/dev/null
-    EXIT_CODE=$?
-    echo "[Launcher] Process exited with code $EXIT_CODE — cleaning up"
-    kill "$STREAM_PID" "$WATCHDOG_PID" 2>/dev/null
-    wait 2>/dev/null
-    exit "$EXIT_CODE"
+    # Monitor loop — restart stream_server if it dies, exit if watchdog dies
+    while true; do
+        if ! kill -0 "$WATCHDOG_PID" 2>/dev/null; then
+            echo "[Launcher] Watchdog died — shutting down"
+            kill "$STREAM_PID" 2>/dev/null
+            exit 1
+        fi
+        if ! kill -0 "$STREAM_PID" 2>/dev/null; then
+            echo "[Launcher] Stream server died — restarting in 3s"
+            sleep 3
+            python3 -u stream_server.py --camera "$CAMERA" --port "$WS_PORT" &
+            STREAM_PID=$!
+            echo "[Launcher] Stream server restarted: PID $STREAM_PID"
+        fi
+        sleep 5
+    done
 fi
 
 # Only reached in stream-only mode
