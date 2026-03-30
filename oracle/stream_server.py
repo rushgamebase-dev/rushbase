@@ -657,7 +657,14 @@ class StreamServer:
         print(f"[STATE] idle — round {self._round_id} complete: {count} vehicles")
         return result
 
+    MAX_CLIENTS = 20  # hard limit — prevents resource exhaustion
+
     async def register(self, ws):
+        # Reject if too many clients
+        if len(self.clients) >= self.MAX_CLIENTS:
+            print(f"[WS] Rejected — max clients ({self.MAX_CLIENTS}) reached")
+            await ws.close(1013, "max clients reached")
+            return False
         self.clients.add(ws)
         print(f"[WS] Client connected ({len(self.clients)} total)")
         # Send current state
@@ -676,6 +683,7 @@ class StreamServer:
             init_msg["elapsed"] = round(elapsed, 1)
             init_msg["remaining"] = max(0, round(self._round_duration - elapsed, 1))
         await ws.send(json.dumps(init_msg))
+        return True
 
     async def unregister(self, ws):
         self.clients.discard(ws)
@@ -955,7 +963,9 @@ class StreamServer:
             self.running = False
 
     async def handler(self, ws):
-        await self.register(ws)
+        accepted = await self.register(ws)
+        if accepted is False:
+            return
         try:
             async for msg in ws:
                 try:
