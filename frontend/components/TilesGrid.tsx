@@ -9,6 +9,19 @@ interface TilesGridProps {
   onTileClick: (tile: Tile) => void;
 }
 
+/** 5 raccoon tile images */
+const TILE_IMAGES = [
+  "/tiles/1.png", // Greedy Raccoon (green)
+  "/tiles/2.png", // Purple Velvet
+  "/tiles/3.png", // Skyfall Gangster (blue)
+  "/tiles/4.png", // Golden Tail
+  "/tiles/5.png", // Inferno Rusher (red)
+];
+
+function getTileImage(tileId: number): string {
+  return TILE_IMAGES[tileId % TILE_IMAGES.length];
+}
+
 /** Deterministic color from an address string */
 function addressToColor(addr: string): string {
   let hash = 0;
@@ -24,11 +37,26 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
 
   return (
     <div
-      className="grid gap-1"
-      style={{ gridTemplateColumns: "repeat(10, 1fr)" }}
-      role="grid"
-      aria-label="Tiles grid 10 by 10"
+      className="relative p-[3px] rounded-lg"
+      style={{
+        background: "linear-gradient(90deg, #00ff88, #00aaff, #aa44ff, #ff4488, #ffd700, #00ff88)",
+        backgroundSize: "300% 100%",
+        animation: "borderGlow 6s linear infinite",
+        boxShadow: "0 0 15px rgba(0,255,136,0.15), 0 0 30px rgba(0,170,255,0.1)",
+      }}
     >
+      <style>{`
+        @keyframes borderGlow {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 300% 50%; }
+        }
+      `}</style>
+      <div
+        className="grid gap-1 rounded-lg p-1"
+        style={{ gridTemplateColumns: "repeat(10, 1fr)", background: "#111" }}
+        role="grid"
+        aria-label="Tiles grid 10 by 10"
+      >
       {tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
 
@@ -51,17 +79,19 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           shadow = tile.isMine ? "0 0 10px rgba(0,255,136,0.4)" : "0 0 6px rgba(255,255,255,0.1)";
         }
 
+        const hasImage = tile.isActive;
+
         return (
           <button
             key={tile.id}
-            className="relative flex flex-col items-start justify-between rounded"
+            className="relative flex flex-col items-start justify-between rounded overflow-hidden"
             style={{
-              background: bg,
+              background: hasImage ? `url(${getTileImage(tile.id)}) center/cover` : bg,
               border: `1px solid ${borderColor}`,
               boxShadow: shadow,
-              transition: "all 0.1s",
+              transition: "all 0.15s",
               cursor: "pointer",
-              transform: isHovered ? "scale(1.1)" : "scale(1)",
+              transform: isHovered ? "scale(1.15)" : "scale(1)",
               zIndex: isHovered ? 10 : 1,
               padding: "3px 3px 2px",
               aspectRatio: "1",
@@ -79,8 +109,11 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 lineHeight: 1,
                 fontFamily: "monospace",
                 fontWeight: 700,
-                color: tile.isMine ? "rgba(0,255,136,0.9)" : tile.isActive ? "rgba(255,255,255,0.6)" : "#2a2a2a",
+                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#2a2a2a",
                 userSelect: "none",
+                textShadow: tile.isActive ? "0 1px 3px rgba(0,0,0,0.9)" : "none",
+                position: "relative",
+                zIndex: 2,
               }}
             >
               {tile.id + 1}
@@ -92,9 +125,12 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 fontSize: 7,
                 lineHeight: 1,
                 fontFamily: "monospace",
-                color: tile.isMine ? "rgba(0,255,136,0.7)" : tile.isActive ? "rgba(255,255,255,0.35)" : "#2a2a2a",
+                color: tile.isMine ? "#00ff88" : tile.isActive ? "rgba(255,255,255,0.85)" : "#2a2a2a",
                 userSelect: "none",
                 alignSelf: "flex-end",
+                textShadow: tile.isActive ? "0 1px 3px rgba(0,0,0,0.9)" : "none",
+                position: "relative",
+                zIndex: 2,
               }}
             >
               {tile.price.toFixed(3)}
@@ -154,6 +190,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
