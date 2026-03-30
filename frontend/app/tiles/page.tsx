@@ -414,15 +414,15 @@ function TileModal({
               </span>
               {tile.owner && (
                 <a href={`https://basescan.org/address/${tile.owner}`} target="_blank" rel="noopener noreferrer"
-                  className="text-[10px] transition-colors" style={{ color: "#3a3a3a", fontFamily: "monospace" }}
-                  onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#888")}
-                  onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#3a3a3a")}>
+                  className="text-[10px] transition-colors" style={{ color: "#777", fontFamily: "monospace" }}
+                  onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#bbb")}
+                  onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#777")}>
                   {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
                 </a>
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold tracking-wider" style={{ color: "#2a2a2a", fontFamily: "monospace" }}>PWR</span>
+              <span className="text-[9px] font-bold tracking-wider" style={{ color: "#666", fontFamily: "monospace" }}>PWR</span>
               <div className="w-14 h-[5px] rounded-sm overflow-hidden" style={{ background: "#0f0f0f", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }}>
                 <div className="h-full rounded-sm" style={{
                   width: `${Math.min(100, (tile.price / 0.5) * 100)}%`,
@@ -446,7 +446,7 @@ function TileModal({
             ].map((stat, i) => (
               <div key={stat.label} className="flex items-center gap-3 px-3 py-[7px]"
                 style={{ borderTop: i > 0 ? "1px solid #111" : "none" }}>
-                <span className="text-[9px] w-11 text-right font-bold tracking-wide" style={{ color: "#2a2a2a", fontFamily: "monospace" }}>{stat.label}</span>
+                <span className="text-[9px] w-11 text-right font-bold tracking-wide" style={{ color: "#777", fontFamily: "monospace" }}>{stat.label}</span>
                 <div className="flex-1 h-[3px] rounded-sm overflow-hidden" style={{ background: "#0a0a0a", boxShadow: "inset 0 1px 1px rgba(0,0,0,0.5)" }}>
                   <div className="h-full rounded-sm transition-all duration-500" style={{
                     width: `${Math.min(100, (parseFloat(stat.value) / stat.max) * 100)}%`,
@@ -542,8 +542,8 @@ function TileModal({
                       { l: "Deposit (5%)", v: minDeposit, note: "" },
                     ].map((r) => (
                       <div key={r.l} className="flex justify-between text-[10px]" style={{ fontFamily: "monospace" }}>
-                        <span style={{ color: "#2a2a2a" }}>{r.l} {r.note && <span style={{ color: "#ff448855" }}>{r.note}</span>}</span>
-                        <span style={{ color: "#444" }}>{r.v.toFixed(4)}</span>
+                        <span style={{ color: "#888" }}>{r.l} {r.note && <span style={{ color: "#ff448855" }}>{r.note}</span>}</span>
+                        <span style={{ color: "#ccc" }}>{r.v.toFixed(4)}</span>
                       </div>
                     ))}
                   </div>
@@ -558,7 +558,7 @@ function TileModal({
                           style={{
                             background: sel ? "linear-gradient(180deg, rgba(0,170,255,0.15), rgba(0,170,255,0.08))" : "#0a0a0a",
                             border: `1px solid ${sel ? "rgba(0,170,255,0.35)" : "#181818"}`,
-                            color: sel ? "#00ccff" : "#333",
+                            color: sel ? "#00ccff" : "#888",
                             fontFamily: "monospace",
                             cursor: "pointer",
                             boxShadow: sel ? "0 0 10px rgba(0,170,255,0.08), inset 0 1px 0 rgba(0,170,255,0.06)" : "inset 0 1px 2px rgba(0,0,0,0.3)",
@@ -577,7 +577,7 @@ function TileModal({
                       fontFamily: "monospace",
                       background: "#0a0a0a",
                       border: "1px solid #181818",
-                      color: "#aaa",
+                      color: "#ddd",
                       boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3)",
                       outline: "none",
                     }}
@@ -617,7 +617,7 @@ function TileModal({
                           style={{
                             background: sel ? "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.06))" : "#0a0a0a",
                             border: `1px solid ${sel ? "rgba(0,255,136,0.3)" : "#181818"}`,
-                            color: sel ? "#00ff88" : "#333",
+                            color: sel ? "#00ff88" : "#888",
                             fontFamily: "monospace",
                             cursor: "pointer",
                             boxShadow: sel ? "0 0 10px rgba(0,255,136,0.06), inset 0 1px 0 rgba(0,255,136,0.05)" : "inset 0 1px 2px rgba(0,0,0,0.3)",
@@ -650,7 +650,7 @@ function TileModal({
                       style={{
                         background: newPrice ? "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.06))" : "#0a0a0a",
                         border: `1px solid ${newPrice ? "rgba(0,255,136,0.25)" : "#151515"}`,
-                        color: newPrice ? "#00ff88" : "#222",
+                        color: newPrice ? "#00ff88" : "#666",
                         fontFamily: "monospace",
                         boxShadow: newPrice ? "0 0 12px rgba(0,255,136,0.04)" : "none",
                       }}>
@@ -665,11 +665,11 @@ function TileModal({
                   style={{
                     background: "rgba(255,40,40,0.04)",
                     border: "1px solid rgba(255,40,40,0.1)",
-                    color: "#331111",
+                    color: "#884444",
                     fontFamily: "monospace",
                   }}
                   onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#ff4444"; (e.target as HTMLElement).style.borderColor = "rgba(255,68,68,0.25)"; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "#331111"; (e.target as HTMLElement).style.borderColor = "rgba(255,40,40,0.1)"; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "#884444"; (e.target as HTMLElement).style.borderColor = "rgba(255,40,40,0.1)"; }}
                 >
                   ABANDON TILE
                 </button>
