@@ -851,7 +851,7 @@ class StreamServer:
         # Reader thread — prevents cap.read() from blocking event loop
         import threading
         import queue as _queue
-        _frame_q = _queue.Queue(maxsize=2)
+        _frame_q = _queue.Queue(maxsize=60)
         _reader_alive = [True]
         _cap_holder = [cap]
         _last_frame_time = [time.time()]
@@ -876,22 +876,8 @@ class StreamServer:
                 ret, f = c.read()
                 if ret and f is not None:
                     _last_frame_time[0] = time.time()
-                    # Drain up to 30 buffered frames to stay near real-time.
-                    # cap.read() returns instantly from FFmpeg buffer but blocks
-                    # when buffer is empty (waiting for next HLS segment).
-                    latest = f
-                    for _ in range(30):
-                        ret2, f2 = c.read()
-                        if ret2 and f2 is not None:
-                            latest = f2
-                        else:
-                            break
-                    _last_frame_time[0] = time.time()
                     try:
-                        while not _frame_q.empty():
-                            try: _frame_q.get_nowait()
-                            except: break
-                        _frame_q.put_nowait(latest)
+                        _frame_q.put(f, timeout=1)
                     except _queue.Full:
                         pass
                 else:
@@ -932,10 +918,14 @@ class StreamServer:
                                 **result,
                             })
 
-                # ── Get frame ────────────────────────────────────────
+                # ── Get LATEST frame (drain queue, skip old) ────────
+                frame = None
                 try:
-                    frame = _frame_q.get_nowait()
+                    while not _frame_q.empty():
+                        frame = _frame_q.get_nowait()
                 except _queue.Empty:
+                    pass
+                if frame is None:
                     await asyncio.sleep(0.02)
                     continue
 
