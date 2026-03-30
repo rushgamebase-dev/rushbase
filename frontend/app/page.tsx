@@ -93,7 +93,7 @@ const fadeUp = {
 
 // ─── Build LiveMarket from contract data ──────────────────────────────────────
 
-function buildMarketFromContract(contractData: ReturnType<typeof useMarketContract>, isWaiting: boolean, marketCount: number): LiveMarket {
+function buildMarketFromContract(contractData: ReturnType<typeof useMarketContract>, isWaiting: boolean, marketCount: number, liveBets: ReturnType<typeof useBetStream>["bets"]): LiveMarket {
   const totalPoolNum = parseFloat(contractData.totalPool) || 0;
   const overPool = contractData.poolByRange[1] ? parseFloat(contractData.poolByRange[1]) : 0;
   const underPool = contractData.poolByRange[0] ? parseFloat(contractData.poolByRange[0]) : 0;
@@ -195,12 +195,12 @@ export default function Home() {
   useMarketStream();
 
   // Real-time bet stream via Ably
-  const { bets: _liveBets } = useBetStream(); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { bets: liveBets } = useBetStream();
 
   // Reset live count when market changes (new round starts)
   useEffect(() => { setLiveCount(0); }, [activeMarketAddress]);
 
-  const market = buildMarketFromContract(contractData, isWaiting && !lastMarketAddress, marketCount);
+  const market = buildMarketFromContract(contractData, isWaiting && !lastMarketAddress, marketCount, liveBets);
 
   // Use live oracle count if available; fallback to contract data but never jump backwards
   const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
