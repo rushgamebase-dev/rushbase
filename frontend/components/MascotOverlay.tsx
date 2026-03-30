@@ -32,9 +32,10 @@ export default function MascotOverlay({
   isCounting = false,
 }: MascotOverlayProps) {
   const [card, setCard] = useState<Card | null>(null);
-  const prevStatusRef = useRef(status);
-  const prevCountingRef = useRef(isCounting);
+  const prevStatusRef = useRef<string | null>(null);
+  const prevCountingRef = useRef<boolean | null>(null);
   const prevUrgentRef = useRef(false);
+  const mountedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Show card with auto-dismiss
@@ -84,9 +85,9 @@ export default function MascotOverlay({
     const isUrgent = timeLeft <= 30 && status === "open" && !isCounting;
     const wasUrgent = prevUrgentRef.current;
 
-    // BETS OPEN (new round started)
+    // BETS OPEN (new round started or page mount)
     if (status === "open" && prevStatus !== "open" && !isCounting) {
-      playStartSound();
+      if (mountedRef.current) playStartSound(); // no sound on first mount
       showCard({
         id: "open-" + Date.now(),
         mascot: "/mascot/chill.gif",
@@ -158,6 +159,7 @@ export default function MascotOverlay({
     prevStatusRef.current = status;
     prevCountingRef.current = isCounting;
     prevUrgentRef.current = isUrgent;
+    mountedRef.current = true;
   }, [status, isCounting, timeLeft, winningRangeIndex, finalCount, threshold]);
 
   // Cleanup
