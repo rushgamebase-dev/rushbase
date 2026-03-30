@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain, useChainId } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain } from "wagmi";
 import { base } from "wagmi/chains";
 import { formatEther } from "viem";
 import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw, Plus } from "lucide-react";
@@ -391,12 +391,11 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
 // ---------------------------------------------------------------------------
 
 export function WalletButton() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { data: balanceData } = useBalance({ address });
-  const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const isWrongChain = isConnected && chainId !== base.id;
+  const isWrongChain = isConnected && !!chainId && chainId !== base.id;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);

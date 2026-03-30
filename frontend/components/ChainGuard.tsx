@@ -1,18 +1,20 @@
 "use client";
 
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import { base } from "wagmi/chains";
 
 /**
  * Full-screen overlay that blocks all interaction when connected to wrong chain.
- * Forces switch to Base before anything can happen.
+ * Uses useAccount().chainId which reflects the WALLET's actual chain,
+ * not the wagmi config default.
  */
 export default function ChainGuard() {
-  const { isConnected } = useAccount();
-  const chainId = useChainId();
+  const { isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
 
-  if (!isConnected || chainId === base.id) return null;
+  // chainId from useAccount() is the wallet's real chain
+  // If undefined (not yet detected), don't block
+  if (!isConnected || !chainId || chainId === base.id) return null;
 
   return (
     <div
