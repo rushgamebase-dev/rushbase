@@ -21,8 +21,13 @@ const PRUNE_AGE = 600_000; // 10 minutes
  * - publishBet(): broadcast a new bet to all clients
  * - bets: list of recent bets (auto-pruned after 10min)
  */
-export function useBetStream() {
+export function useBetStream(marketAddress?: string) {
   const [bets, setBets] = useState<LiveBet[]>([]);
+
+  // Clear bets when market changes
+  useEffect(() => {
+    setBets([]);
+  }, [marketAddress]);
   const clientRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
 
