@@ -174,15 +174,15 @@ export default function MascotOverlay({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: -20 }}
           transition={{ type: "spring", stiffness: 250, damping: 20 }}
-          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
         >
           <motion.div
-            className="flex flex-col items-center gap-3 px-8 py-6 rounded-2xl"
+            className="flex flex-col items-center gap-3 px-10 py-7 rounded-2xl"
             style={{
               background: `linear-gradient(145deg, rgba(10,10,10,0.95), ${card.color}18)`,
               border: `2px solid ${card.color}55`,
               boxShadow: `0 0 60px ${card.color}30, 0 0 120px ${card.color}10`,
-              maxWidth: card.size === "big" ? 420 : 340,
+              maxWidth: card.size === "big" ? 440 : 380,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -194,8 +194,8 @@ export default function MascotOverlay({
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
               style={{
-                width: card.size === "big" ? 110 : 80,
-                height: card.size === "big" ? 110 : 80,
+                width: card.size === "big" ? 120 : 96,
+                height: card.size === "big" ? 120 : 96,
                 filter: `drop-shadow(0 0 15px ${card.color}55)`,
               }}
             />
@@ -262,13 +262,13 @@ export default function MascotOverlay({
                 <motion.div
                   key={i}
                   initial={{
-                    x: typeof window !== "undefined" ? Math.random() * window.innerWidth : 400,
+                    x: `${Math.random() * 100}%`,
                     y: -20,
                     opacity: 1,
                     scale: Math.random() * 0.6 + 0.4,
                   }}
                   animate={{
-                    y: typeof window !== "undefined" ? window.innerHeight + 20 : 800,
+                    y: "110%",
                     x: `+=${Math.random() * 200 - 100}`,
                     rotate: Math.random() * 720,
                     opacity: 0,
@@ -279,7 +279,7 @@ export default function MascotOverlay({
                     ease: "easeIn",
                   }}
                   style={{
-                    position: "fixed",
+                    position: "absolute",
                     width: 8,
                     height: 8,
                     borderRadius: i % 2 === 0 ? "50%" : "2px",
