@@ -559,12 +559,15 @@ class StreamServer:
     def __init__(self, stream_url, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=8, camera_id='', **kwargs):
+                 count_mode='uid', lanes=None, target_fps=8, camera_id='',
+                 roi=None, **kwargs):
         self.stream_url = stream_url
         self.host = host
         self.port = port
         self.target_fps = target_fps
         self.camera_id = camera_id
+        self._roi_polygons = roi  # list of polygons (fractions 0-1), applied on first frame
+        self._roi_mask = None     # numpy mask, created once per resolution
 
         # YOLO config — stored for creating fresh counters per round
         self._model_name = model
@@ -593,6 +596,38 @@ class StreamServer:
         self._round_duration = 300
         self._round_market = ''
         self._round_id = 0
+
+    def _build_roi_mask(self, h, w):
+        """Create binary mask from ROI polygons. Called once on first frame."""
+        if not self._roi_polygons:
+            return None
+        mask = np.zeros((h, w), dtype=np.uint8)
+        # Detect format: [[x,y],...] (single polygon) vs [[[x,y],...]] (multiple)
+        roi = self._roi_polygons
+        if roi and isinstance(roi[0], (int, float)):
+            # Flat list — shouldn't happen but handle it
+            roi = [roi]
+        elif roi and isinstance(roi[0], list) and isinstance(roi[0][0], (int, float)):
+            # Single polygon: [[x,y],[x,y],...] — wrap in list
+            roi = [roi]
+        # Now roi is [[[x,y],...], ...] — list of polygons
+        for poly in roi:
+            pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly], dtype=np.int32)
+            cv2.fillPoly(mask, [pts], 255)
+        # Convert to 3-channel mask for bitwise_and
+        self._roi_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        print(f"[ROI] Mask created: {w}x{h}, {len(self._roi_polygons)} polygon(s)")
+        return self._roi_mask
+
+    def apply_roi(self, frame):
+        """Mask frame to ROI — pixels outside become black (YOLO ignores them)."""
+        if self._roi_polygons is None:
+            return frame
+        if self._roi_mask is None or self._roi_mask.shape[:2] != frame.shape[:2]:
+            self._build_roi_mask(frame.shape[0], frame.shape[1])
+        if self._roi_mask is not None:
+            return cv2.bitwise_and(frame, self._roi_mask)
+        return frame
 
         # Evidence frame tracking
         self._evidence_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "evidence")
@@ -895,8 +930,11 @@ class StreamServer:
                     frame = cv2.resize(frame, (OUTPUT_WIDTH, int(h * scale)),
                                       interpolation=cv2.INTER_LINEAR)
 
+                # ── Apply ROI mask (black out non-detection areas) ──
+                yolo_frame = self.apply_roi(frame)
+
                 # ── Process with YOLO (always — for visual annotations) ──
-                annotated, count = self.counter.process_frame(frame)
+                annotated, count = self.counter.process_frame(yolo_frame)
 
                 # Debug overlay
                 uptime = frame_start - server_start
@@ -1090,6 +1128,9 @@ def main():
         if not args.line_points2 and cam.get("linePoints2"):
             args.line_points2 = cam["linePoints2"]
             print(f"[Camera] Line 2 from config: {args.line_points2}")
+        cam_roi = cam.get("roi")
+        if cam_roi:
+            print(f"[Camera] ROI mask: {len(cam_roi)} polygon(s)")
         print(f"[Camera] {cam['name']} ({cam.get('source','')}) — {cam['type'].upper()}")
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")
@@ -1109,6 +1150,7 @@ def main():
         lanes=cam_lanes,
         target_fps=args.fps,
         camera_id=cam_id,
+        roi=cam_roi if args.camera else None,
     )
 
     try:
