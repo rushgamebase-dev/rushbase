@@ -393,52 +393,62 @@ function TileModal({
         </div>
 
         <div className="px-5 pb-5 pt-2 flex flex-col gap-3">
-          {/* Stats row - Pokemon style */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
-              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>PRICE</div>
-              <div className="text-sm font-black" style={{ color: "#ffd700", fontFamily: "monospace", animation: "priceGlow 3s ease-in-out infinite" }}>
-                {tile.price.toFixed(4)}
-              </div>
+          {/* Type + HP bar - Pokemon style */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+                style={{ background: `${rarityColor}15`, border: `1px solid ${rarityColor}33`, color: rarityColor, fontFamily: "monospace" }}>
+                {tile.isMine ? "PARTNER" : tile.isActive ? "HELD" : "WILD"}
+              </span>
+              {tile.owner && (
+                <a href={`https://basescan.org/address/${tile.owner}`} target="_blank" rel="noopener noreferrer"
+                  className="text-[10px] hover:underline" style={{ color: "#555", fontFamily: "monospace" }}>
+                  {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
+                </a>
+              )}
             </div>
-            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
-              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>STATUS</div>
-              <div className="text-sm font-black" style={{
-                color: tile.isMine ? "#00ff88" : tile.isActive ? "#00aaff" : "#555",
-                fontFamily: "monospace",
-              }}>
-                {tile.isMine ? "YOURS" : tile.isActive ? "OWNED" : "EMPTY"}
-              </div>
-            </div>
-            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
-              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>TAX/WK</div>
-              <div className="text-sm font-black" style={{ color: "#ff4488", fontFamily: "monospace" }}>
-                {(tile.price * 0.05).toFixed(4)}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold" style={{ color: "#ff4488", fontFamily: "monospace" }}>HP</span>
+              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
+                <div className="h-full rounded-full" style={{
+                  width: `${Math.min(100, (tile.price / 0.5) * 100)}%`,
+                  background: tile.price >= 0.1 ? "linear-gradient(90deg, #00ff88, #ffd700)" : tile.price >= 0.03 ? "linear-gradient(90deg, #00aaff, #00ff88)" : "#555",
+                }} />
               </div>
             </div>
           </div>
 
-          {/* Owner */}
-          {tile.owner && (
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[10px]" style={{ color: "#444", fontFamily: "monospace" }}>OWNER</span>
-              <a
-                href={`https://basescan.org/address/${tile.owner}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs hover:underline"
-                style={{ color: "#888", fontFamily: "monospace" }}
-              >
-                {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)} ↗
-              </a>
-            </div>
-          )}
+          {/* Stats - Pokemon card style with bars */}
+          <div className="flex flex-col gap-1.5 px-1">
+            {[
+              { label: "VALUE", value: tile.price.toFixed(4), max: 0.5, color: "#ffd700", suffix: "ETH" },
+              { label: "TAX/WK", value: (tile.price * 0.05).toFixed(4), max: 0.025, color: "#ff4488", suffix: "ETH" },
+              { label: "BUYOUT", value: (tile.price * 1.15).toFixed(4), max: 0.6, color: "#00aaff", suffix: "ETH" },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <span className="text-[9px] w-12 text-right" style={{ color: "#444", fontFamily: "monospace", fontWeight: 700 }}>{stat.label}</span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#111" }}>
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${Math.min(100, (parseFloat(stat.value) / stat.max) * 100)}%`,
+                    background: `linear-gradient(90deg, ${stat.color}88, ${stat.color})`,
+                    boxShadow: `0 0 6px ${stat.color}44`,
+                  }} />
+                </div>
+                <span className="text-[10px] font-bold w-20 text-right" style={{ color: stat.color, fontFamily: "monospace" }}>
+                  {stat.value} <span style={{ color: "#444", fontSize: 8 }}>{stat.suffix}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Separator line like Pokemon card */}
+          <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${rarityColor}33, transparent)` }} />
 
           {/* Pending fees - pulsing green */}
           {tile.isMine && tile.pendingFees > 0 && (
             <div className="flex justify-between items-center px-3 py-2 rounded-lg"
-              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)" }}>
-              <span className="text-xs" style={{ color: "#00ff88", fontFamily: "monospace" }}>PENDING REWARDS</span>
+              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.15)" }}>
+              <span className="text-[10px] font-bold tracking-wider" style={{ color: "#00ff88", fontFamily: "monospace" }}>REWARDS</span>
               <span className="text-sm font-black" style={{
                 color: "#00ff88",
                 fontFamily: "monospace",
