@@ -3,353 +3,204 @@
 <head>
 <title>SinalBet — ROI Calibrator</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0a0a0a; color: #fff; font-family: monospace; }
-  .header { padding: 14px 20px; background: #111; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-  .header h1 { color: #00ff88; font-size: 16px; }
-  .toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .btn { background: #00ff88; color: #000; border: none; padding: 7px 14px; font-size: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace; }
-  .btn:hover { background: #00cc66; }
-  .btn-red { background: #ff4444; color: #fff; }
-  .btn-outline { background: transparent; color: #00ff88; border: 1px solid #00ff88; }
-  .main { display: flex; height: calc(100vh - 52px); }
-  .canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
-  .side { width: 300px; background: #111; border-left: 1px solid #222; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-  .side h3 { color: #00ff88; font-size: 12px; letter-spacing: 2px; }
-  .side p { color: #666; font-size: 11px; line-height: 1.5; }
-  canvas { display: block; }
-  .output { background: #1a1a1a; padding: 10px; border-radius: 6px; font-size: 10px; color: #0ff; word-break: break-all; max-height: 180px; overflow-y: auto; border: 1px solid #222; }
-  .tg { display: flex; gap: 4px; margin-top: 6px; }
-  .tg button { padding: 5px 10px; border: 1px solid #333; background: #1a1a1a; color: #888; font-size: 11px; cursor: pointer; border-radius: 4px; font-family: monospace; }
-  .tg button.on { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
-  .sr { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-  .sr label { color: #888; font-size: 11px; min-width: 44px; }
-  .sr input[type=range] { flex: 1; accent-color: #00ff88; }
-  .sr span { color: #00ff88; font-size: 11px; min-width: 28px; text-align: right; }
-  input[type=text] { background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 7px; font-size: 12px; width: 100%; border-radius: 4px; font-family: monospace; }
-  .info { position: absolute; padding: 4px 10px; background: rgba(0,0,0,0.75); border-radius: 4px; font-size: 11px; pointer-events: none; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0a;color:#fff;font-family:monospace}
+  .hdr{padding:12px 20px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .hdr h1{color:#00ff88;font-size:16px}
+  .tb{display:flex;gap:6px;flex-wrap:wrap}
+  .b{background:#00ff88;color:#000;border:none;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .b:hover{background:#00cc66}
+  .br{background:#ff4444;color:#fff;border:none;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .bo{background:transparent;color:#00ff88;border:1px solid #00ff88;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .main{display:flex;height:calc(100vh - 48px)}
+  .cw{flex:1;position:relative;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+  .sd{width:280px;background:#111;border-left:1px solid #222;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+  .sd h3{color:#00ff88;font-size:11px;letter-spacing:2px}
+  .sd p{color:#666;font-size:11px;line-height:1.5}
+  canvas{display:block}
+  .out{background:#1a1a1a;padding:10px;border-radius:6px;font-size:10px;color:#0ff;word-break:break-all;max-height:150px;overflow-y:auto;border:1px solid #222}
+  .tg{display:flex;gap:4px;margin-top:6px}
+  .tg button{padding:5px 10px;border:1px solid #333;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;border-radius:4px;font-family:monospace}
+  .tg button.on{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,0.1)}
+  .sr{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .sr label{color:#888;font-size:11px;min-width:40px}
+  .sr input[type=range]{flex:1;accent-color:#00ff88}
+  .sr span{color:#00ff88;font-size:11px;min-width:28px;text-align:right}
+  input[type=text]{background:#1a1a1a;color:#fff;border:1px solid #333;padding:7px;font-size:12px;width:100%;border-radius:4px;font-family:monospace}
+  .inf{position:absolute;padding:4px 10px;background:rgba(0,0,0,.75);border-radius:4px;font-size:11px;pointer-events:none}
 </style>
 </head>
 <body>
-
-<div class="header">
-  <h1>ROI Calibrator — Paint Detection Zone</h1>
-  <div class="toolbar">
-    <button class="btn btn-outline" onclick="toggleOverlay()">Toggle Overlay</button>
-    <button class="btn btn-red" onclick="clearMask()">Clear</button>
-    <button class="btn" onclick="exportROI()">Export ROI</button>
+<div class="hdr">
+  <h1>ROI Calibrator</h1>
+  <div class="tb">
+    <button class="br" onclick="clearAll()">Clear</button>
+    <button class="b" onclick="exportROI()">Export ROI</button>
   </div>
 </div>
-
 <div class="main">
-  <div class="canvas-wrap" id="wrap">
+  <div class="cw" id="wrap">
     <canvas id="c"></canvas>
-    <div class="info" style="top:8px;left:8px;color:#00ff88;" id="coords">—</div>
-    <div class="info" style="bottom:8px;left:8px;color:#888;" id="status">Load an image</div>
+    <div class="inf" style="top:8px;left:8px;color:#00ff88" id="coords">—</div>
+    <div class="inf" style="bottom:8px;left:8px;color:#888" id="st">Load an image</div>
   </div>
-
-  <div class="side">
+  <div class="sd">
     <div>
       <h3>LOAD FRAME</h3>
       <input id="url" type="text" placeholder="http://localhost:3003/frame.jpg">
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        <button class="btn" onclick="loadUrl()">Load</button>
-        <button class="btn btn-outline" onclick="document.getElementById('fi').click()">File</button>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="b" onclick="loadUrl()">Load</button>
+        <button class="bo" onclick="document.getElementById('fi').click()">File</button>
       </div>
       <input type="file" id="fi" accept="image/*" style="display:none" onchange="loadFile(event)">
     </div>
-
     <div>
-      <h3>PAINT</h3>
-      <p><b style="color:#00ff88">Green brush</b> = YOLO detects here.<br><b style="color:#ff4444">Red eraser</b> = remove painted area.</p>
+      <h3>PAINT MODE</h3>
+      <p><b style="color:#00ff88">Green</b> = YOLO detects here<br><b style="color:#ff4444">Eraser</b> = remove paint</p>
       <div class="tg">
-        <button class="on" id="m1" onclick="M='paint';updMode()">Paint</button>
-        <button id="m2" onclick="M='erase';updMode()">Erase</button>
+        <button class="on" id="m1" onclick="mode='paint';um()">Paint</button>
+        <button id="m2" onclick="mode='erase';um()">Erase</button>
       </div>
       <div class="sr">
         <label>Size:</label>
-        <input type="range" id="bs" min="10" max="150" value="40" oninput="BS=+this.value;document.getElementById('bsl').textContent=BS">
+        <input type="range" id="bs" min="10" max="150" value="40" oninput="bs=+this.value;document.getElementById('bsl').textContent=bs">
         <span id="bsl">40</span>
       </div>
     </div>
-
-    <div>
-      <h3>POLYGON</h3>
-      <p>Click points, double-click to close.</p>
-      <div class="tg">
-        <button id="m3" onclick="M='poly';updMode()">Polygon</button>
-        <button onclick="PP.pop();draw()">Undo</button>
-      </div>
-    </div>
-
     <div>
       <h3>EXPORT</h3>
-      <div class="output" id="out">Paint first...</div>
-      <button class="btn" style="margin-top:6px;width:100%;" onclick="navigator.clipboard.writeText(document.getElementById('out').textContent)">Copy</button>
+      <div class="out" id="out">Paint first...</div>
+      <button class="b" style="margin-top:6px;width:100%" onclick="navigator.clipboard.writeText(document.getElementById('out').textContent).then(()=>document.getElementById('st').textContent='Copied!')">Copy</button>
     </div>
-
     <div>
-      <h3>LEGEND</h3>
-      <p>
-        <span style="color:#00ff88">■</span> YOLO detects<br>
-        <span style="color:#ff4444">■</span> YOLO ignores<br><br>
-        Paint the road surface only.
-        Exclude sky, trees, guardrails.
-      </p>
+      <h3>HELP</h3>
+      <p>Paint the road green.<br>Everything NOT green will be ignored by YOLO.<br>Use eraser to fix mistakes.</p>
     </div>
   </div>
 </div>
-
 <script>
 const C = document.getElementById('c');
 const X = C.getContext('2d');
-let img = new Image();
-let W = 0, H = 0, S = 1; // image width, height, display scale
+const img = new Image();
+let W=0, H=0, S=1, mode='paint', bs=40, drawing=false;
 
-// Mask canvas — full resolution
-const MC = document.createElement('canvas');
-const MX = MC.getContext('2d');
+// Two layers: image + paint overlay
+const paintLayer = document.createElement('canvas');
+const PX = paintLayer.getContext('2d');
 
-let M = 'paint'; // paint | erase | poly
-let BS = 40;
-let drawing = false;
-let overlay = true;
-let PP = []; // polygon points
-let polys = []; // finished polygons
-
-function updMode() {
-  document.getElementById('m1').className = M === 'paint' ? 'on' : '';
-  document.getElementById('m2').className = M === 'erase' ? 'on' : '';
-  document.getElementById('m3').className = M === 'poly' ? 'on' : '';
+function um(){
+  document.getElementById('m1').className = mode==='paint'?'on':'';
+  document.getElementById('m2').className = mode==='erase'?'on':'';
 }
 
-// ── Load ──
-function loadUrl() {
-  const u = document.getElementById('url').value;
-  if (!u) return;
-  img.crossOrigin = 'anonymous';
-  img.onload = init;
-  img.src = u;
+function loadUrl(){
+  const u=document.getElementById('url').value; if(!u) return;
+  img.crossOrigin='anonymous'; img.onload=init; img.src=u;
 }
-function loadFile(e) {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => { img.onload = init; img.src = ev.target.result; };
+function loadFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{img.onload=init; img.src=ev.target.result};
   r.readAsDataURL(f);
 }
 
-function init() {
-  W = img.width; H = img.height;
-  const wrap = document.getElementById('wrap');
-  S = Math.min((wrap.clientWidth - 20) / W, (wrap.clientHeight - 20) / H, 1);
-  C.width = Math.round(W * S);
-  C.height = Math.round(H * S);
-  MC.width = W; MC.height = H;
-  MX.fillStyle = '#000';
-  MX.fillRect(0, 0, W, H);
-  PP = []; polys = [];
-  draw();
-  document.getElementById('status').textContent = `${W}×${H} loaded — paint detection zone`;
+function init(){
+  W=img.width; H=img.height;
+  const wrap=document.getElementById('wrap');
+  S=Math.min((wrap.clientWidth-20)/W,(wrap.clientHeight-20)/H,1);
+  C.width=Math.round(W*S); C.height=Math.round(H*S);
+  paintLayer.width=C.width; paintLayer.height=C.height;
+  PX.clearRect(0,0,C.width,C.height);
+  render();
+  document.getElementById('st').textContent=W+'x'+H+' — paint the road green';
 }
 
-// ── Coordinate mapping ──
-function imgXY(e) {
-  const r = C.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / S, y: (e.clientY - r.top) / S };
+// ── Render: image + paint layer composited ──
+function render(){
+  X.clearRect(0,0,C.width,C.height);
+  X.drawImage(img,0,0,C.width,C.height);
+  X.drawImage(paintLayer,0,0);
 }
 
-// ── Paint on mask ──
-function stamp(e) {
-  const p = imgXY(e);
-  MX.beginPath();
-  MX.arc(p.x, p.y, BS / 2, 0, Math.PI * 2);
-  MX.fillStyle = M === 'paint' ? '#fff' : '#000';
-  MX.fill();
-}
-
-// ── Draw everything ──
-function draw() {
-  X.clearRect(0, 0, C.width, C.height);
-  X.drawImage(img, 0, 0, C.width, C.height);
-
-  if (overlay) {
-    // Green overlay on painted areas
-    const tmp = document.createElement('canvas');
-    tmp.width = C.width; tmp.height = C.height;
-    const tx = tmp.getContext('2d');
-    tx.drawImage(MC, 0, 0, C.width, C.height);
-    tx.globalCompositeOperation = 'source-in';
-    tx.fillStyle = 'rgba(0,255,136,0.5)';
-    tx.fillRect(0, 0, C.width, C.height);
-    X.drawImage(tmp, 0, 0);
-
-    // Red dim on unpainted areas
-    const tmp2 = document.createElement('canvas');
-    tmp2.width = C.width; tmp2.height = C.height;
-    const tx2 = tmp2.getContext('2d');
-    // Invert mask
-    tx2.drawImage(MC, 0, 0, C.width, C.height);
-    tx2.globalCompositeOperation = 'source-out';
-    tx2.fillStyle = '#fff';
-    tx2.fillRect(0, 0, C.width, C.height);
-    tx2.globalCompositeOperation = 'source-in';
-    tx2.fillStyle = 'rgba(255,0,0,0.3)';
-    tx2.fillRect(0, 0, C.width, C.height);
-    X.drawImage(tmp2, 0, 0);
-  }
-
-  // Polygon in progress
-  if (PP.length > 0) {
-    X.beginPath();
-    X.moveTo(PP[0].x * S, PP[0].y * S);
-    for (let i = 1; i < PP.length; i++) X.lineTo(PP[i].x * S, PP[i].y * S);
-    X.strokeStyle = '#ffd700';
-    X.lineWidth = 2;
-    X.setLineDash([6, 4]);
-    X.stroke();
-    X.setLineDash([]);
-    PP.forEach((p, i) => {
-      X.beginPath();
-      X.arc(p.x * S, p.y * S, 4, 0, Math.PI * 2);
-      X.fillStyle = i === 0 ? '#ffd700' : '#00ff88';
-      X.fill();
-    });
+// ── Paint directly on the visible paint layer ──
+function stamp(ex,ey){
+  const r=C.getBoundingClientRect();
+  const cx=ex-r.left, cy=ey-r.top;
+  const radius = (bs/2)*S;
+  PX.beginPath();
+  PX.arc(cx,cy,radius,0,Math.PI*2);
+  if(mode==='paint'){
+    PX.fillStyle='rgba(0,255,136,0.45)';
+    PX.fill();
+  } else {
+    PX.globalCompositeOperation='destination-out';
+    PX.fillStyle='rgba(0,0,0,1)';
+    PX.fill();
+    PX.globalCompositeOperation='source-over';
   }
 }
 
-// ── Mouse events ──
-C.addEventListener('mousedown', e => {
-  if (!W) return;
-  if (M === 'poly') { PP.push(imgXY(e)); draw(); return; }
-  drawing = true;
-  stamp(e);
-  draw();
+// ── Mouse ──
+C.addEventListener('mousedown',e=>{ if(!W)return; drawing=true; stamp(e.clientX,e.clientY); render(); });
+C.addEventListener('mousemove',e=>{
+  if(!W) return;
+  const r=C.getBoundingClientRect();
+  const ix=((e.clientX-r.left)/S), iy=((e.clientY-r.top)/S);
+  document.getElementById('coords').textContent=Math.round(ix)+','+Math.round(iy)+' ('+(ix/W).toFixed(3)+','+(iy/H).toFixed(3)+')';
+  if(drawing){ stamp(e.clientX,e.clientY); render(); }
+  // Show brush cursor
+  render();
+  const cx=e.clientX-r.left, cy=e.clientY-r.top, rad=(bs/2)*S;
+  X.beginPath(); X.arc(cx,cy,rad,0,Math.PI*2);
+  X.strokeStyle=mode==='paint'?'#00ff88':'#ff4444';
+  X.lineWidth=2; X.setLineDash([4,4]); X.stroke(); X.setLineDash([]);
 });
+C.addEventListener('mouseup',()=>drawing=false);
+C.addEventListener('mouseleave',()=>{drawing=false; if(W) render();});
 
-let needsRedraw = true;
-let cursorX = 0, cursorY = 0;
-
-// Redraw loop — only when needed, not every mousemove
-function renderLoop() {
-  if (needsRedraw && W) {
-    draw();
-    // Brush cursor
-    if (M !== 'poly') {
-      const rad = (BS / 2) * S;
-      X.beginPath();
-      X.arc(cursorX, cursorY, rad, 0, Math.PI * 2);
-      X.strokeStyle = M === 'paint' ? '#00ff88' : '#ff4444';
-      X.lineWidth = 2;
-      X.stroke();
-    }
-    needsRedraw = false;
-  }
-  requestAnimationFrame(renderLoop);
-}
-renderLoop();
-
-C.addEventListener('mousemove', e => {
-  if (!W) return;
-  const p = imgXY(e);
-  document.getElementById('coords').textContent = `${Math.round(p.x)},${Math.round(p.y)} (${(p.x/W).toFixed(3)},${(p.y/H).toFixed(3)})`;
-
-  const r = C.getBoundingClientRect();
-  cursorX = e.clientX - r.left;
-  cursorY = e.clientY - r.top;
-
-  if (drawing && M !== 'poly') {
-    stamp(e);
-  }
-  needsRedraw = true;
-});
-
-C.addEventListener('mouseup', () => drawing = false);
-C.addEventListener('mouseleave', () => drawing = false);
-
-C.addEventListener('dblclick', e => {
-  if (M === 'poly' && PP.length >= 3) {
-    MX.beginPath();
-    MX.moveTo(PP[0].x, PP[0].y);
-    for (let i = 1; i < PP.length; i++) MX.lineTo(PP[i].x, PP[i].y);
-    MX.closePath();
-    MX.fillStyle = '#fff';
-    MX.fill();
-    polys.push([...PP]);
-    PP = [];
-    draw();
-    document.getElementById('status').textContent = `Polygon added (${polys.length})`;
-  }
-});
-
-// Touch support
-C.addEventListener('touchstart', e => { e.preventDefault(); C.dispatchEvent(new MouseEvent('mousedown', touchToMouse(e))); });
-C.addEventListener('touchmove', e => { e.preventDefault(); C.dispatchEvent(new MouseEvent('mousemove', touchToMouse(e))); });
-C.addEventListener('touchend', e => { e.preventDefault(); C.dispatchEvent(new MouseEvent('mouseup', {})); });
-function touchToMouse(e) { const t = e.touches[0]; return { clientX: t.clientX, clientY: t.clientY }; }
+// Touch
+C.addEventListener('touchstart',e=>{e.preventDefault();if(!W)return;drawing=true;const t=e.touches[0];stamp(t.clientX,t.clientY);render();},{passive:false});
+C.addEventListener('touchmove',e=>{e.preventDefault();if(!W||!drawing)return;const t=e.touches[0];stamp(t.clientX,t.clientY);render();},{passive:false});
+C.addEventListener('touchend',e=>{e.preventDefault();drawing=false;},{passive:false});
 
 // ── Actions ──
-function toggleOverlay() { overlay = !overlay; draw(); }
-function clearMask() { MX.fillStyle = '#000'; MX.fillRect(0, 0, W, H); PP = []; polys = []; draw(); }
+function clearAll(){ PX.clearRect(0,0,C.width,C.height); render(); }
 
-function exportROI() {
-  if (!W) return;
-  // Extract boundary from mask
-  const id = MX.getImageData(0, 0, W, H);
-  const step = Math.max(2, Math.round(Math.min(W, H) / 200));
-  const pts = [];
+function exportROI(){
+  if(!W) return;
+  // Read paint layer pixels — green areas are the ROI
+  const id=PX.getImageData(0,0,C.width,C.height);
+  const step=Math.max(2,Math.round(Math.min(C.width,C.height)/150));
+  const left=[],right=[];
 
-  // If polygons exist, use them directly
-  if (polys.length > 0) {
-    const roiPolys = polys.map(p => p.map(pt => [+(pt.x/W).toFixed(4), +(pt.y/H).toFixed(4)]));
-    const out = JSON.stringify({ roi: roiPolys }, null, 2);
-    document.getElementById('out').textContent = out;
-    document.getElementById('status').textContent = `Exported ${polys.length} polygon(s)`;
-    return;
-  }
-
-  // Otherwise scan mask for boundary
-  for (let y = 0; y < H; y += step) {
-    let left = -1, right = -1;
-    for (let x = 0; x < W; x += step) {
-      if (id.data[(y * W + x) * 4] > 128) {
-        if (left < 0) left = x;
-        right = x;
+  for(let y=0;y<C.height;y+=step){
+    let l=-1,r=-1;
+    for(let x=0;x<C.width;x+=step){
+      const a=id.data[((y*C.width+x)*4)+3]; // alpha
+      const g=id.data[((y*C.width+x)*4)+1]; // green channel
+      if(a>30 && g>100){
+        if(l<0) l=x;
+        r=x;
       }
     }
-    if (left >= 0) {
-      pts.push([+(left/W).toFixed(4), +(y/H).toFixed(4)]);
-      pts.push([+(right/W).toFixed(4), +(y/H).toFixed(4)]);
+    if(l>=0){
+      left.push([(l/(C.width)).toFixed(4),(y/(C.height)).toFixed(4)]);
+      right.push([(r/(C.width)).toFixed(4),(y/(C.height)).toFixed(4)]);
     }
   }
+  if(left.length<3){document.getElementById('out').textContent='Paint more area!';return;}
 
-  if (pts.length < 4) {
-    document.getElementById('out').textContent = 'Paint more area!';
-    return;
-  }
+  // Build polygon: left edge down + right edge up
+  const poly=[...left.map(p=>[+p[0],+p[1]]),...right.reverse().map(p=>[+p[0],+p[1]])];
 
-  // Build a single polygon from left+right edges (hull-like)
-  const leftEdge = [], rightEdge = [];
-  for (let i = 0; i < pts.length; i += 2) {
-    leftEdge.push(pts[i]);
-    rightEdge.push(pts[i + 1]);
-  }
-  const hull = [...leftEdge, ...rightEdge.reverse()];
+  // Simplify to max 40 points
+  let s=poly;
+  if(poly.length>40){const sk=Math.ceil(poly.length/40);s=poly.filter((_,i)=>i%sk===0);}
 
-  // Simplify
-  const maxPts = 40;
-  let simplified = hull;
-  if (hull.length > maxPts) {
-    const skip = Math.ceil(hull.length / maxPts);
-    simplified = hull.filter((_, i) => i % skip === 0);
-  }
-
-  const out = JSON.stringify({ roi: [simplified] }, null, 2);
-  document.getElementById('out').textContent = out;
-  document.getElementById('status').textContent = `Exported 1 polygon (${simplified.length} points)`;
+  const json=JSON.stringify({roi:[s]},null,2);
+  document.getElementById('out').textContent=json;
+  document.getElementById('st').textContent='Exported '+s.length+' points';
 }
-
-window.onload = () => { const u = document.getElementById('url').value; if (u) loadUrl(); };
 </script>
 </body>
 </html>
