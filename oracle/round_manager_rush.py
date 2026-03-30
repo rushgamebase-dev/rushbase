@@ -497,111 +497,113 @@ class ChainClient:
         return None
 
 
-# ── Subprocess runner (stream_server.py) ──────────────────────────────────────
+# ── Stream client (connects to persistent stream_server.py via WS) ───────────
 
-class StreamSubprocess:
+class StreamClient:
     """
-    Manages a single run of stream_server.py as a subprocess.
+    WS client that controls the persistent stream_server.py.
 
-    stream_server.py writes result.json to its working directory
-    when the duration expires.  We simply wait for the process to
-    finish, then read that file.
+    The persistent stream_server.py runs independently and accepts
+    round control via WebSocket messages (start_round / stop_round).
     """
 
-    def __init__(
-        self,
-        camera: dict,
-        duration: int,
-        ws_port: int,
-        market_address: str = '',
-        round_id: int = 0,
-    ) -> None:
-        self.camera = camera
-        self.duration = duration
-        self.ws_port = ws_port
-        self.market_address = market_address
-        self.round_id = round_id
-        self._proc: Optional[asyncio.subprocess.Process] = None
+    def __init__(self, ws_url: str = "ws://localhost:8765"):
+        self.ws_url = ws_url
+        self._ws = None
 
-    async def start(self) -> None:
-        """Launch stream_server.py; returns immediately (non-blocking)."""
-        stream_server = _HERE / "stream_server.py"
-
-        stream_url = self.camera.get("streamUrl") or self.camera.get("imageUrl", "")
-        cam_id     = self.camera["id"]
-
-        cmd = [
-            sys.executable,
-            str(stream_server),
-            "--camera", cam_id,
-            "--duration", str(self.duration),
-            "--port", str(self.ws_port),
-            "--market-address", self.market_address,
-            "--camera-id", self.camera["id"],
-            "--round-id", str(self.round_id),
-        ]
-
-        log.info("Spawning stream_server.py: %s", " ".join(cmd))
-
-        self._proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            cwd=str(_HERE),
-        )
-
-    async def wait(self) -> int:
-        """
-        Stream stdout while waiting for the process to exit.
-
-        Returns:
-            Process return code.
-        """
-        if self._proc is None:
-            raise RuntimeError("start() has not been called")
-
-        assert self._proc.stdout is not None  # set above
-
-        async for raw_line in self._proc.stdout:
-            line = raw_line.decode(errors="replace").rstrip()
-            if line:
-                log.debug("[stream_server] %s", line)
-
-        await self._proc.wait()
-        return self._proc.returncode or 0
-
-    async def terminate(self) -> None:
-        """Send SIGTERM to the subprocess and wait up to 10 s for it to exit."""
-        if self._proc and self._proc.returncode is None:
+    async def connect(self, timeout: float = 30.0) -> None:
+        """Connect to persistent stream_server. Retries until available."""
+        import websockets as _ws
+        deadline = time.time() + timeout
+        while time.time() < deadline:
             try:
-                self._proc.terminate()
-                try:
-                    await asyncio.wait_for(self._proc.wait(), timeout=10)
-                except asyncio.TimeoutError:
-                    log.warning("stream_server did not exit after SIGTERM; sending SIGKILL")
-                    self._proc.kill()
-                    await self._proc.wait()
-            except ProcessLookupError:
-                pass  # already gone
+                self._ws = await _ws.connect(self.ws_url, open_timeout=5)
+                log.info("[StreamClient] Connected to %s", self.ws_url)
+                return
+            except Exception:
+                log.debug("[StreamClient] stream_server not ready, retrying...")
+                await asyncio.sleep(2)
+        raise RuntimeError(f"Could not connect to stream_server at {self.ws_url} after {timeout}s")
 
-    def read_result(self) -> Optional[dict]:
-        """
-        Read result.json written by stream_server.py.
+    async def ensure_connected(self) -> None:
+        """Reconnect if WS is closed."""
+        if self._ws is None or self._ws.closed:
+            log.info("[StreamClient] Reconnecting...")
+            await self.connect(timeout=30)
 
-        Returns:
-            Parsed dict or None if the file is missing / corrupt.
-        """
+    async def start_round(self, market_address: str, duration: int,
+                          camera_id: str, round_id: int) -> None:
+        """Tell stream_server to start counting."""
+        await self.ensure_connected()
+        assert self._ws is not None
+        await self._ws.send(json.dumps({
+            "type": "start_round",
+            "marketAddress": market_address,
+            "duration": duration,
+            "cameraId": camera_id,
+            "roundId": round_id,
+        }))
+        # Wait for acknowledgement
+        try:
+            raw = await asyncio.wait_for(self._ws.recv(), timeout=5)
+            data = json.loads(raw)
+            if data.get("type") == "round_started":
+                log.info("[StreamClient] Round %d started on stream_server", round_id)
+            else:
+                log.warning("[StreamClient] Unexpected response: %s", data)
+        except asyncio.TimeoutError:
+            log.warning("[StreamClient] No ack for start_round (proceeding anyway)")
+
+    async def wait_for_round_complete(self, timeout: float) -> Optional[dict]:
+        """Wait for round_complete message from stream_server."""
+        await self.ensure_connected()
+        assert self._ws is not None
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                remaining = max(1, deadline - time.time())
+                raw = await asyncio.wait_for(self._ws.recv(), timeout=remaining)
+                # Skip binary frames and non-round-complete messages
+                if isinstance(raw, bytes):
+                    continue
+                data = json.loads(raw)
+                if data.get("type") == "round_complete":
+                    return data
+            except asyncio.TimeoutError:
+                break
+            except Exception as exc:
+                log.warning("[StreamClient] Error waiting for result: %s", exc)
+                await asyncio.sleep(1)
+                await self.ensure_connected()
+        return None
+
+    async def stop_round(self) -> Optional[dict]:
+        """Force-stop current round."""
+        await self.ensure_connected()
+        assert self._ws is not None
+        await self._ws.send(json.dumps({"type": "stop_round"}))
+        try:
+            raw = await asyncio.wait_for(self._ws.recv(), timeout=5)
+            if isinstance(raw, str):
+                return json.loads(raw)
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def read_result() -> Optional[dict]:
+        """Read result.json as fallback."""
         result_path = _HERE / "result.json"
         try:
             with open(result_path) as f:
-                data = json.load(f)
-            return data
-        except FileNotFoundError:
-            log.error("result.json not found — stream may have crashed")
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            log.error("result.json read failed: %s", exc)
             return None
-        except json.JSONDecodeError as exc:
-            log.error("result.json is corrupt: %s", exc)
-            return None
+
+    async def close(self) -> None:
+        if self._ws and not self._ws.closed:
+            await self._ws.close()
 
 
 # ── Adaptive threshold ────────────────────────────────────────────────────────
@@ -652,12 +654,13 @@ class RushRoundManager:
         self.cfg = cfg
         self.chain = ChainClient(cfg)
         self.cameras = pick_round_cameras(load_cameras())
-        # Per-camera thresholds — each camera has its own traffic pattern
         self.thresholds: dict[str, AdaptiveThreshold] = {}
         for cam in self.cameras:
             self.thresholds[cam["id"]] = AdaptiveThreshold(initial=50)
         self.round_number = 0
         self._shutdown = False
+        # WS client to persistent stream_server (replaces subprocess spawn)
+        self.stream_client = StreamClient(f"ws://localhost:{cfg.ws_port}")
 
     def w3_factory_read(self):
         """Return a read-only factory contract instance for checking active markets."""
@@ -831,31 +834,31 @@ class RushRoundManager:
 
         assert market_address is not None
 
-        # ── Step 2: Run the YOLO counter ──────────────────────────────────────
+        # ── Step 2: Start counting on persistent stream_server ────────────────
         log.info("Counting vehicles for %ds...", self.cfg.round_duration)
-        stream = StreamSubprocess(
-            camera=camera,
-            duration=self.cfg.round_duration,
-            ws_port=self.cfg.ws_port,
-            market_address=market_address,
-            round_id=self.round_number,
-        )
 
         count: Optional[int] = None
         try:
-            await stream.start()
+            await self.stream_client.ensure_connected()
+            await self.stream_client.start_round(
+                market_address=market_address,
+                duration=self.cfg.round_duration,
+                camera_id=camera["id"],
+                round_id=self.round_number,
+            )
 
-            # No explicit lockMarket() call needed — the contract rejects bets
-            # automatically when block.timestamp >= lockTime. The oracle just
-            # waits for counting to finish and then resolves.
+            # Wait for round_complete from stream_server (duration + 30s buffer)
+            result = await self.stream_client.wait_for_round_complete(
+                timeout=self.cfg.round_duration + 30
+            )
 
-            returncode = await stream.wait()
-            if returncode != 0:
-                log.warning("stream_server.py exited with code %d", returncode)
-
-            result = stream.read_result()
             if result is None:
-                raise RuntimeError("No result.json produced by stream_server.py")
+                # Fallback: read result.json
+                log.warning("No round_complete via WS — reading result.json fallback")
+                result = self.stream_client.read_result()
+
+            if result is None:
+                raise RuntimeError("No result from stream_server")
 
             count = int(result["count"])
             log.info(
@@ -866,8 +869,8 @@ class RushRoundManager:
             )
 
         except asyncio.CancelledError:
-            log.warning("Round cancelled — terminating stream subprocess")
-            await stream.terminate()
+            log.warning("Round cancelled — stopping stream counting")
+            await self.stream_client.stop_round()
             self.chain.cancel_market(market_address)
             self._publish_ably("market_cancelled", {
                 "marketAddress": market_address,
@@ -878,7 +881,10 @@ class RushRoundManager:
 
         except Exception as exc:
             log.error("Stream/counter error: %s — cancelling market", exc)
-            await stream.terminate()
+            try:
+                await self.stream_client.stop_round()
+            except Exception:
+                pass
             self.chain.cancel_market(market_address)
             self._publish_ably("market_cancelled", {
                 "marketAddress": market_address,

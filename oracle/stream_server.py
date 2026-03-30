@@ -535,7 +535,15 @@ def get_stream_url(youtube_url):
 
 
 class StreamServer:
-    """WebSocket server that streams processed video frames."""
+    """Persistent WebSocket server that streams processed video frames.
+
+    Runs continuously — never exits on round end.
+    Round lifecycle controlled via WS messages (start_round / stop_round).
+
+    States:
+      IDLE      → streaming video, no counting
+      COUNTING  → streaming video + counting vehicles
+    """
 
     # Maximum number of evidence frame sets to keep on disk
     MAX_EVIDENCE_DIRS = 100
@@ -544,19 +552,31 @@ class StreamServer:
     # JPEG quality for evidence frames
     EVIDENCE_JPEG_QUALITY = 80
 
-    def __init__(self, stream_url, duration, host='0.0.0.0', port=8765,
+    # States
+    STATE_IDLE = "idle"
+    STATE_COUNTING = "counting"
+
+    def __init__(self, stream_url, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
-                 count_mode='uid', lanes=None, target_fps=8, **kwargs):
+                 count_mode='uid', lanes=None, target_fps=8, camera_id='', **kwargs):
         self.stream_url = stream_url
-        self.duration = duration
         self.host = host
         self.port = port
         self.target_fps = target_fps
-        self.market_address = kwargs.get('market_address', '')
-        self.camera_id = kwargs.get('camera_id', '')
-        self.round_id = kwargs.get('round_id', 0)
+        self.camera_id = camera_id
 
+        # YOLO config — stored for creating fresh counters per round
+        self._model_name = model
+        self._confidence = confidence
+        self._line_pos = line_pos
+        self._line_angle = line_angle
+        self._line_points = line_points
+        self._line_points2 = line_points2
+        self._count_mode = count_mode
+        self._lanes = lanes
+
+        # Create initial counter (for YOLO model loading + visual annotations in IDLE)
         self.counter = VehicleCounter(model_name=model, confidence=confidence,
                                        line_position=line_pos, line_angle=line_angle,
                                        line_points=line_points,
@@ -565,7 +585,14 @@ class StreamServer:
                                        min_frames=3)
         self.clients = set()
         self.running = False
-        self.start_time = None
+
+        # Round state — controlled by WS messages
+        self._state = self.STATE_IDLE
+        self._round_active = False
+        self._round_start_time = 0.0
+        self._round_duration = 300
+        self._round_market = ''
+        self._round_id = 0
 
         # Evidence frame tracking
         self._evidence_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "evidence")
@@ -574,49 +601,111 @@ class StreamServer:
         self._evidence_final: str | None = None
         self._last_evidence_time: float = 0.0
 
+    def _new_counter(self):
+        """Create a fresh VehicleCounter — reuses the already-loaded YOLO model."""
+        c = VehicleCounter(model_name=self._model_name, confidence=self._confidence,
+                           line_position=self._line_pos, line_angle=self._line_angle,
+                           line_points=self._line_points, line_points2=self._line_points2,
+                           count_mode=self._count_mode, lanes=self._lanes, min_frames=3)
+        c.model = self.counter.model  # reuse loaded model — no GPU reload
+        return c
+
+    def _start_round(self, data):
+        """Begin a new counting round. All state is clean."""
+        self._round_market = data.get("marketAddress", "")
+        self._round_duration = data.get("duration", 300)
+        self._round_id = data.get("roundId", 0)
+        self._round_start_time = time.time()
+        self._round_active = True
+        self._state = self.STATE_COUNTING
+        # Fresh counter — zero carryover
+        self.counter = self._new_counter()
+        # Fresh evidence
+        self._evidence_frames = []
+        self._evidence_hashes = []
+        self._evidence_final = None
+        self._last_evidence_time = 0.0
+        self._ensure_evidence_dir()
+        print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
+
+    def _stop_round(self):
+        """End current round. Write result, broadcast final, go IDLE."""
+        if not self._round_active:
+            return None
+        count = self.counter.total_count
+        result = {
+            "count": count,
+            "in_count": self.counter.class_counts.get(2, 0),
+            "out_count": self.counter.class_counts.get(7, 0),
+            "duration": self._round_duration,
+            "stream": self.stream_url,
+            "timestamp": int(time.time()),
+            "marketAddress": self._round_market,
+            "roundId": self._round_id,
+            "evidence": {
+                "frames": list(self._evidence_frames),
+                "final_frame": self._evidence_final,
+                "frame_hashes": list(self._evidence_hashes),
+            },
+        }
+        # Write result file (unique per round to avoid stale reads)
+        result_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result.json")
+        with open(result_path, "w") as f:
+            json.dump(result, f, indent=2)
+        self._round_active = False
+        self._state = self.STATE_IDLE
+        print(f"[STATE] idle — round {self._round_id} complete: {count} vehicles")
+        return result
+
     async def register(self, ws):
         self.clients.add(ws)
         print(f"[WS] Client connected ({len(self.clients)} total)")
-        await ws.send(json.dumps({
+        # Send current state
+        init_msg = {
             "type": "init",
             "stream": self.stream_url,
-            "duration": self.duration,
+            "state": self._state,
             "count": self.counter.total_count,
-            "marketAddress": self.market_address,
             "cameraId": self.camera_id,
-            "roundId": self.round_id,
-        }))
+        }
+        if self._round_active:
+            init_msg["marketAddress"] = self._round_market
+            init_msg["roundId"] = self._round_id
+            init_msg["duration"] = self._round_duration
+            elapsed = time.time() - self._round_start_time
+            init_msg["elapsed"] = round(elapsed, 1)
+            init_msg["remaining"] = max(0, round(self._round_duration - elapsed, 1))
+        await ws.send(json.dumps(init_msg))
 
     async def unregister(self, ws):
         self.clients.discard(ws)
         print(f"[WS] Client disconnected ({len(self.clients)} total)")
 
-    async def broadcast_frame(self, jpeg_bytes, count, elapsed):
-        """Send frame + count to all connected clients."""
+    async def _broadcast(self, json_msg, jpeg_bytes):
+        """Send JSON + binary frame to all connected clients."""
         if not self.clients:
             return
-
-        count_msg = json.dumps({
-            "type": "count",
-            "count": count,
-            "count_in": self.counter.count_in,
-            "count_out": self.counter.count_out,
-            "elapsed": round(elapsed, 1),
-            "remaining": max(0, round(self.duration - elapsed, 1)),
-            "marketAddress": self.market_address,
-            "cameraId": self.camera_id,
-            "roundId": self.round_id,
-        })
-
         dead = set()
-
         async def send_to(ws):
             try:
-                await ws.send(count_msg)
+                await ws.send(json_msg)
                 await ws.send(jpeg_bytes)
             except websockets.exceptions.ConnectionClosed:
                 dead.add(ws)
+        await asyncio.gather(*(send_to(ws) for ws in self.clients))
+        self.clients -= dead
 
+    async def _broadcast_json(self, msg):
+        """Send JSON-only message to all clients."""
+        if not self.clients:
+            return
+        raw = json.dumps(msg)
+        dead = set()
+        async def send_to(ws):
+            try:
+                await ws.send(raw)
+            except websockets.exceptions.ConnectionClosed:
+                dead.add(ws)
         await asyncio.gather(*(send_to(ws) for ws in self.clients))
         self.clients -= dead
 
@@ -687,7 +776,11 @@ class StreamServer:
         print(f"[Evidence] Saved {rel_path} ({len(jpeg_bytes)} bytes, {frame_hash[:20]}...)")
 
     async def process_video(self):
-        """Main video processing loop."""
+        """Main video processing loop — runs FOREVER.
+
+        Streams video continuously. Counting controlled by _round_active flag
+        which is set by start_round/stop_round WS messages from round_manager.
+        """
         direct_url = get_stream_url(self.stream_url)
 
         print(f"\n[Stream] Opening video...")
@@ -695,29 +788,24 @@ class StreamServer:
 
         if not cap.isOpened():
             print("[ERROR] Could not open video stream!")
-            for ws in self.clients:
-                await ws.send(json.dumps({"type": "error", "message": "Could not open stream"}))
             return
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30
 
-        print(f"[Stream] Opened. FPS: {fps:.0f}, processing ALL frames (no skip)")
+        print(f"[Stream] Opened. FPS: {fps:.0f}")
         print(f"[Stream] Output width: {OUTPUT_WIDTH}px")
-        print(f"[Stream] Using BoT-SORT + cross-product line crossing")
+        print(f"[STATE] idle — waiting for round")
 
         self.running = True
-        self.start_time = time.time()
         frame_idx = 0
         frame_interval = 1.0 / self.target_fps
-        round_timestamp = int(self.start_time)
+        server_start = time.time()
 
-        # Minimal reader thread — ONLY to prevent cap.read() from blocking event loop.
-        # Queue(2): just current + next frame. Preserves natural HLS timing.
+        # Reader thread — prevents cap.read() from blocking event loop
         import threading
         import queue as _queue
         _frame_q = _queue.Queue(maxsize=2)
         _reader_alive = [True]
-
         _cap_holder = [cap]
         _last_frame_time = [time.time()]
 
@@ -746,7 +834,6 @@ class StreamServer:
                     except _queue.Full:
                         pass
                 else:
-                    # No frame for too long — reconnect
                     if time.time() - _last_frame_time[0] > 10:
                         print("[Reader] No frames 10s — forcing reconnect")
                         try:
@@ -759,51 +846,32 @@ class StreamServer:
 
         threading.Thread(target=_reader, daemon=True).start()
 
-        # Prepare evidence directory
-        self._evidence_frames = []
-        self._evidence_hashes = []
-        self._evidence_final = None
-        self._last_evidence_time = 0.0
-        self._ensure_evidence_dir()
-
         try:
             while self.running:
                 frame_start = time.time()
-                elapsed = frame_start - self.start_time
 
-                if elapsed >= self.duration:
-                    print(f"\n[Stream] Done! Final count: {self.counter.total_count}")
-                    print(f"  IN: {self.counter.count_in}, OUT: {self.counter.count_out}")
-                    final_msg = json.dumps({
-                        "type": "final",
-                        "count": self.counter.total_count,
-                        "in_count": self.counter.class_counts.get(2, 0),
-                        "out_count": self.counter.class_counts.get(7, 0),
-                        "duration": self.duration
-                    })
-                    for ws in self.clients:
-                        try:
-                            await ws.send(final_msg)
-                        except Exception:
-                            pass
+                # ── Check round duration expiry ──────────────────────
+                if self._round_active:
+                    round_elapsed = frame_start - self._round_start_time
+                    if round_elapsed >= self._round_duration:
+                        # Round complete — stop counting, write result
+                        result = self._stop_round()
+                        # Broadcast final + round_complete to all clients
+                        if result:
+                            await self._broadcast_json({
+                                "type": "final",
+                                "count": result["count"],
+                                "in_count": result.get("in_count", 0),
+                                "out_count": result.get("out_count", 0),
+                                "duration": result["duration"],
+                                "marketAddress": result.get("marketAddress", ""),
+                            })
+                            await self._broadcast_json({
+                                "type": "round_complete",
+                                **result,
+                            })
 
-                    result = {
-                        "count": self.counter.total_count,
-                        "in_count": self.counter.class_counts.get(2, 0),
-                        "out_count": self.counter.class_counts.get(7, 0),
-                        "duration": self.duration,
-                        "stream": self.stream_url,
-                        "timestamp": int(time.time()),
-                        "evidence": {
-                            "frames": list(self._evidence_frames),
-                            "final_frame": self._evidence_final,
-                            "frame_hashes": list(self._evidence_hashes),
-                        },
-                    }
-                    with open("result.json", "w") as f:
-                        json.dump(result, f, indent=2)
-                    break
-
+                # ── Get frame ────────────────────────────────────────
                 try:
                     frame = _frame_q.get_nowait()
                 except _queue.Empty:
@@ -819,32 +887,59 @@ class StreamServer:
                     frame = cv2.resize(frame, (OUTPUT_WIDTH, int(h * scale)),
                                       interpolation=cv2.INTER_LINEAR)
 
-                # Process with YOLO + Supervision
+                # ── Process with YOLO (always — for visual annotations) ──
                 annotated, count = self.counter.process_frame(frame)
 
-                # Frame age overlay
-                yolo_done = time.time()
-                frame_age_ms = int((yolo_done - frame_start) * 1000)
-                fps_actual = frame_idx / max(elapsed, 0.1)
-                dbg = f"seq:{frame_idx} age:{frame_age_ms}ms fps:{fps_actual:.1f}"
+                # Debug overlay
+                uptime = frame_start - server_start
+                fps_actual = frame_idx / max(uptime, 0.1)
+                state_tag = self._state.upper()
+                if self._round_active:
+                    re = round(time.time() - self._round_start_time, 1)
+                    dbg = f"{state_tag} seq:{frame_idx} fps:{fps_actual:.1f} round:{self._round_id} {re}s"
+                else:
+                    dbg = f"{state_tag} seq:{frame_idx} fps:{fps_actual:.1f}"
                 h_ann, w_ann = annotated.shape[:2]
-                cv2.putText(annotated, dbg, (w_ann - 320, h_ann - 8),
+                cv2.putText(annotated, dbg, (w_ann - 420, h_ann - 8),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 136), 1)
 
-                # Encode to JPEG
+                # Encode JPEG
                 _, jpeg = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 65])
                 jpeg_bytes = jpeg.tobytes()
 
-                # Broadcast (non-blocking — stored for async send)
-                await self.broadcast_frame(jpeg_bytes, count, elapsed)
+                # ── Broadcast based on state ─────────────────────────
+                if self._round_active:
+                    round_elapsed = time.time() - self._round_start_time
+                    msg = json.dumps({
+                        "type": "count",
+                        "state": "counting",
+                        "count": count,
+                        "count_in": self.counter.count_in,
+                        "count_out": self.counter.count_out,
+                        "elapsed": round(round_elapsed, 1),
+                        "remaining": max(0, round(self._round_duration - round_elapsed, 1)),
+                        "marketAddress": self._round_market,
+                        "cameraId": self.camera_id,
+                        "roundId": self._round_id,
+                    })
+                else:
+                    msg = json.dumps({
+                        "type": "idle",
+                        "state": "waiting",
+                        "cameraId": self.camera_id,
+                    })
 
-                # ── Evidence frame capture ───────────────────────────
-                if elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
-                    self._save_evidence_frame(annotated, round_timestamp, elapsed)
-                    self._last_evidence_time = elapsed
+                await self._broadcast(msg, jpeg_bytes)
 
-                if self.duration - elapsed < frame_interval * 2:
-                    self._save_evidence_frame(annotated, round_timestamp, elapsed, is_final=True)
+                # ── Evidence capture (only during round) ─────────────
+                if self._round_active:
+                    round_elapsed = time.time() - self._round_start_time
+                    round_ts = int(self._round_start_time)
+                    if round_elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
+                        self._save_evidence_frame(annotated, round_ts, round_elapsed)
+                        self._last_evidence_time = round_elapsed
+                    if self._round_duration - round_elapsed < frame_interval * 2:
+                        self._save_evidence_frame(annotated, round_ts, round_elapsed, is_final=True)
 
                 # Yield to event loop
                 await asyncio.sleep(0)
@@ -855,7 +950,8 @@ class StreamServer:
             traceback.print_exc()
         finally:
             _reader_alive[0] = False
-            cap.release()
+            if _cap_holder[0] is not None:
+                _cap_holder[0].release()
             self.running = False
 
     async def handler(self, ws):
@@ -864,8 +960,40 @@ class StreamServer:
             async for msg in ws:
                 try:
                     data = json.loads(msg)
-                    if data.get("type") == "ping":
+                    msg_type = data.get("type")
+
+                    if msg_type == "ping":
                         await ws.send(json.dumps({"type": "pong"}))
+
+                    elif msg_type == "start_round":
+                        self._start_round(data)
+                        await ws.send(json.dumps({"type": "round_started", "roundId": self._round_id}))
+
+                    elif msg_type == "stop_round":
+                        result = self._stop_round()
+                        if result:
+                            await ws.send(json.dumps({"type": "round_complete", **result}))
+                            await self._broadcast_json({
+                                "type": "final",
+                                "count": result["count"],
+                                "in_count": result.get("in_count", 0),
+                                "out_count": result.get("out_count", 0),
+                                "duration": result["duration"],
+                                "marketAddress": result.get("marketAddress", ""),
+                            })
+                        else:
+                            await ws.send(json.dumps({"type": "error", "message": "no active round"}))
+
+                    elif msg_type == "get_state":
+                        await ws.send(json.dumps({
+                            "type": "state",
+                            "state": self._state,
+                            "roundActive": self._round_active,
+                            "roundId": self._round_id,
+                            "marketAddress": self._round_market,
+                            "count": self.counter.total_count,
+                        }))
+
                 except Exception:
                     pass
         finally:
@@ -873,12 +1001,12 @@ class StreamServer:
 
     async def start(self):
         print(f"\n{'='*55}")
-        print(f"  SinalBet Live Oracle Server (v3 — Supervision)")
+        print(f"  SinalBet Live Oracle Server (v4 — Persistent)")
         print(f"  WebSocket: ws://{self.host}:{self.port}")
         print(f"  Stream: {self.stream_url}")
-        print(f"  Duration: {self.duration}s")
+        print(f"  Camera: {self.camera_id}")
         print(f"  Model: {self.counter.model.model_name}")
-        print(f"  Counting: Supervision LineZone + BoT-SORT")
+        print(f"  Mode: persistent (rounds via WS control)")
         print(f"  Target FPS: {self.target_fps}")
         print(f"{'='*55}\n")
 
@@ -917,17 +1045,16 @@ def _kill_port(port: int):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='SinalBet Live Oracle Server (v3)')
+    parser = argparse.ArgumentParser(description='SinalBet Live Oracle Server (v4 — Persistent)')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--stream', '-s', help='Direct stream URL (HLS, RTSP, YouTube)')
     group.add_argument('--camera', help='Camera ID from cameras.json')
-    parser.add_argument('--duration', '-d', type=int, default=300, help='Duration (seconds)')
     parser.add_argument('--port', '-p', type=int, default=8765, help='WebSocket port')
     parser.add_argument('--model', '-m', default='yolov8x.pt',
                        help='YOLO model (yolov8n=fast, yolov8s=balanced, yolov8x=best)')
     parser.add_argument('--confidence', '-c', type=float, default=0.15, help='Detection confidence')
     parser.add_argument('--line', '-l', type=float, default=0.5, help='Counting line position (0-1)')
-    parser.add_argument('--angle', '-a', type=float, default=10, help='Line tilt in degrees (positive=top goes left)')
+    parser.add_argument('--angle', '-a', type=float, default=10, help='Line tilt in degrees')
     parser.add_argument('--line-points', type=str, default=None,
                        help='Line 1 as "x1,y1,x2,y2" fractions')
     parser.add_argument('--line-points2', type=str, default=None,
@@ -935,19 +1062,17 @@ def main():
     parser.add_argument('--mode', choices=['line', 'uid'], default='uid',
                        help='Counting mode: line=crossing, uid=unique IDs (default: uid)')
     parser.add_argument('--fps', type=int, default=8, help='Target output FPS')
-    parser.add_argument('--market-address', type=str, default='', help='Market contract address for this round')
-    parser.add_argument('--camera-id', type=str, default='', help='Camera ID for this round')
-    parser.add_argument('--round-id', type=int, default=0, help='Round number')
 
     args = parser.parse_args()
 
     stream_url = args.stream
     cam_lanes = None
+    cam_id = ''
     if args.camera:
         cam = load_camera(args.camera)
         stream_url = cam.get("streamUrl", cam.get("imageUrl"))
+        cam_id = cam["id"]
         cam_lanes = cam.get("lanes")
-        # Auto-load linePoints from camera config
         if not args.line_points and cam.get("linePoints"):
             args.line_points = cam["linePoints"]
             args.mode = "line"
@@ -959,12 +1084,10 @@ def main():
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")
 
-    # Kill any stale process on the port before starting
     _kill_port(args.port)
 
     server = StreamServer(
         stream_url=stream_url,
-        duration=args.duration,
         port=args.port,
         model=args.model,
         confidence=args.confidence,
@@ -975,9 +1098,7 @@ def main():
         count_mode=args.mode,
         lanes=cam_lanes,
         target_fps=args.fps,
-        market_address=args.market_address,
-        camera_id=args.camera_id,
-        round_id=args.round_id,
+        camera_id=cam_id,
     )
 
     try:

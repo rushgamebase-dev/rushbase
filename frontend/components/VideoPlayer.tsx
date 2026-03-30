@@ -176,21 +176,17 @@ export default function VideoPlayer({
 
     ws.onmessage = (event: MessageEvent) => {
       if (event.data instanceof ArrayBuffer) {
-        // Store only latest frame — old ones dropped, consumed in rAF loop
         latestFrameRef.current = event.data;
       } else if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data) as OracleMsg;
-          const msgMarket = msg.marketAddress;
-          const currentMarket = marketAddressRef.current;
-          if (msgMarket && currentMarket && msgMarket.toLowerCase() !== currentMarket.toLowerCase()) {
-            return;
-          }
-
+          // Accept all messages — no market address filtering.
+          // Video is infrastructure, not round-dependent.
           if (msg.type === "count" || msg.type === "init" || msg.type === "final") {
             setOracleCount(msg.count);
             onCountUpdateRef.current?.(msg.count);
           }
+          // "idle" messages: stream is live but no active round — video continues
         } catch {
           // Non-JSON text, ignore
         }

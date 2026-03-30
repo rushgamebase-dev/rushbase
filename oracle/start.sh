@@ -89,25 +89,30 @@ fi
 # ── Graceful shutdown handler ────────────────────────────────────────────────
 # Catches SIGTERM and SIGINT, kills both the tunnel and the watchdog cleanly.
 WATCHDOG_PID=""
+STREAM_PID=""
 
 _cleanup() {
     echo ""
-    echo "[Launcher] Shutdown signal received — stopping watchdog and tunnel..."
+    echo "[Launcher] Shutdown signal received — stopping all services..."
 
+    # Stop watchdog first (it controls rounds)
     if [ -n "$WATCHDOG_PID" ] && kill -0 "$WATCHDOG_PID" 2>/dev/null; then
-        echo "[Launcher] Sending SIGTERM to watchdog (PID $WATCHDOG_PID)..."
+        echo "[Launcher] Stopping watchdog (PID $WATCHDOG_PID)..."
         kill -TERM "$WATCHDOG_PID" 2>/dev/null || true
-        # Wait up to 20s for watchdog to finish its graceful shutdown
-        for i in $(seq 1 20); do
+        for i in $(seq 1 15); do
             kill -0 "$WATCHDOG_PID" 2>/dev/null || break
             sleep 1
         done
-        # Force-kill if still alive
         kill -0 "$WATCHDOG_PID" 2>/dev/null && kill -KILL "$WATCHDOG_PID" 2>/dev/null || true
     fi
 
-    echo "[Launcher] Stopping tunnel (PID $TUNNEL_PID)..."
-    kill "$TUNNEL_PID" 2>/dev/null || true
+    # Then stop stream server
+    if [ -n "$STREAM_PID" ] && kill -0 "$STREAM_PID" 2>/dev/null; then
+        echo "[Launcher] Stopping stream server (PID $STREAM_PID)..."
+        kill -TERM "$STREAM_PID" 2>/dev/null || true
+        sleep 2
+        kill -0 "$STREAM_PID" 2>/dev/null && kill -KILL "$STREAM_PID" 2>/dev/null || true
+    fi
 
     echo "[Launcher] Done."
     exit 0
@@ -115,11 +120,38 @@ _cleanup() {
 
 trap '_cleanup' TERM INT
 
-# ── Start watchdog (which supervises round_manager_rush.py) ──────────────────
-echo "[Launcher] Starting watchdog..."
+# ── Start persistent stream server FIRST ──────────────────────────────────────
+# Stream server runs continuously — never exits between rounds.
+# Round manager connects to it via WS and controls counting.
+echo "[Launcher] Starting persistent stream server..."
 
-# Detect stream-only mode: if --stream-only is in args, we run stream_server
-# directly (watchdog does not supervise it, since it is intentionally finite).
+cd "$SCRIPT_DIR"
+
+CAMERA="${CAMERA:-peace-bridge}"
+python3 -u stream_server.py --camera "$CAMERA" --port "$WS_PORT" &
+STREAM_PID=$!
+echo "[Launcher] Stream server PID: $STREAM_PID (camera: $CAMERA, port: $WS_PORT)"
+
+# Wait for stream server to be ready (YOLO model load + HLS connect)
+echo "[Launcher] Waiting for stream server to be ready..."
+for i in $(seq 1 30); do
+    if python3 -c "
+import asyncio, websockets
+async def t():
+    async with websockets.connect('ws://localhost:$WS_PORT', open_timeout=2) as ws:
+        await asyncio.wait_for(ws.recv(), timeout=2)
+asyncio.run(t())
+" 2>/dev/null; then
+        echo "[Launcher] Stream server ready!"
+        break
+    fi
+    sleep 2
+done
+
+# ── Start watchdog (which supervises round_manager_rush.py) ──────────────────
+echo "[Launcher] Starting watchdog (round manager)..."
+
+# Detect stream-only mode
 STREAM_ONLY=false
 for arg in "$@"; do
     if [ "$arg" = "--stream-only" ]; then
@@ -128,27 +160,22 @@ for arg in "$@"; do
     fi
 done
 
-cd "$SCRIPT_DIR"
-
 if $STREAM_ONLY; then
-    # Parse --duration from args (default 300)
-    DURATION="${DURATION:-300}"
-    prev=""
-    for arg in "$@"; do
-        if [ "$prev" = "--duration" ]; then
-            DURATION="$arg"
-        fi
-        prev="$arg"
-    done
-
-    echo "[Launcher] Mode: Stream Server only (${DURATION}s) — watchdog not used"
-    python3 -u stream_server.py --camera peace-bridge --duration "$DURATION" --port "$WS_PORT" &
-    WATCHDOG_PID=$!
+    echo "[Launcher] Mode: Stream Server only — watchdog not used"
+    wait "$STREAM_PID"
 else
-    echo "[Launcher] Mode: Supervised Round Manager (watchdog.py) — FOREGROUND"
-    # exec replaces this shell with watchdog — PID stays the same
-    # systemd monitors this PID directly
-    exec python3 -u watchdog.py "$@"
+    echo "[Launcher] Mode: Supervised Round Manager (watchdog.py)"
+    python3 -u watchdog.py "$@" &
+    WATCHDOG_PID=$!
+    echo "[Launcher] Watchdog PID: $WATCHDOG_PID"
+
+    # Wait for either to exit
+    wait -n "$STREAM_PID" "$WATCHDOG_PID" 2>/dev/null
+    EXIT_CODE=$?
+    echo "[Launcher] Process exited with code $EXIT_CODE — cleaning up"
+    kill "$STREAM_PID" "$WATCHDOG_PID" 2>/dev/null
+    wait 2>/dev/null
+    exit "$EXIT_CODE"
 fi
 
 # Only reached in stream-only mode
