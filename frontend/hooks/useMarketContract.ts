@@ -49,8 +49,10 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
     { user: string; rangeIndex: number; amount: bigint; txHash: string; timestamp: number }[]
   >([]);
 
-  // Reset bets when market address changes (new round)
-  useEffect(() => { setRealtimeBets([]); }, [marketAddress]);
+  // On market change: keep recent bets, prune old ones (>10 min)
+  useEffect(() => {
+    setRealtimeBets(prev => prev.filter(b => Date.now() - b.timestamp < 600_000));
+  }, [marketAddress]);
 
   // Poll BetPlaced events every 15s — replaces removed useWatchContractEvent
   const publicClient = usePublicClient();
@@ -86,7 +88,11 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
           setRealtimeBets(prev => {
             const existing = new Set(prev.map(b => b.txHash));
             const unique = newBets.filter(b => !existing.has(b.txHash));
-            return [...prev, ...unique].slice(-20); // keep last 20
+            // Keep last 20, prune >10min old
+            const now = Date.now();
+            return [...prev, ...unique]
+              .filter(b => now - b.timestamp < 600_000)
+              .slice(-20);
           });
         }
       } catch {
