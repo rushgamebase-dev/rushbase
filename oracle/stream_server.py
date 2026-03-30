@@ -597,6 +597,28 @@ class StreamServer:
         self._round_market = ''
         self._round_id = 0
 
+        # Camera switch request (set by handler, consumed by process_video loop)
+        self._switch_request = None  # dict with camera config or None
+
+    def _request_camera_switch(self, camera_id):
+        """Load camera config and request switch. Consumed by process_video loop."""
+        cam = load_camera(camera_id)
+        stream_url = cam.get("streamUrl", cam.get("imageUrl", ""))
+        line_points = cam.get("linePoints")
+        line_points2 = cam.get("linePoints2")
+        roi = cam.get("roi")
+        count_mode = "line" if line_points else "uid"
+        self._switch_request = {
+            "camera_id": camera_id,
+            "stream_url": stream_url,
+            "line_points": line_points,
+            "line_points2": line_points2,
+            "roi": roi,
+            "count_mode": count_mode,
+            "cam_name": cam.get("name", camera_id),
+        }
+        print(f"[Camera] Switch requested: {cam.get('name', camera_id)}")
+
     def _build_roi_mask(self, h, w):
         """Create binary mask from ROI polygons. Called once on first frame."""
         if not self._roi_polygons:
@@ -914,6 +936,52 @@ class StreamServer:
                                 **result,
                             })
 
+                # ── Handle camera switch (between rounds only) ──────
+                if self._switch_request and not self._round_active:
+                    req = self._switch_request
+                    self._switch_request = None
+                    print(f"[Camera] Switching to: {req['cam_name']}")
+
+                    # Stop reader
+                    _reader_alive[0] = False
+                    time.sleep(0.5)
+
+                    # Release old cap
+                    old_cap = _cap_holder[0]
+                    if old_cap is not None:
+                        old_cap.release()
+
+                    # Drain queue
+                    while not _frame_q.empty():
+                        try: _frame_q.get_nowait()
+                        except: break
+
+                    # Update config
+                    self.stream_url = req["stream_url"]
+                    self.camera_id = req["camera_id"]
+                    self._line_points = req.get("line_points")
+                    self._line_points2 = req.get("line_points2")
+                    self._roi_polygons = req.get("roi")
+                    self._roi_mask = None  # force rebuild
+                    self._count_mode = req.get("count_mode", "uid")
+
+                    # Recreate counter with new line config
+                    self.counter = self._new_counter()
+
+                    # Open new stream
+                    new_url = get_stream_url(self.stream_url)
+                    new_cap = cv2.VideoCapture(new_url)
+                    _cap_holder[0] = new_cap
+                    _last_frame_time[0] = time.time()
+
+                    # Restart reader
+                    _reader_alive[0] = True
+                    import threading as _th
+                    _th.Thread(target=_reader, daemon=True).start()
+
+                    print(f"[Camera] Switched to {req['camera_id']} — stream open: {new_cap.isOpened()}")
+                    await self._broadcast_json({"type": "camera_switched", "cameraId": req["camera_id"], "cameraName": req["cam_name"]})
+
                 # ── Get frame ────────────────────────────────────────
                 try:
                     frame = _frame_q.get_nowait()
@@ -1032,6 +1100,14 @@ class StreamServer:
                         else:
                             await ws.send(json.dumps({"type": "error", "message": "no active round"}))
 
+                    elif msg_type == "switch_camera":
+                        cam_id = data.get("cameraId", "")
+                        if cam_id:
+                            self._request_camera_switch(cam_id)
+                            await ws.send(json.dumps({"type": "camera_switching", "cameraId": cam_id}))
+                        else:
+                            await ws.send(json.dumps({"type": "error", "message": "cameraId required"}))
+
                     elif msg_type == "get_state":
                         await ws.send(json.dumps({
                             "type": "state",
@@ -1040,6 +1116,7 @@ class StreamServer:
                             "roundId": self._round_id,
                             "marketAddress": self._round_market,
                             "count": self.counter.total_count,
+                            "cameraId": self.camera_id,
                         }))
 
                 except Exception:
