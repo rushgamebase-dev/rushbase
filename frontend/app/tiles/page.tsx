@@ -324,6 +324,11 @@ function TileModal({
           0%, 100% { text-shadow: 0 0 4px rgba(255,215,0,0.4); }
           50% { text-shadow: 0 0 12px rgba(255,215,0,0.8); }
         }
+        @keyframes diagonalSweep {
+          0%, 15% { opacity: 0.4; }
+          50% { opacity: 1; }
+          85%, 100% { opacity: 0.4; }
+        }
       `}</style>
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.9, rotateY: -15 }}
@@ -422,13 +427,19 @@ function TileModal({
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold tracking-wider" style={{ color: "#666", fontFamily: "monospace" }}>PWR</span>
-              <div className="w-14 h-[5px] rounded-sm overflow-hidden" style={{ background: "#0f0f0f", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }}>
-                <div className="h-full rounded-sm" style={{
-                  width: `${Math.min(100, (tile.price / 0.5) * 100)}%`,
-                  background: tile.price >= 0.1 ? `linear-gradient(90deg, ${rarityColor}aa, ${rarityColor})` : "linear-gradient(90deg, #333, #555)",
-                  boxShadow: tile.price >= 0.1 ? `0 0 4px ${rarityColor}44` : "none",
-                }} />
+              <span className="text-[9px] font-bold tracking-wider" style={{ color: "#666", fontFamily: "monospace" }}>LVL</span>
+              <div className="flex gap-[2px]">
+                {[0, 1, 2, 3, 4].map((i) => {
+                  const filled = tile.price >= [0.01, 0.03, 0.06, 0.1, 0.2][i];
+                  return (
+                    <div key={i} className="w-[6px] h-[10px] rounded-[1px]" style={{
+                      background: filled ? rarityColor : "#151515",
+                      boxShadow: filled ? `0 0 4px ${rarityColor}55` : "inset 0 1px 1px rgba(0,0,0,0.4)",
+                      opacity: filled ? 1 : 0.4,
+                      animation: filled ? `diagonalSweep 4s ${i * 0.3}s ease-in-out infinite` : "none",
+                    }} />
+                  );
+                })}
               </div>
             </div>
           </div>
