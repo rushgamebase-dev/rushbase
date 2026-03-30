@@ -392,64 +392,85 @@ function TileModal({
           </div>
         </div>
 
-        <div className="px-5 pb-5 pt-2 flex flex-col gap-3">
-          {/* Type + HP bar - Pokemon style */}
+        {/* Lower panel — dark premium surface */}
+        <div className="relative px-5 pb-5 pt-3 flex flex-col gap-3" style={{
+          background: "linear-gradient(180deg, rgba(15,12,10,0.95) 0%, #080808 100%)",
+        }}>
+          {/* Subtle inner top highlight */}
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent 10%, ${rarityColor}22 50%, transparent 90%)` }} />
+
+          {/* Badge row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
-                style={{ background: `${rarityColor}15`, border: `1px solid ${rarityColor}33`, color: rarityColor, fontFamily: "monospace" }}>
+              <span className="px-2.5 py-1 rounded text-[9px] font-black tracking-[0.15em]"
+                style={{
+                  background: `linear-gradient(135deg, ${rarityColor}12, ${rarityColor}06)`,
+                  border: `1px solid ${rarityColor}25`,
+                  color: rarityColor,
+                  fontFamily: "monospace",
+                  boxShadow: `inset 0 1px 0 ${rarityColor}08, 0 1px 3px rgba(0,0,0,0.4)`,
+                }}>
                 {tile.isMine ? "PARTNER" : tile.isActive ? "HELD" : "WILD"}
               </span>
               {tile.owner && (
                 <a href={`https://basescan.org/address/${tile.owner}`} target="_blank" rel="noopener noreferrer"
-                  className="text-[10px] hover:underline" style={{ color: "#555", fontFamily: "monospace" }}>
+                  className="text-[10px] transition-colors" style={{ color: "#3a3a3a", fontFamily: "monospace" }}
+                  onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#888")}
+                  onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#3a3a3a")}>
                   {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
                 </a>
               )}
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold" style={{ color: "#ff4488", fontFamily: "monospace" }}>HP</span>
-              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: "#1a1a1a" }}>
-                <div className="h-full rounded-full" style={{
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold tracking-wider" style={{ color: "#2a2a2a", fontFamily: "monospace" }}>PWR</span>
+              <div className="w-14 h-[5px] rounded-sm overflow-hidden" style={{ background: "#0f0f0f", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)" }}>
+                <div className="h-full rounded-sm" style={{
                   width: `${Math.min(100, (tile.price / 0.5) * 100)}%`,
-                  background: tile.price >= 0.1 ? "linear-gradient(90deg, #00ff88, #ffd700)" : tile.price >= 0.03 ? "linear-gradient(90deg, #00aaff, #00ff88)" : "#555",
+                  background: tile.price >= 0.1 ? `linear-gradient(90deg, ${rarityColor}aa, ${rarityColor})` : "linear-gradient(90deg, #333, #555)",
+                  boxShadow: tile.price >= 0.1 ? `0 0 4px ${rarityColor}44` : "none",
                 }} />
               </div>
             </div>
           </div>
 
-          {/* Stats - Pokemon card style with bars */}
-          <div className="flex flex-col gap-1.5 px-1">
+          {/* Stats panel — recessed surface */}
+          <div className="rounded-lg overflow-hidden" style={{
+            background: "linear-gradient(180deg, #0c0c0c, #090909)",
+            border: "1px solid #151515",
+            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.02)",
+          }}>
             {[
-              { label: "VALUE", value: tile.price.toFixed(4), max: 0.5, color: "#ffd700", suffix: "ETH" },
-              { label: "TAX/WK", value: (tile.price * 0.05).toFixed(4), max: 0.025, color: "#ff4488", suffix: "ETH" },
-              { label: "BUYOUT", value: (tile.price * 1.15).toFixed(4), max: 0.6, color: "#00aaff", suffix: "ETH" },
-            ].map((stat) => (
-              <div key={stat.label} className="flex items-center gap-2">
-                <span className="text-[9px] w-12 text-right" style={{ color: "#444", fontFamily: "monospace", fontWeight: 700 }}>{stat.label}</span>
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#111" }}>
-                  <div className="h-full rounded-full transition-all" style={{
+              { label: "VALUE", value: tile.price.toFixed(4), max: 0.5, color: "#ffd700" },
+              { label: "TAX/WK", value: (tile.price * 0.05).toFixed(4), max: 0.025, color: "#ff4488" },
+              { label: "BUYOUT", value: (tile.price * 1.15).toFixed(4), max: 0.6, color: "#00ccff" },
+            ].map((stat, i) => (
+              <div key={stat.label} className="flex items-center gap-3 px-3 py-[7px]"
+                style={{ borderTop: i > 0 ? "1px solid #111" : "none" }}>
+                <span className="text-[9px] w-11 text-right font-bold tracking-wide" style={{ color: "#2a2a2a", fontFamily: "monospace" }}>{stat.label}</span>
+                <div className="flex-1 h-[3px] rounded-sm overflow-hidden" style={{ background: "#0a0a0a", boxShadow: "inset 0 1px 1px rgba(0,0,0,0.5)" }}>
+                  <div className="h-full rounded-sm transition-all duration-500" style={{
                     width: `${Math.min(100, (parseFloat(stat.value) / stat.max) * 100)}%`,
-                    background: `linear-gradient(90deg, ${stat.color}88, ${stat.color})`,
-                    boxShadow: `0 0 6px ${stat.color}44`,
+                    background: `linear-gradient(90deg, ${stat.color}55, ${stat.color}cc)`,
+                    boxShadow: `0 0 8px ${stat.color}22`,
                   }} />
                 </div>
-                <span className="text-[10px] font-bold w-20 text-right" style={{ color: stat.color, fontFamily: "monospace" }}>
-                  {stat.value} <span style={{ color: "#444", fontSize: 8 }}>{stat.suffix}</span>
+                <span className="text-[10px] font-black w-[72px] text-right tabular-nums" style={{ color: stat.color, fontFamily: "monospace", textShadow: `0 0 12px ${stat.color}15` }}>
+                  {stat.value}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Separator line like Pokemon card */}
-          <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${rarityColor}33, transparent)` }} />
-
-          {/* Pending fees - pulsing green */}
+          {/* Pending fees */}
           {tile.isMine && tile.pendingFees > 0 && (
-            <div className="flex justify-between items-center px-3 py-2 rounded-lg"
-              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.15)" }}>
-              <span className="text-[10px] font-bold tracking-wider" style={{ color: "#00ff88", fontFamily: "monospace" }}>REWARDS</span>
-              <span className="text-sm font-black" style={{
+            <div className="flex justify-between items-center px-3 py-2.5 rounded-lg"
+              style={{
+                background: "linear-gradient(135deg, rgba(0,255,136,0.04), rgba(0,255,136,0.02))",
+                border: "1px solid rgba(0,255,136,0.1)",
+                boxShadow: "inset 0 1px 0 rgba(0,255,136,0.03), 0 0 20px rgba(0,255,136,0.03)",
+              }}>
+              <span className="text-[9px] font-bold tracking-[0.15em]" style={{ color: "rgba(0,255,136,0.6)", fontFamily: "monospace" }}>REWARDS</span>
+              <span className="text-sm font-black tabular-nums" style={{
                 color: "#00ff88",
                 fontFamily: "monospace",
                 animation: "feePulse 2s ease-in-out infinite",
@@ -461,33 +482,45 @@ function TileModal({
 
           {/* Tx success */}
           {txHash && isSuccess && (
-            <a
-              href={`${explorerUrl}/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs"
-              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "monospace" }}
-            >
+            <a href={`${explorerUrl}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all"
+              style={{
+                background: "linear-gradient(135deg, rgba(0,255,136,0.04), rgba(0,255,136,0.02))",
+                border: "1px solid rgba(0,255,136,0.12)",
+                color: "#00ff88",
+                fontFamily: "monospace",
+              }}>
               <span>Transaction confirmed</span>
               <ExternalLink size={11} />
             </a>
           )}
 
+          {/* Divider */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent 5%, #1a1a1a 50%, transparent 95%)" }} />
+
           {/* Actions */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
+            {/* CLAIM — empty tile */}
             {!tile.isActive && (
               <button
                 onClick={() => onAction("claim")}
                 disabled={busy}
-                className="w-full py-2.5 rounded text-sm font-bold transition-all btn-primary"
-                style={{ fontFamily: "monospace" }}
+                className="w-full py-3 rounded-lg text-sm font-black tracking-wider transition-all"
+                style={{
+                  background: "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.06))",
+                  border: "1px solid rgba(0,255,136,0.25)",
+                  color: "#00ff88",
+                  fontFamily: "monospace",
+                  boxShadow: "0 0 20px rgba(0,255,136,0.06), inset 0 1px 0 rgba(0,255,136,0.08)",
+                  letterSpacing: "0.1em",
+                }}
               >
                 {busy ? "CLAIMING..." : "CLAIM — 0.01 ETH"}
               </button>
             )}
 
+            {/* BUYOUT — someone else's tile */}
             {tile.isActive && !tile.isMine && (() => {
-              // Buyout cost: effectivePrice + buyoutFee(10%) + appTax(30% of appreciation) + minDeposit(5% of newPrice)
               const effPrice = tile.effectivePrice ?? tile.price;
               const chosenPrice = newPrice ? parseFloat(newPrice) : effPrice;
               const buyoutFee = effPrice * 0.10;
@@ -495,105 +528,148 @@ function TileModal({
               const minDeposit = chosenPrice * 0.05;
               const totalCost = effPrice + buyoutFee + appTax + minDeposit;
               return (
-                <div className="flex flex-col gap-3">
-                  <div className="text-[10px] px-1 flex flex-col gap-0.5" style={{ color: "#555", fontFamily: "monospace" }}>
-                    <span>Effective price: {effPrice.toFixed(4)} ETH {effPrice < tile.price ? "(decayed)" : ""}</span>
-                    <span>Buyout fee (10%): {buyoutFee.toFixed(4)} ETH</span>
-                    {appTax > 0 && <span>Appreciation tax (30%): {appTax.toFixed(4)} ETH</span>}
-                    <span>Deposit (5%): {minDeposit.toFixed(4)} ETH</span>
-                  </div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {[effPrice, effPrice * 1.5, effPrice * 2, effPrice * 3].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setNewPrice(v.toFixed(4))}
-                        className="px-2 py-1 rounded text-[10px] font-bold transition-all"
-                        style={{
-                          background: newPrice === v.toFixed(4) ? "rgba(0,170,255,0.15)" : "#0d0d0d",
-                          border: `1px solid ${newPrice === v.toFixed(4) ? "rgba(0,170,255,0.4)" : "#222"}`,
-                          color: newPrice === v.toFixed(4) ? "#00aaff" : "#666",
-                          fontFamily: "monospace",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {v.toFixed(4)}
-                      </button>
+                <div className="flex flex-col gap-2.5">
+                  {/* Cost breakdown — recessed panel */}
+                  <div className="rounded-lg px-3 py-2.5 flex flex-col gap-1" style={{
+                    background: "#0a0a0a",
+                    border: "1px solid #131313",
+                    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3)",
+                  }}>
+                    {[
+                      { l: "Effective price", v: effPrice, note: effPrice < tile.price ? "decayed" : "" },
+                      { l: "Buyout fee (10%)", v: buyoutFee, note: "" },
+                      ...(appTax > 0 ? [{ l: "Appreciation (30%)", v: appTax, note: "" }] : []),
+                      { l: "Deposit (5%)", v: minDeposit, note: "" },
+                    ].map((r) => (
+                      <div key={r.l} className="flex justify-between text-[10px]" style={{ fontFamily: "monospace" }}>
+                        <span style={{ color: "#2a2a2a" }}>{r.l} {r.note && <span style={{ color: "#ff448855" }}>{r.note}</span>}</span>
+                        <span style={{ color: "#444" }}>{r.v.toFixed(4)}</span>
+                      </div>
                     ))}
                   </div>
-                  <input
-                    type="number"
-                    placeholder="New price (ETH)"
-                    value={newPrice}
+
+                  {/* Price presets */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[effPrice, effPrice * 1.5, effPrice * 2, effPrice * 3].map((v) => {
+                      const sel = newPrice === v.toFixed(4);
+                      return (
+                        <button key={v} onClick={() => setNewPrice(v.toFixed(4))}
+                          className="px-2.5 py-1.5 rounded text-[10px] font-bold transition-all"
+                          style={{
+                            background: sel ? "linear-gradient(180deg, rgba(0,170,255,0.15), rgba(0,170,255,0.08))" : "#0a0a0a",
+                            border: `1px solid ${sel ? "rgba(0,170,255,0.35)" : "#181818"}`,
+                            color: sel ? "#00ccff" : "#333",
+                            fontFamily: "monospace",
+                            cursor: "pointer",
+                            boxShadow: sel ? "0 0 10px rgba(0,170,255,0.08), inset 0 1px 0 rgba(0,170,255,0.06)" : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                          }}>
+                          {v.toFixed(4)}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Price input */}
+                  <input type="number" placeholder="Custom price (ETH)" value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded text-xs input-base"
-                    style={{ fontFamily: "monospace" }}
-                    min={effPrice.toFixed(6)}
-                    step="0.001"
+                    className="w-full px-3 py-2.5 rounded-lg text-xs"
+                    style={{
+                      fontFamily: "monospace",
+                      background: "#0a0a0a",
+                      border: "1px solid #181818",
+                      color: "#aaa",
+                      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3)",
+                      outline: "none",
+                    }}
+                    min={effPrice.toFixed(6)} step="0.001"
+                    onFocus={(e) => { e.target.style.borderColor = "rgba(0,170,255,0.3)"; e.target.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.3), 0 0 8px rgba(0,170,255,0.06)"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "#181818"; e.target.style.boxShadow = "inset 0 2px 4px rgba(0,0,0,0.3)"; }}
                   />
-                  <button
-                    onClick={() => onAction("buyout")}
-                    disabled={busy}
-                    className="w-full py-2.5 rounded text-sm font-bold transition-all"
-                    style={{ background: "rgba(0,170,255,0.15)", border: "1px solid rgba(0,170,255,0.4)", color: "#00aaff", fontFamily: "monospace" }}
-                  >
-                    {busy ? "BUYING OUT..." : `BUYOUT — ${(totalCost * 1.05).toFixed(4)} ETH`}
+
+                  {/* Buyout CTA */}
+                  <button onClick={() => onAction("buyout")} disabled={busy}
+                    className="w-full py-3 rounded-lg text-sm font-black tracking-wider transition-all"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(0,170,255,0.14), rgba(0,100,200,0.08))",
+                      border: "1px solid rgba(0,170,255,0.25)",
+                      color: "#00ccff",
+                      fontFamily: "monospace",
+                      boxShadow: "0 0 24px rgba(0,170,255,0.06), inset 0 1px 0 rgba(0,200,255,0.08)",
+                      letterSpacing: "0.1em",
+                    }}>
+                    {busy ? "ACQUIRING..." : `BUYOUT — ${(totalCost * 1.05).toFixed(4)} ETH`}
                   </button>
                 </div>
               );
             })()}
 
+            {/* OWN TILE — set price + abandon */}
             {tile.isMine && (
               <>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
+                  {/* Price presets */}
                   <div className="flex gap-1.5 flex-wrap">
-                    {[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setNewPrice(String(v))}
-                        className="px-2 py-1 rounded text-[10px] font-bold transition-all"
-                        style={{
-                          background: newPrice === String(v) ? "rgba(0,255,136,0.15)" : "#0d0d0d",
-                          border: `1px solid ${newPrice === String(v) ? "rgba(0,255,136,0.4)" : "#222"}`,
-                          color: newPrice === String(v) ? "#00ff88" : "#666",
-                          fontFamily: "monospace",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {v} ETH
-                      </button>
-                    ))}
+                    {[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1].map((v) => {
+                      const sel = newPrice === String(v);
+                      return (
+                        <button key={v} onClick={() => setNewPrice(String(v))}
+                          className="px-2.5 py-1.5 rounded text-[10px] font-bold transition-all"
+                          style={{
+                            background: sel ? "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.06))" : "#0a0a0a",
+                            border: `1px solid ${sel ? "rgba(0,255,136,0.3)" : "#181818"}`,
+                            color: sel ? "#00ff88" : "#333",
+                            fontFamily: "monospace",
+                            cursor: "pointer",
+                            boxShadow: sel ? "0 0 10px rgba(0,255,136,0.06), inset 0 1px 0 rgba(0,255,136,0.05)" : "inset 0 1px 2px rgba(0,0,0,0.3)",
+                          }}>
+                          {v} ETH
+                        </button>
+                      );
+                    })}
                   </div>
+
+                  {/* Price input + SET */}
                   <div className="flex gap-2">
-                    <input
-                      type="number"
-                      placeholder="New price (ETH)"
-                      value={newPrice}
+                    <input type="number" placeholder="New price (ETH)" value={newPrice}
                       onChange={(e) => setNewPrice(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded text-xs input-base"
-                      style={{ fontFamily: "monospace" }}
-                      min="0.01"
-                      step="0.01"
-                    />
-                    <button
-                      onClick={() => onAction("setprice")}
-                      disabled={!newPrice || busy}
-                      className="px-3 py-2 rounded text-xs font-bold transition-all"
+                      className="flex-1 px-3 py-2.5 rounded-lg text-xs"
                       style={{
-                        background: newPrice ? "rgba(0,255,136,0.15)" : "#0d0d0d",
-                        border: `1px solid ${newPrice ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
-                        color: newPrice ? "#00ff88" : "#444",
                         fontFamily: "monospace",
+                        background: "#0a0a0a",
+                        border: "1px solid #181818",
+                        color: "#aaa",
+                        boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3)",
+                        outline: "none",
                       }}
-                    >
+                      min="0.01" step="0.01"
+                      onFocus={(e) => { e.target.style.borderColor = "rgba(0,255,136,0.25)"; }}
+                      onBlur={(e) => { e.target.style.borderColor = "#181818"; }}
+                    />
+                    <button onClick={() => onAction("setprice")} disabled={!newPrice || busy}
+                      className="px-4 py-2.5 rounded-lg text-xs font-black tracking-wider transition-all"
+                      style={{
+                        background: newPrice ? "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.06))" : "#0a0a0a",
+                        border: `1px solid ${newPrice ? "rgba(0,255,136,0.25)" : "#151515"}`,
+                        color: newPrice ? "#00ff88" : "#222",
+                        fontFamily: "monospace",
+                        boxShadow: newPrice ? "0 0 12px rgba(0,255,136,0.04)" : "none",
+                      }}>
                       SET
                     </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => onAction("abandon")}
-                  disabled={busy}
-                  className="w-full py-2.5 rounded text-xs font-bold transition-all"
-                  style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.2)", color: "#ff4444", fontFamily: "monospace" }}
+
+                {/* Abandon — dangerous, muted */}
+                <button onClick={() => onAction("abandon")} disabled={busy}
+                  className="w-full py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all"
+                  style={{
+                    background: "rgba(255,40,40,0.04)",
+                    border: "1px solid rgba(255,40,40,0.1)",
+                    color: "#331111",
+                    fontFamily: "monospace",
+                  }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#ff4444"; (e.target as HTMLElement).style.borderColor = "rgba(255,68,68,0.25)"; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "#331111"; (e.target as HTMLElement).style.borderColor = "rgba(255,40,40,0.1)"; }}
                 >
                   ABANDON TILE
                 </button>
