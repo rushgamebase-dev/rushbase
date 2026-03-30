@@ -155,97 +155,73 @@ function RightSidebar({ tiles, totalDistributed, treasuryBalance, devPending, ac
 
   return (
     <aside
-      className="flex flex-col gap-4 p-4 overflow-y-auto"
+      className="hidden lg:flex flex-col gap-3 p-3 overflow-y-auto"
       style={{
-        width: "25%",
-        minWidth: 200,
+        width: "22%",
+        minWidth: 180,
+        maxWidth: 240,
         borderLeft: "1px solid #1a1a1a",
         background: "#0d0d0d",
       }}
     >
-      {/* Floor Price card */}
-      <div
-        className="p-4 rounded-lg"
-        style={{ background: "#111", border: "1px solid #1a1a1a" }}
-      >
-        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
-          FLOOR PRICE
+      {/* Floor + Distributed — compact row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="p-2.5 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+          <div className="text-[9px] font-bold tracking-widest" style={{ color: "#555", fontFamily: "monospace" }}>FLOOR</div>
+          <div className="text-sm font-black mt-0.5" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>{floorPrice.toFixed(4)}</div>
+          <div className="text-[9px]" style={{ color: "#333", fontFamily: "monospace" }}>ETH</div>
         </div>
-        <div className="text-2xl font-black" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-          {floorPrice.toFixed(4)} ETH
-        </div>
-        <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
-          lowest listed tile
+        <div className="p-2.5 rounded-lg" style={{ background: "#111", border: "1px solid rgba(255,215,0,0.12)" }}>
+          <div className="text-[9px] font-bold tracking-widest" style={{ color: "#555", fontFamily: "monospace" }}>PAID OUT</div>
+          <div className="text-sm font-black mt-0.5" style={{ color: "#ffd700", fontFamily: "monospace" }}>{totalDist.toFixed(3)}</div>
+          <div className="text-[9px]" style={{ color: "#333", fontFamily: "monospace" }}>ETH</div>
         </div>
       </div>
 
-      {/* Total Distributed card */}
-      <div
-        className="p-4 rounded-lg"
-        style={{ background: "#111", border: "1px solid rgba(255,215,0,0.15)" }}
-      >
-        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
-          TOTAL DISTRIBUTED
+      {/* Pending — compact */}
+      <div className="p-2.5 rounded-lg" style={{ background: "#111", border: "1px solid rgba(0,255,136,0.1)" }}>
+        <div className="text-[9px] font-bold tracking-widest mb-1.5" style={{ color: "#555", fontFamily: "monospace" }}>PENDING</div>
+        <div className="flex justify-between text-[10px] mb-0.5">
+          <span style={{ color: "#666", fontFamily: "monospace" }}>Treasury</span>
+          <span style={{ color: "#00ff88", fontFamily: "monospace" }}>{treasury.toFixed(4)}</span>
         </div>
-        <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-          {totalDist.toFixed(4)} ETH
+        <div className="flex justify-between text-[10px]">
+          <span style={{ color: "#666", fontFamily: "monospace" }}>Protocol</span>
+          <span style={{ color: "#00aaff", fontFamily: "monospace" }}>{(treasury + devPend).toFixed(4)}</span>
         </div>
-        <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>
-          paid to tile holders
-        </div>
+        <div className="text-[9px] mt-1.5" style={{ color: "#333", fontFamily: "monospace" }}>{activeTileCount} active tiles</div>
       </div>
 
-      {/* Treasury + Dev Pending */}
-      <div
-        className="p-4 rounded-lg"
-        style={{ background: "#111", border: "1px solid rgba(0,255,136,0.15)" }}
-      >
-        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
-          PENDING POOLS
-        </div>
-        <div className="flex justify-between text-xs mb-1">
-          <span style={{ color: "#555", fontFamily: "monospace" }}>Treasury</span>
-          <span style={{ color: "#00ff88", fontFamily: "monospace" }}>{treasury.toFixed(4)} ETH</span>
-        </div>
-        <div className="flex justify-between text-xs">
-          <span style={{ color: "#555", fontFamily: "monospace" }}>Protocol</span>
-          <span style={{ color: "#00aaff", fontFamily: "monospace" }}>{(treasury + devPend).toFixed(4)} ETH</span>
-        </div>
-        <div className="text-[10px] mt-2" style={{ color: "#444", fontFamily: "monospace" }}>
-          {activeTileCount} active tiles
-        </div>
-      </div>
+      {/* Separator */}
+      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #1a1a1a, transparent)" }} />
 
-      {/* Top Seat Holders leaderboard */}
+      {/* Top Holders — compact */}
       <div>
-        <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#555", fontFamily: "monospace" }}>
-          TOP SEAT HOLDERS
+        <div className="text-[9px] font-bold tracking-widest mb-1.5" style={{ color: "#555", fontFamily: "monospace" }}>
+          TOP HOLDERS
         </div>
         {topHolders.length > 0 ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-[3px]">
             {topHolders.map(([addr, count], i) => (
-              <div
-                key={addr}
-                className="flex items-center justify-between px-3 py-2 rounded text-xs"
-                style={{ background: "#111", border: "1px solid #1a1a1a", fontFamily: "monospace" }}
-              >
-                <span style={{ color: i === 0 ? "#ffd700" : i === 1 ? "#c0c0c0" : i === 2 ? "#cd7f32" : "#666" }}>
-                  #{i + 1}
+              <div key={addr} className="flex items-center gap-1.5 px-2 py-1.5 rounded"
+                style={{ background: "#111", border: "1px solid #151515", fontFamily: "monospace" }}>
+                <span className="text-[9px] font-black w-4" style={{
+                  color: i === 0 ? "#ffd700" : i === 1 ? "#c0c0c0" : i === 2 ? "#cd7f32" : "#444",
+                }}>
+                  {i + 1}
                 </span>
-                <span style={{ color: "#888" }}>
-                  {addr.slice(0, 6)}...{addr.slice(-4)}
+                <span className="text-[9px] flex-1 truncate" style={{ color: "#777" }}>
+                  {addr.slice(2, 6)}...{addr.slice(-3)}
                 </span>
-                <span style={{ color: "#e0e0e0", fontWeight: 700 }}>
-                  {count} {count === 1 ? "tile" : "tiles"}
+                <span className="text-[10px] font-black" style={{ color: "#e0e0e0" }}>
+                  {count}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div
-            className="px-3 py-4 rounded text-center text-xs"
-            style={{ background: "#111", border: "1px solid #1a1a1a", color: "#444", fontFamily: "monospace" }}
-          >
+          <div className="px-2 py-3 rounded text-center text-[10px]"
+            style={{ background: "#111", border: "1px solid #151515", color: "#333", fontFamily: "monospace" }}>
             No holders yet
           </div>
         )}
