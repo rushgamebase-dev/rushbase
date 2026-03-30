@@ -73,6 +73,10 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           50% { opacity: 1; }
           85%, 100% { opacity: 0; }
         }
+        @keyframes dealPulse {
+          0%, 100% { box-shadow: 0 0 6px rgba(255,215,0,0.3), inset 0 0 6px rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.4); }
+          50% { box-shadow: 0 0 18px rgba(255,215,0,0.6), inset 0 0 10px rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.8); }
+        }
       `}</style>
       <div
         className="grid gap-[3px] rounded-lg p-1"
@@ -80,18 +84,26 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         role="grid"
         aria-label="Tiles grid 10 by 10"
       >
-      {tiles.map((tile) => {
+      {(() => {
+        const ownedPrices = tiles.filter(t => t.isActive && !t.isMine).map(t => t.price);
+        const floorPrice = ownedPrices.length > 0 ? Math.min(...ownedPrices) : 0;
+        return tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
         const hasImage = tile.isActive && !!tile.owner;
         const row = Math.floor(tile.id / 10);
         const col = tile.id % 10;
-        const sweepDelay = ((row + col) / 18) * 5; // 0-5s spread across diagonal
+        const sweepDelay = ((row + col) / 18) * 5;
+        const isCheapest = tile.isActive && !tile.isMine && tile.price === floorPrice && floorPrice > 0;
 
         let borderColor = "#222";
         let shadow = "none";
         let animStyle = "";
 
-        if (tile.isMine) {
+        if (isCheapest) {
+          borderColor = "rgba(255,215,0,0.5)";
+          shadow = "0 0 10px rgba(255,215,0,0.3)";
+          animStyle = "dealPulse 1.8s ease-in-out infinite";
+        } else if (tile.isMine) {
           borderColor = "rgba(0,255,136,0.7)";
           shadow = "0 0 8px rgba(0,255,136,0.4)";
           animStyle = "myTilePulse 2s ease-in-out infinite";
@@ -186,6 +198,23 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               }}
             />
 
+            {/* Best deal badge */}
+            {isCheapest && (
+              <span
+                className="absolute top-0 left-0 right-0 text-center text-[6px] font-black tracking-widest py-[1px]"
+                style={{
+                  background: "rgba(255,215,0,0.2)",
+                  color: "#ffd700",
+                  fontFamily: "monospace",
+                  zIndex: 3,
+                  textShadow: "0 0 6px rgba(255,215,0,0.8)",
+                  borderBottom: "1px solid rgba(255,215,0,0.3)",
+                }}
+              >
+                DEAL
+              </span>
+            )}
+
             {/* My tile pulsing dot */}
             {tile.isMine && (
               <span
@@ -243,7 +272,8 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
             )}
           </button>
         );
-      })}
+      });
+      })()}
       </div>
     </div>
   );
