@@ -27,11 +27,12 @@ import MascotOverlay from "@/components/MascotOverlay";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
-function usePlatformStatCards(stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }) {
+function usePlatformStatCards(stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }, distributed?: number) {
+  const dist = distributed && distributed > 0 ? distributed : stats.feesDistributed;
   return [
     { label: "Total Volume", value: `${stats.totalVolume.toFixed(2)} ETH`, color: "#00ff88" },
     { label: "Markets Resolved", value: String(stats.marketsResolved), color: "#ffd700" },
-    { label: "Distributed to Holders", value: `${stats.feesDistributed.toFixed(2)} ETH`, color: "#aa88ff" },
+    { label: "Distributed to Holders", value: `${dist.toFixed(2)} ETH`, color: "#aa88ff" },
     { label: "Unique Bettors", value: String(stats.uniqueBettors), color: "#00aaff" },
   ];
 }
@@ -170,6 +171,8 @@ export default function Home() {
   const { stats } = useStats();
   const { history: roundHistory } = useRoundHistory();
   const { isConnected } = useAccount();
+  const tilesData = useTilesContract();
+  const onChainDistributed = parseFloat(tilesData.totalDistributed || "0");
 
   // Subscribe to Ably market events for instant oracle broadcasts
   useMarketStream();
@@ -205,7 +208,7 @@ export default function Home() {
       <Header />
       <StatsBar
         volume24h={stats.volume24h}
-        totalDistributed={stats.feesDistributed}
+        totalDistributed={onChainDistributed > 0 ? onChainDistributed : stats.feesDistributed}
         activeBettors={stats.uniqueBettors}
         marketsResolved={stats.marketsResolved}
       />
@@ -246,6 +249,18 @@ export default function Home() {
                   The first fully transparent on-chain prediction market on Base
                 </p>
               </div>
+
+              {/* Mascot — always visible, loop */}
+              <img
+                src="/mascot/bet-placed.gif"
+                alt="Rush Mascot"
+                className="hidden md:block"
+                style={{
+                  width: 72,
+                  height: 72,
+                  filter: "drop-shadow(0 0 10px rgba(0,255,136,0.3))",
+                }}
+              />
 
               {/* Vehicle count — live counter (hidden on mobile; countdown overlay shows it) */}
               <div
@@ -439,7 +454,7 @@ export default function Home() {
           </div>
 
           {/* Platform Stats */}
-          <PlatformStatsSection stats={stats} />
+          <PlatformStatsSection stats={stats} distributed={onChainDistributed} />
 
           {/* How It Works */}
           <HowItWorks />
@@ -511,8 +526,8 @@ export default function Home() {
 
 // ─── Platform Stats section ───────────────────────────────────────────────────
 
-function PlatformStatsSection({ stats }: { stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number } }) {
-  const cards = usePlatformStatCards(stats);
+function PlatformStatsSection({ stats, distributed }: { stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }; distributed?: number }) {
+  const cards = usePlatformStatCards(stats, distributed);
   return (
     <section aria-label="Platform statistics">
       <div
