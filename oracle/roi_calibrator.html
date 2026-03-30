@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SinalBet — ROI Calibrator (Detection Zone Painter)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0a; color: #fff; font-family: monospace; }
+  .header { padding: 16px 24px; background: #111; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { color: #00ff88; font-size: 18px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; }
+  .btn { background: #00ff88; color: #000; border: none; padding: 8px 16px; font-size: 13px; cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace; }
+  .btn:hover { background: #00cc66; }
+  .btn-red { background: #ff4444; color: #fff; }
+  .btn-red:hover { background: #cc3333; }
+  .btn-outline { background: transparent; color: #00ff88; border: 1px solid #00ff88; }
+  .btn-outline:hover { background: rgba(0,255,136,0.1); }
+  .main { display: flex; height: calc(100vh - 56px); }
+  .canvas-area { flex: 1; position: relative; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+  .sidebar { width: 320px; background: #111; border-left: 1px solid #222; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .sidebar h3 { color: #00ff88; font-size: 13px; letter-spacing: 2px; }
+  .sidebar p { color: #666; font-size: 12px; line-height: 1.6; }
+  canvas { cursor: crosshair; }
+  .info { color: #888; font-size: 12px; }
+  .output { background: #1a1a1a; padding: 12px; border-radius: 8px; font-size: 11px; color: #0ff; word-break: break-all; max-height: 200px; overflow-y: auto; border: 1px solid #222; }
+  .tool-group { display: flex; gap: 4px; }
+  .tool-btn { padding: 6px 12px; border: 1px solid #333; background: #1a1a1a; color: #888; font-size: 12px; cursor: pointer; border-radius: 4px; font-family: monospace; }
+  .tool-btn.active { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-row label { color: #888; font-size: 11px; min-width: 50px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #00ff88; }
+  .slider-row span { color: #00ff88; font-size: 12px; min-width: 30px; text-align: right; }
+  input[type=text], input[type=file] { background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 8px; font-size: 13px; width: 100%; border-radius: 4px; font-family: monospace; }
+  .preview-bar { display: flex; gap: 8px; margin-top: 8px; }
+  .preview-swatch { width: 40px; height: 24px; border-radius: 4px; border: 1px solid #333; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ROI Calibrator — Detection Zone Painter</h1>
+  <div class="toolbar">
+    <button class="btn btn-outline" onclick="togglePreview()">Preview Mask</button>
+    <button class="btn btn-red" onclick="clearMask()">Clear All</button>
+    <button class="btn" onclick="exportROI()">Export ROI</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="canvas-area">
+    <canvas id="canvas"></canvas>
+    <!-- Overlay info -->
+    <div style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.7); padding:6px 12px; border-radius:6px; font-size:11px; color:#00ff88; pointer-events:none;">
+      <span id="coords">—</span>
+    </div>
+    <div style="position:absolute; bottom:12px; left:12px; background:rgba(0,0,0,0.7); padding:6px 12px; border-radius:6px; font-size:11px; color:#888; pointer-events:none;">
+      <span id="status">Load an image to start</span>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <!-- Load image -->
+    <div>
+      <h3>1. LOAD FRAME</h3>
+      <p>Paste URL or choose file from disk.</p>
+      <input id="imgUrl" type="text" placeholder="http://localhost:3003/bridge_now.jpg" style="margin-top:8px;">
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn" onclick="loadFromUrl()">Load URL</button>
+        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">Choose File</button>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)">
+    </div>
+
+    <!-- Tools -->
+    <div>
+      <h3>2. PAINT DETECTION ZONE</h3>
+      <p>Paint GREEN where YOLO should detect vehicles. Red areas will be EXCLUDED.</p>
+
+      <div style="margin-top:8px;">
+        <label style="color:#888; font-size:11px;">Mode:</label>
+        <div class="tool-group" style="margin-top:4px;">
+          <button class="tool-btn active" id="btn-include" onclick="setMode('include')">Include (paint)</button>
+          <button class="tool-btn" id="btn-exclude" onclick="setMode('exclude')">Exclude (erase)</button>
+        </div>
+      </div>
+
+      <div class="slider-row" style="margin-top:12px;">
+        <label>Brush:</label>
+        <input type="range" id="brushSize" min="5" max="100" value="30" oninput="updateBrush()">
+        <span id="brushLabel">30</span>
+      </div>
+
+      <div class="slider-row" style="margin-top:8px;">
+        <label>Opacity:</label>
+        <input type="range" id="maskOpacity" min="10" max="80" value="40" oninput="redraw()">
+        <span id="opacityLabel">40%</span>
+      </div>
+    </div>
+
+    <!-- Polygon mode -->
+    <div>
+      <h3>3. OR USE POLYGON</h3>
+      <p>Click points to draw a polygon. Double-click to close it.</p>
+      <div class="tool-group" style="margin-top:4px;">
+        <button class="tool-btn" id="btn-polygon" onclick="setMode('polygon')">Polygon Mode</button>
+        <button class="tool-btn" onclick="undoLastPoint()">Undo Point</button>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div>
+      <h3>4. EXPORT</h3>
+      <p>Copy the ROI config to paste in cameras.json</p>
+      <div class="output" id="output">Paint the detection zone first...</div>
+      <button class="btn" style="margin-top:8px; width:100%;" onclick="copyOutput()">Copy to Clipboard</button>
+    </div>
+
+    <!-- Help -->
+    <div>
+      <h3>HELP</h3>
+      <p>
+        <span style="color:#00ff88;">GREEN</span> = YOLO detects here<br>
+        <span style="color:#ff4444;">RED/empty</span> = YOLO ignores here<br><br>
+        Use <b>Include</b> to paint detection zones.<br>
+        Use <b>Exclude</b> to erase mistakes.<br>
+        Use <b>Polygon</b> for precise road boundaries.<br><br>
+        The exported ROI is a list of polygon points (fractions 0-1).
+        Add it to cameras.json as <code>"roi"</code> field.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let img = new Image();
+let imgW = 0, imgH = 0;
+
+// Mask: 1 = include (detect), 0 = exclude
+let maskCanvas = document.createElement('canvas');
+let maskCtx = maskCanvas.getContext('2d');
+
+let mode = 'include'; // include | exclude | polygon
+let brushSize = 30;
+let isDrawing = false;
+let showPreview = false;
+
+// Polygon
+let polyPoints = [];
+let polygons = []; // completed polygons
+
+// ── Image loading ──
+function loadFromUrl() {
+  const url = document.getElementById('imgUrl').value;
+  if (!url) return;
+  img.crossOrigin = 'anonymous';
+  img.onload = onImageLoaded;
+  img.onerror = () => setStatus('Failed to load image');
+  img.src = url;
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img.onload = onImageLoaded;
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function onImageLoaded() {
+  imgW = img.width;
+  imgH = img.height;
+
+  // Fit canvas to container
+  const area = document.querySelector('.canvas-area');
+  const maxW = area.clientWidth - 40;
+  const maxH = area.clientHeight - 40;
+  const scale = Math.min(maxW / imgW, maxH / imgH, 1);
+
+  canvas.width = Math.round(imgW * scale);
+  canvas.height = Math.round(imgH * scale);
+
+  // Init mask (all black = nothing selected)
+  maskCanvas.width = imgW;
+  maskCanvas.height = imgH;
+  maskCtx.fillStyle = '#000';
+  maskCtx.fillRect(0, 0, imgW, imgH);
+
+  polyPoints = [];
+  polygons = [];
+  redraw();
+  setStatus(`Loaded ${imgW}×${imgH} — paint the detection zone`);
+}
+
+// ── Drawing ──
+function redraw() {
+  if (!imgW) return;
+  const scaleX = canvas.width / imgW;
+  const scaleY = canvas.height / imgH;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  // Draw mask overlay
+  const opacity = parseInt(document.getElementById('maskOpacity').value) / 100;
+  document.getElementById('opacityLabel').textContent = Math.round(opacity * 100) + '%';
+
+  if (showPreview) {
+    // Preview mode: darken excluded areas
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+    // Invert: darken where mask is black
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(255,0,0,0.3)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    // Green overlay where mask is white
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+    tempCtx.globalCompositeOperation = 'source-in';
+    tempCtx.fillStyle = `rgba(0,255,136,${opacity})`;
+    tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(tempCanvas, 0, 0);
+  } else {
+    // Normal mode: green overlay on included areas
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+    tempCtx.globalCompositeOperation = 'source-in';
+    tempCtx.fillStyle = `rgba(0,255,136,${opacity})`;
+    tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(tempCanvas, 0, 0);
+  }
+
+  // Draw polygon in progress
+  if (polyPoints.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(polyPoints[0].x * scaleX, polyPoints[0].y * scaleY);
+    for (let i = 1; i < polyPoints.length; i++) {
+      ctx.lineTo(polyPoints[i].x * scaleX, polyPoints[i].y * scaleY);
+    }
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw points
+    polyPoints.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x * scaleX, p.y * scaleY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = i === 0 ? '#ffd700' : '#00ff88';
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  }
+}
+
+// ── Canvas events ──
+function getImgCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (imgW / canvas.width);
+  const y = (e.clientY - rect.top) * (imgH / canvas.height);
+  return { x: Math.round(x), y: Math.round(y) };
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (!imgW) return;
+  if (mode === 'polygon') {
+    const p = getImgCoords(e);
+    polyPoints.push(p);
+    redraw();
+    return;
+  }
+  isDrawing = true;
+  paint(e);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!imgW) return;
+  const p = getImgCoords(e);
+  document.getElementById('coords').textContent = `${p.x}, ${p.y} (${(p.x/imgW).toFixed(3)}, ${(p.y/imgH).toFixed(3)})`;
+
+  if (isDrawing) paint(e);
+
+  // Brush cursor preview
+  redraw();
+  if (mode !== 'polygon') {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const r = brushSize * (canvas.width / imgW) / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = mode === 'include' ? 'rgba(0,255,136,0.6)' : 'rgba(255,68,68,0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+});
+
+canvas.addEventListener('mouseup', () => { isDrawing = false; });
+canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+canvas.addEventListener('dblclick', (e) => {
+  if (mode === 'polygon' && polyPoints.length >= 3) {
+    // Close polygon and fill on mask
+    maskCtx.beginPath();
+    maskCtx.moveTo(polyPoints[0].x, polyPoints[0].y);
+    for (let i = 1; i < polyPoints.length; i++) {
+      maskCtx.lineTo(polyPoints[i].x, polyPoints[i].y);
+    }
+    maskCtx.closePath();
+    maskCtx.fillStyle = '#fff';
+    maskCtx.fill();
+
+    polygons.push([...polyPoints]);
+    polyPoints = [];
+    redraw();
+    setStatus(`Polygon added (${polygons.length} total)`);
+  }
+});
+
+function paint(e) {
+  const p = getImgCoords(e);
+  maskCtx.beginPath();
+  maskCtx.arc(p.x, p.y, brushSize / 2, 0, Math.PI * 2);
+  maskCtx.fillStyle = mode === 'include' ? '#fff' : '#000';
+  maskCtx.fill();
+  redraw();
+}
+
+// ── Tools ──
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-include').classList.toggle('active', m === 'include');
+  document.getElementById('btn-exclude').classList.toggle('active', m === 'exclude');
+  document.getElementById('btn-polygon').classList.toggle('active', m === 'polygon');
+  canvas.style.cursor = m === 'polygon' ? 'crosshair' : 'none';
+}
+
+function updateBrush() {
+  brushSize = parseInt(document.getElementById('brushSize').value);
+  document.getElementById('brushLabel').textContent = brushSize;
+}
+
+function togglePreview() { showPreview = !showPreview; redraw(); }
+function clearMask() {
+  maskCtx.fillStyle = '#000';
+  maskCtx.fillRect(0, 0, imgW, imgH);
+  polyPoints = [];
+  polygons = [];
+  redraw();
+  setStatus('Mask cleared');
+}
+
+function undoLastPoint() {
+  if (polyPoints.length > 0) {
+    polyPoints.pop();
+    redraw();
+  }
+}
+
+function setStatus(s) { document.getElementById('status').textContent = s; }
+
+// ── Export ──
+function exportROI() {
+  if (!imgW) return;
+
+  // Extract contours from mask
+  const imageData = maskCtx.getImageData(0, 0, imgW, imgH);
+  const points = [];
+
+  // Sample mask at grid points and find boundary
+  const step = Math.max(4, Math.round(Math.min(imgW, imgH) / 100));
+  for (let y = 0; y < imgH; y += step) {
+    for (let x = 0; x < imgW; x += step) {
+      const idx = (y * imgW + x) * 4;
+      if (imageData.data[idx] > 128) { // white = included
+        // Check if this is a boundary pixel
+        const neighbors = [
+          [-step, 0], [step, 0], [0, -step], [0, step]
+        ];
+        let isBorder = false;
+        for (const [dx, dy] of neighbors) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= imgW || ny >= imgH) { isBorder = true; break; }
+          const nIdx = (ny * imgW + nx) * 4;
+          if (imageData.data[nIdx] <= 128) { isBorder = true; break; }
+        }
+        if (isBorder) {
+          points.push([(x / imgW).toFixed(3), (y / imgH).toFixed(3)]);
+        }
+      }
+    }
+  }
+
+  // Use polygons if available (more precise)
+  let roiData;
+  if (polygons.length > 0) {
+    roiData = polygons.map(poly =>
+      poly.map(p => [(p.x / imgW).toFixed(3), (p.y / imgH).toFixed(3)])
+    );
+  } else if (points.length > 0) {
+    // Simplify boundary points using convex hull approximation
+    roiData = [simplifyPoints(points, 30)];
+  } else {
+    document.getElementById('output').textContent = 'No detection zone painted!';
+    return;
+  }
+
+  const config = {
+    roi: roiData,
+    note: `ROI exported ${new Date().toISOString()} — ${roiData.length} polygon(s), ${roiData.reduce((s, p) => s + p.length, 0)} points total`
+  };
+
+  const json = JSON.stringify(config, null, 2);
+  document.getElementById('output').textContent = json;
+  setStatus(`Exported ${roiData.length} polygon(s)`);
+}
+
+// Simple point reduction — keep every Nth point
+function simplifyPoints(points, maxPoints) {
+  if (points.length <= maxPoints) return points;
+  const step = Math.ceil(points.length / maxPoints);
+  const result = [];
+  for (let i = 0; i < points.length; i += step) {
+    result.push(points[i]);
+  }
+  return result;
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    setStatus('Copied to clipboard!');
+  });
+}
+
+// Auto-load if URL is pre-filled
+window.onload = () => {
+  const url = document.getElementById('imgUrl').value;
+  if (url) loadFromUrl();
+};
+</script>
+</body>
+</html>
