@@ -21,7 +21,8 @@
       "resolution": "1280x720",
       "primary": true,
       "linePoints": "0.15,0.75,0.85,0.75",
-      "notes": "Horizontal line at 75% Y — catches vehicles entering from bottom of frame."
+      "linePoints2": "0.330,0.451,0.646,0.448",
+      "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) — catches both directions"
     },
     {
       "id": "peace-bridge-plaza",
