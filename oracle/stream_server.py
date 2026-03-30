@@ -682,15 +682,15 @@ class StreamServer:
         print(f"[WS] Client disconnected ({len(self.clients)} total)")
 
     async def _broadcast(self, json_msg, jpeg_bytes):
-        """Send JSON + binary frame to all connected clients."""
+        """Send JSON + binary frame to all connected clients. Timeout per client."""
         if not self.clients:
             return
         dead = set()
         async def send_to(ws):
             try:
-                await ws.send(json_msg)
-                await ws.send(jpeg_bytes)
-            except websockets.exceptions.ConnectionClosed:
+                await asyncio.wait_for(ws.send(json_msg), timeout=2)
+                await asyncio.wait_for(ws.send(jpeg_bytes), timeout=2)
+            except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError):
                 dead.add(ws)
         await asyncio.gather(*(send_to(ws) for ws in self.clients))
         self.clients -= dead
@@ -703,8 +703,8 @@ class StreamServer:
         dead = set()
         async def send_to(ws):
             try:
-                await ws.send(raw)
-            except websockets.exceptions.ConnectionClosed:
+                await asyncio.wait_for(ws.send(raw), timeout=2)
+            except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError):
                 dead.add(ws)
         await asyncio.gather(*(send_to(ws) for ws in self.clients))
         self.clients -= dead
