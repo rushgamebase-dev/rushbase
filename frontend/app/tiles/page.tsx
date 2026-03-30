@@ -282,64 +282,172 @@ function TileModal({
   contractLoading,
 }: TileModalProps) {
   const busy = isLoading || contractLoading;
+
+  // Raccoon identity
+  const RACCOON_NAMES = [
+    "Greedy Bandit", "Purple Velvet", "Skyfall Gangster", "Golden Tail", "Inferno Rusher",
+    "Voltage Rusher", "Shadow Drifter", "Frost Phantom", "Neon Prowler", "Magma Fury",
+    "Cyber Claw", "Storm Chaser", "Venom Striker", "Crystal Seer", "Clockwork Gear",
+    "Plasma Ghost", "Iron Whisker", "Cosmic Dash", "Blaze Runner", "Data Scavenger",
+  ];
+  const getRaccIdx = (o: string) => { let h = 0; for (let i = 0; i < o.length; i++) h = (h * 31 + o.charCodeAt(i)) | 0; return Math.abs(h) % 20; };
+  const raccIdx = tile.owner ? getRaccIdx(tile.owner) : 0;
+  const raccName = RACCOON_NAMES[raccIdx];
+  const raccImage = `/tiles/${raccIdx + 1}.png`;
+
+  // Rarity based on price
+  const rarity = tile.price >= 0.5 ? "LEGENDARY" : tile.price >= 0.1 ? "EPIC" : tile.price >= 0.03 ? "RARE" : "COMMON";
+  const rarityColor = rarity === "LEGENDARY" ? "#ffd700" : rarity === "EPIC" ? "#aa44ff" : rarity === "RARE" ? "#00aaff" : "#666";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.75)" }}
+      style={{ background: "rgba(0,0,0,0.85)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Tile ${tile.id + 1} details`}
     >
+      <style>{`
+        @keyframes cardShine {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes feePulse {
+          0%, 100% { opacity: 1; text-shadow: 0 0 8px rgba(0,255,136,0.6); }
+          50% { opacity: 0.7; text-shadow: 0 0 16px rgba(0,255,136,1); }
+        }
+        @keyframes priceGlow {
+          0%, 100% { text-shadow: 0 0 4px rgba(255,215,0,0.4); }
+          50% { text-shadow: 0 0 12px rgba(255,215,0,0.8); }
+        }
+      `}</style>
       <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
-        className="w-full max-w-sm rounded-xl"
-        style={{ background: "#111", border: "1px solid #2a2a2a", boxShadow: "0 24px 48px rgba(0,0,0,0.6)" }}
+        initial={{ opacity: 0, y: 30, scale: 0.9, rotateY: -15 }}
+        animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
+        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="w-full max-w-sm rounded-2xl overflow-hidden"
+        style={{
+          background: "#0a0a0a",
+          border: `2px solid ${rarityColor}44`,
+          boxShadow: `0 0 30px ${rarityColor}22, 0 24px 48px rgba(0,0,0,0.8)`,
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
-          <span className="text-sm font-black tracking-widest" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-            TILE #{tile.id + 1}
-          </span>
-          <button onClick={onClose} style={{ color: "#555", background: "none", border: "none", cursor: "pointer" }} aria-label="Close">
-            <X size={18} />
+        {/* Card top shine bar */}
+        <div style={{
+          height: 3,
+          background: `linear-gradient(90deg, transparent, ${rarityColor}, transparent)`,
+          backgroundSize: "200% 100%",
+          animation: "cardShine 3s linear infinite",
+        }} />
+
+        {/* Raccoon image + close */}
+        <div className="relative" style={{ height: 200, overflow: "hidden" }}>
+          {tile.isActive && tile.owner ? (
+            <img
+              src={raccImage}
+              alt={raccName}
+              className="w-full h-full object-cover"
+              style={{ filter: "brightness(0.85)" }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ background: "#111" }}>
+              <span style={{ color: "#333", fontSize: 48, fontFamily: "monospace" }}>?</span>
+            </div>
+          )}
+          {/* Gradient overlay */}
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(180deg, transparent 40%, rgba(10,10,10,0.9) 90%, #0a0a0a 100%)",
+          }} />
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.6)", border: "1px solid #333", color: "#888", cursor: "pointer", backdropFilter: "blur(4px)" }}
+            aria-label="Close"
+          >
+            <X size={14} />
           </button>
+          {/* Rarity badge */}
+          <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest"
+            style={{ background: `${rarityColor}22`, border: `1px solid ${rarityColor}55`, color: rarityColor, fontFamily: "monospace" }}>
+            {rarity}
+          </div>
+          {/* Tile number + name overlay */}
+          <div className="absolute bottom-3 left-4 right-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black" style={{ color: "#fff", fontFamily: "monospace", textShadow: "0 2px 8px rgba(0,0,0,1)" }}>
+                #{tile.id + 1}
+              </span>
+              {tile.owner && (
+                <span className="text-sm font-bold" style={{ color: rarityColor, fontFamily: "monospace", textShadow: "0 2px 6px rgba(0,0,0,1)" }}>
+                  {raccName}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="p-5 flex flex-col gap-4">
-          {/* Info rows */}
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between text-xs">
-              <span style={{ color: "#555", fontFamily: "monospace" }}>STATUS</span>
-              <span style={{ color: tile.isMine ? "#00ff88" : tile.isActive ? "#00aaff" : "#555", fontFamily: "monospace", fontWeight: 700 }}>
+        <div className="px-5 pb-5 pt-2 flex flex-col gap-3">
+          {/* Stats row - Pokemon style */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>PRICE</div>
+              <div className="text-sm font-black" style={{ color: "#ffd700", fontFamily: "monospace", animation: "priceGlow 3s ease-in-out infinite" }}>
+                {tile.price.toFixed(4)}
+              </div>
+            </div>
+            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>STATUS</div>
+              <div className="text-sm font-black" style={{
+                color: tile.isMine ? "#00ff88" : tile.isActive ? "#00aaff" : "#555",
+                fontFamily: "monospace",
+              }}>
                 {tile.isMine ? "YOURS" : tile.isActive ? "OWNED" : "EMPTY"}
+              </div>
+            </div>
+            <div className="text-center p-2 rounded-lg" style={{ background: "#111", border: "1px solid #1a1a1a" }}>
+              <div className="text-[10px] tracking-wider" style={{ color: "#555", fontFamily: "monospace" }}>TAX/WK</div>
+              <div className="text-sm font-black" style={{ color: "#ff4488", fontFamily: "monospace" }}>
+                {(tile.price * 0.05).toFixed(4)}
+              </div>
+            </div>
+          </div>
+
+          {/* Owner */}
+          {tile.owner && (
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px]" style={{ color: "#444", fontFamily: "monospace" }}>OWNER</span>
+              <a
+                href={`https://basescan.org/address/${tile.owner}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs hover:underline"
+                style={{ color: "#888", fontFamily: "monospace" }}
+              >
+                {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)} ↗
+              </a>
+            </div>
+          )}
+
+          {/* Pending fees - pulsing green */}
+          {tile.isMine && tile.pendingFees > 0 && (
+            <div className="flex justify-between items-center px-3 py-2 rounded-lg"
+              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)" }}>
+              <span className="text-xs" style={{ color: "#00ff88", fontFamily: "monospace" }}>PENDING REWARDS</span>
+              <span className="text-sm font-black" style={{
+                color: "#00ff88",
+                fontFamily: "monospace",
+                animation: "feePulse 2s ease-in-out infinite",
+              }}>
+                +{tile.pendingFees.toFixed(5)} ETH
               </span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span style={{ color: "#555", fontFamily: "monospace" }}>PRICE</span>
-              <span style={{ color: "#e0e0e0", fontFamily: "monospace" }}>{tile.price.toFixed(4)} ETH</span>
-            </div>
-            {tile.owner && (
-              <div className="flex justify-between text-xs">
-                <span style={{ color: "#555", fontFamily: "monospace" }}>OWNER</span>
-                <span style={{ color: "#888", fontFamily: "monospace" }}>
-                  {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
-                </span>
-              </div>
-            )}
-            {tile.isMine && tile.pendingFees > 0 && (
-              <div className="flex justify-between text-xs">
-                <span style={{ color: "#555", fontFamily: "monospace" }}>PENDING FEES</span>
-                <span style={{ color: "#ffd700", fontFamily: "monospace" }}>{tile.pendingFees.toFixed(5)} ETH</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Tx success */}
           {txHash && isSuccess && (
@@ -347,7 +455,7 @@ function TileModal({
               href={`${explorerUrl}/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between px-3 py-2 rounded text-xs"
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs"
               style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "monospace" }}
             >
               <span>Transaction confirmed</span>
