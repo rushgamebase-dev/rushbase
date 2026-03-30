@@ -851,7 +851,7 @@ class StreamServer:
         # Reader thread — prevents cap.read() from blocking event loop
         import threading
         import queue as _queue
-        _frame_q = _queue.Queue(maxsize=60)
+        _frame_q = _queue.Queue(maxsize=2)
         _reader_alive = [True]
         _cap_holder = [cap]
         _last_frame_time = [time.time()]
@@ -918,14 +918,10 @@ class StreamServer:
                                 **result,
                             })
 
-                # ── Get LATEST frame (drain queue, skip old) ────────
-                frame = None
+                # ── Get frame ────────────────────────────────────────
                 try:
-                    while not _frame_q.empty():
-                        frame = _frame_q.get_nowait()
+                    frame = _frame_q.get_nowait()
                 except _queue.Empty:
-                    pass
-                if frame is None:
                     await asyncio.sleep(0.02)
                     continue
 
