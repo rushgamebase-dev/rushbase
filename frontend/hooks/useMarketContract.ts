@@ -1,9 +1,8 @@
 "use client";
 
-import { useReadContract } from "wagmi";
-// useQueryClient removed — event watchers removed, Ably handles invalidation
-import { formatEther } from "viem";
-import { useState, useEffect } from "react";
+import { useReadContract, usePublicClient } from "wagmi";
+import { formatEther, parseAbiItem } from "viem";
+import { useState, useEffect, useRef } from "react";
 import { MARKET_ABI } from "@/lib/contracts";
 
 export interface MarketRange {
@@ -52,6 +51,53 @@ export function useMarketContract(marketAddress: `0x${string}` | null) {
 
   // Reset bets when market address changes (new round)
   useEffect(() => { setRealtimeBets([]); }, [marketAddress]);
+
+  // Poll BetPlaced events every 15s — replaces removed useWatchContractEvent
+  const publicClient = usePublicClient();
+  const lastBlockRef = useRef<bigint>(BigInt(0));
+
+  useEffect(() => {
+    if (!enabled || !addr || !publicClient) return;
+    let cancelled = false;
+
+    async function pollBets() {
+      try {
+        const currentBlock = await publicClient!.getBlockNumber();
+        const fromBlock = lastBlockRef.current > BigInt(0) ? lastBlockRef.current + BigInt(1) : currentBlock - BigInt(100);
+        if (fromBlock > currentBlock) return;
+
+        const logs = await publicClient!.getLogs({
+          address: addr,
+          event: parseAbiItem("event BetPlaced(address indexed user, uint256 rangeIndex, uint256 amount)"),
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        lastBlockRef.current = currentBlock;
+
+        if (logs.length > 0 && !cancelled) {
+          const newBets = logs.map(log => ({
+            user: (log.args as { user: string }).user,
+            rangeIndex: Number((log.args as { rangeIndex: bigint }).rangeIndex),
+            amount: (log.args as { amount: bigint }).amount,
+            txHash: log.transactionHash || "",
+            timestamp: Date.now(),
+          }));
+          setRealtimeBets(prev => {
+            const existing = new Set(prev.map(b => b.txHash));
+            const unique = newBets.filter(b => !existing.has(b.txHash));
+            return [...prev, ...unique].slice(-20); // keep last 20
+          });
+        }
+      } catch {
+        // Silently fail — safety net, not critical path
+      }
+    }
+
+    pollBets();
+    const interval = setInterval(pollBets, 15_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [enabled, addr, publicClient]);
 
   // State
   const { data: stateData } = useReadContract({

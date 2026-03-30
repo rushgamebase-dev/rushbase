@@ -304,6 +304,8 @@ export default function Home() {
               winningRangeIndex={winningRangeIndex}
               finalCount={contractData.actualCarCount}
               threshold={market.threshold}
+              timeLeft={lockTime > 0 ? Math.max(0, lockTime - Math.floor(Date.now() / 1000)) : 999}
+              isCounting={market.status === "open" && lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime}
             />
 
             {/* Countdown overlaid on video — top for mobile visibility */}
@@ -379,6 +381,14 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Round history — right below current count */}
+          <div
+            className="p-4 rounded"
+            style={{ background: "#111", border: "1px solid #1a1a1a" }}
+          >
+            <RoundHistory history={roundHistory} />
+          </div>
+
           {/* Pool bars */}
           <div
             className="p-4 rounded"
@@ -426,14 +436,6 @@ export default function Home() {
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Round history */}
-          <div
-            className="p-4 rounded"
-            style={{ background: "#111", border: "1px solid #1a1a1a" }}
-          >
-            <RoundHistory history={roundHistory} />
           </div>
 
           {/* Platform Stats */}
