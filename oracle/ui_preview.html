@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Rush UI Preview — Mascot States</title>
+<style>
+  body { background: #0a0a0a; color: #fff; font-family: monospace; margin: 40px; }
+  .section { margin: 30px 0; padding: 20px; border: 1px solid #222; border-radius: 12px; background: #111; }
+  .section h2 { color: #00ff88; margin-top: 0; font-size: 14px; letter-spacing: 2px; }
+  .row { display: flex; align-items: center; gap: 16px; margin: 12px 0; }
+  .label { color: #888; font-size: 11px; width: 120px; }
+  .card { padding: 10px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+  .mascot { width: 36px; height: 36px; border-radius: 50%; }
+  .mascot-big { width: 100px; height: 100px; }
+  .glow-green { box-shadow: 0 0 20px rgba(0,255,136,0.2); border: 1px solid rgba(0,255,136,0.4); background: rgba(0,255,136,0.1); }
+  .glow-red { box-shadow: 0 0 20px rgba(255,68,68,0.2); border: 1px solid rgba(255,68,68,0.4); background: rgba(255,68,68,0.1); }
+  .glow-gold { box-shadow: 0 0 20px rgba(255,170,0,0.2); border: 1px solid rgba(255,170,0,0.4); background: rgba(255,170,0,0.1); }
+  .timer { font-size: 24px; font-weight: 900; }
+  .count { font-size: 36px; font-weight: 900; }
+  .overlay { position: relative; padding: 40px; border-radius: 16px; text-align: center; background: linear-gradient(145deg, rgba(10,10,10,0.95), rgba(0,255,136,0.1)); border: 2px solid rgba(0,255,136,0.4); box-shadow: 0 0 60px rgba(0,255,136,0.2); max-width: 400px; margin: 20px auto; }
+  .overlay-lose { background: linear-gradient(145deg, rgba(10,10,10,0.95), rgba(255,68,68,0.05)); border-color: rgba(255,68,68,0.3); box-shadow: 0 0 40px rgba(255,68,68,0.15); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .progress { height: 4px; border-radius: 4px; background: #1a1a1a; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+  .confetti { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 4px; }
+</style>
+</head>
+<body>
+
+<h1 style="color:#00ff88; font-size: 20px;">RUSH UI — Mascot Notification Preview</h1>
+
+<!-- ═══════════════════ BET TOAST ═══════════════════ -->
+<div class="section">
+  <h2>BET TOAST (top-right, when someone bets)</h2>
+
+  <div class="row">
+    <span class="label">OVER bet:</span>
+    <div class="card glow-green">
+      <img src="mascot/bet-placed.gif" class="mascot" />
+      <div>
+        <div style="color:#00ff88; font-weight:900;">▲ OVER +0.005 ETH</div>
+        <div style="color:#888; font-size:11px;">0x1a3f...8b2c</div>
+      </div>
+      <div class="dot" style="background:#00ff88; position:relative; top:-12px;"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">UNDER bet:</span>
+    <div class="card glow-red">
+      <img src="mascot/bet-placed.gif" class="mascot" />
+      <div>
+        <div style="color:#ff4444; font-weight:900;">▼ UNDER +0.010 ETH</div>
+        <div style="color:#888; font-size:11px;">0x9c7e...f1a0</div>
+      </div>
+      <div class="dot" style="background:#ff4444; position:relative; top:-12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ COUNTDOWN STATES ═══════════════════ -->
+<div class="section">
+  <h2>COUNTDOWN BAR (bottom of video)</h2>
+
+  <div class="row">
+    <span class="label">BETS OPEN:</span>
+    <div class="card glow-green" style="flex:1;">
+      <img src="mascot/chill.gif" class="mascot" />
+      <div class="dot" style="background:#00ff88;"></div>
+      <span style="color:#00ff88; font-weight:900; font-size:12px;">BETS OPEN</span>
+      <span style="flex:1;"></span>
+      <span class="timer" style="color:#00ff88;">01:48</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">LAST 30s:</span>
+    <div class="card glow-red" style="flex:1; animation: pulse 1s infinite;">
+      <img src="mascot/hurry.gif" class="mascot" />
+      <div class="dot" style="background:#ff4444;"></div>
+      <span style="color:#ff4444; font-weight:900; font-size:12px;">LAST CHANCE!</span>
+      <span style="flex:1;"></span>
+      <span class="timer" style="color:#ff4444; font-size:28px;">00:18</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">COUNTING:</span>
+    <div class="card" style="flex:1; background:rgba(0,0,0,0.85); border:1px solid rgba(0,255,136,0.3);">
+      <img src="mascot/confident.gif" class="mascot" />
+      <div class="dot" style="background:#00ff88;"></div>
+      <span style="color:#aaa; font-weight:900; font-size:11px;">COUNTING</span>
+      <span style="flex:1;"></span>
+      <span class="count" style="color:#00ff88;">023</span>
+      <span style="color:#888; font-size:11px;">/20 <span style="color:#00ff88;">+3</span></span>
+      <span style="color:#ffaa00; font-weight:900;">02:05</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">RESOLVING:</span>
+    <div class="card glow-gold" style="flex:1; justify-content:center;">
+      <img src="mascot/confident.gif" class="mascot" />
+      <div class="dot" style="background:#ffaa00;"></div>
+      <span style="color:#ffaa00; font-weight:900; letter-spacing:3px;">RESOLVING...</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">RESOLVED:</span>
+    <div class="card" style="flex:1; background:linear-gradient(135deg, rgba(0,0,0,0.9), rgba(0,255,136,0.1)); border:2px solid rgba(0,255,136,0.4); box-shadow: 0 0 30px rgba(0,255,136,0.2);">
+      <img src="mascot/victory.gif" class="mascot" style="width:48px; height:48px; border:2px solid rgba(0,255,136,0.3);" />
+      <div>
+        <span class="count" style="color:#00ff88; display:block; text-shadow: 0 0 20px rgba(0,255,136,0.5);">042</span>
+        <span style="color:#00ff88; font-weight:900; font-size:13px;">OVER WINS!</span>
+      </div>
+      <span style="flex:1;"></span>
+      <div style="text-align:right;">
+        <span style="color:#00ff88; font-weight:900; font-size:11px;">Next in 12s</span><br/>
+        <img src="mascot/payout.gif" class="mascot" style="margin-top:4px;" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">CANCELLED:</span>
+    <div class="card" style="flex:1; background:rgba(0,0,0,0.85); border:1px solid #333;">
+      <img src="mascot/chill.gif" class="mascot" />
+      <span style="color:#888; font-weight:900; font-size:11px;">ROUND CANCELLED</span>
+      <span style="flex:1;"></span>
+      <span style="color:#00ff88; font-weight:900; font-size:11px;">Next in 8s</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FULL OVERLAY ═══════════════════ -->
+<div class="section">
+  <h2>MASCOT OVERLAY (full-screen on round resolve — auto-closes 5s)</h2>
+
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <div class="overlay">
+      <img src="mascot/happy-dance.gif" class="mascot-big" style="filter: drop-shadow(0 0 20px rgba(0,255,136,0.5));" /><br/><br/>
+      <span class="count" style="color:#00ff88; text-shadow: 0 0 30px rgba(0,255,136,0.6);">042</span><br/>
+      <span style="color:#888; font-size:11px;">vehicles counted (threshold: 20)</span><br/><br/>
+      <span style="color:#ffd700; font-size:24px; font-weight:900; text-shadow: 0 0 20px rgba(255,215,0,0.4);">YOU WON!</span><br/>
+      <span style="color:#00ff88; font-size:14px;">+0.0150 ETH</span><br/><br/>
+      <div class="card" style="display:inline-flex; background:rgba(0,255,136,0.15); border:1px solid rgba(0,255,136,0.4);">
+        <img src="mascot/payout.gif" style="width:24px; height:24px;" />
+        <span style="color:#00ff88; font-weight:900;">+0.0150 ETH</span>
+      </div><br/><br/>
+      <div>
+        <span class="confetti" style="background:#00ff88;"></span>
+        <span class="confetti" style="background:#ffd700; border-radius:2px;"></span>
+        <span class="confetti" style="background:#ff44ff;"></span>
+        <span class="confetti" style="background:#00aaff;"></span>
+        <span class="confetti" style="background:#fff;"></span>
+      </div>
+      <br/><span style="color:#555; font-size:10px;">auto-closing in a few seconds...</span>
+    </div>
+
+    <div class="overlay overlay-lose">
+      <img src="mascot/lost.gif" class="mascot-big" /><br/><br/>
+      <span class="count" style="color:#ff4444;">042</span><br/>
+      <span style="color:#888; font-size:11px;">vehicles counted (threshold: 20)</span><br/><br/>
+      <span style="color:#888; font-size:24px; font-weight:900;">BETTER LUCK NEXT TIME</span><br/>
+      <span style="color:#aaa; font-size:13px;">New round starting soon...</span><br/><br/>
+      <span style="color:#555; font-size:10px;">auto-closing in a few seconds...</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -243,7 +243,7 @@ def pick_round_cameras(cameras: list[dict]) -> list[dict]:
     Rounds alternate: peace-bridge → netherlands-highway → peace-bridge → ...
     """
     by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["peace-bridge", "netherlands-highway"]
+    primary_ids = ["peace-bridge"]
     result = [by_id[cid] for cid in primary_ids if cid in by_id]
     if not result:
         result = cameras[:1]
@@ -743,25 +743,6 @@ class RushRoundManager:
         log.info("Round #%d starting", self.round_number)
         log.info("Camera: %s (%s)", cam_name, stream_url)
         log.info("Threshold: %d  (Under %d / Over %d)", threshold, threshold, threshold)
-
-        # ── Switch camera on stream_server if different from current ──────────
-        try:
-            await self.stream_client.ensure_connected()
-            assert self.stream_client._ws is not None
-            await self.stream_client._ws.send(json.dumps({
-                "type": "switch_camera",
-                "cameraId": cam_id,
-            }))
-            # Wait for ack
-            try:
-                raw = await asyncio.wait_for(self.stream_client._ws.recv(), timeout=10)
-                if isinstance(raw, str):
-                    resp = json.loads(raw)
-                    log.info("[StreamClient] Camera switch: %s", resp.get("type", "?"))
-            except asyncio.TimeoutError:
-                log.warning("[StreamClient] No ack for switch_camera")
-        except Exception as exc:
-            log.warning("[StreamClient] Camera switch failed: %s", exc)
 
         # ── Step 0: Check for active markets (cancel orphans or skip) ─────────
         try:
