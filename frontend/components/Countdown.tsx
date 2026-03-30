@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CountdownProps {
   lockTime?: number;
@@ -8,13 +9,9 @@ interface CountdownProps {
   totalDuration?: number;
   status: "open" | "locked" | "resolving" | "resolved" | "cancelled";
   roundNumber?: number;
-  /** Final vehicle count — shown in the resolved reveal */
   finalCount?: number;
-  /** Index of winning range: 1 = OVER, 0 = UNDER. -1 = unknown */
   winningRangeIndex?: number;
-  /** Live vehicle count from oracle (shown during counting phase) */
   liveCount?: number;
-  /** Threshold for OVER/UNDER */
   threshold?: number;
 }
 
@@ -23,13 +20,11 @@ export default function Countdown({
   timeLeft: timeLeftProp,
   totalDuration = 300,
   status,
-  // roundNumber kept in props interface but not used in compact layout
   liveCount = 0,
   threshold = 0,
   finalCount,
   winningRangeIndex = -1,
 }: CountdownProps) {
-  // Clock offset: server time minus client time (ms). Corrects device clock skew.
   const clockOffsetRef = useRef(0);
 
   useEffect(() => {
@@ -48,22 +43,19 @@ export default function Countdown({
     syncClock();
   }, []);
 
-  // Corrected "now" accounting for clock skew
   function correctedNow() {
     return Date.now() + clockOffsetRef.current;
   }
 
-  const COUNTING_DURATION = 150; // seconds of counting after bets close
-  const INTER_ROUND_SECS = 15;  // gap between rounds
+  const COUNTING_DURATION = 150;
+  const INTER_ROUND_SECS = 15;
 
-  // Next-round countdown — starts when status becomes resolved/cancelled
   const [nextRoundCountdown, setNextRoundCountdown] = useState(0);
   const nextRoundRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevStatusRef = useRef(status);
 
   useEffect(() => {
     if ((status === "resolved" || status === "cancelled") && prevStatusRef.current !== status) {
-      // Status just changed to terminal — start next-round timer
       setNextRoundCountdown(INTER_ROUND_SECS);
       nextRoundRef.current = setInterval(() => {
         setNextRoundCountdown(prev => {
@@ -79,12 +71,8 @@ export default function Countdown({
     return () => { if (nextRoundRef.current) clearInterval(nextRoundRef.current); };
   }, [status]);
 
-  // Initialize to 0 — real value computed in useEffect to avoid hydration mismatch
   const [derivedTimeLeft, setDerivedTimeLeft] = useState<number>(0);
-
-  // Counting phase countdown (lockTime + 150s = round end)
   const [countingTimeLeft, setCountingTimeLeft] = useState(0);
-
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -101,7 +89,6 @@ export default function Countdown({
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [lockTime, timeLeftProp]);
 
-  // Counting phase timer — ticks every second after betting closes
   useEffect(() => {
     if (!lockTime || lockTime <= 0) return;
     const roundEnd = lockTime + COUNTING_DURATION;
@@ -118,72 +105,106 @@ export default function Countdown({
   const seconds = timeLeft % 60;
   const mm = String(minutes).padStart(2, "0");
   const ss = String(seconds).padStart(2, "0");
-
-  // No heuristic — trust contract state only. Frontend disables bet buttons
-  // via lockTime comparison, but doesn't fake state transitions.
   const effectiveStatus = status;
-
   const progress = totalDuration > 0 ? Math.max(0, timeLeft / totalDuration) : 0;
   const isUrgent = timeLeft <= 30 && effectiveStatus === "open";
 
-  // ── BETTING CLOSED, COUNTING IN PROGRESS ──
-  // lockTime passed but contract is still OPEN (oracle hasn't resolved yet).
-  // Show live vehicle count vs threshold — the thing everyone is watching.
+  // ── COUNTING (betting closed, watching vehicles) ──
   if (effectiveStatus === "open" && timeLeft <= 0) {
     const isOver = liveCount > threshold;
     const countColor = isOver ? "#00ff88" : "#ff4444";
     const diff = isOver ? liveCount - threshold : threshold - liveCount;
-
     const cMm = String(Math.floor(countingTimeLeft / 60)).padStart(2, "0");
     const cSs = String(countingTimeLeft % 60).padStart(2, "0");
 
     return (
-      <div className="w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${countColor}33`, borderRadius: 8 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full px-3 py-2 flex items-center justify-between"
+        style={{
+          background: "rgba(0,0,0,0.85)",
+          border: `1px solid ${countColor}55`,
+          borderRadius: 10,
+          boxShadow: `0 0 30px ${countColor}22, inset 0 0 20px ${countColor}08`,
+        }}
+      >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite" }} />
-          <span className="text-xs font-black" style={{ color: "#666", fontFamily: "monospace" }}>COUNTING</span>
+          <img src="/mascot/confident.gif" alt="" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: countColor, animation: "pulse 0.8s ease-in-out infinite", boxShadow: `0 0 8px ${countColor}` }} />
+          <span className="text-xs font-black tracking-wider" style={{ color: "#aaa", fontFamily: "monospace" }}>COUNTING</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-black tabular-nums" style={{ fontFamily: "monospace", fontSize: 28, color: countColor, lineHeight: 1 }}>
+          <motion.span
+            key={liveCount}
+            initial={{ scale: 1.4, color: "#ffffff" }}
+            animate={{ scale: 1, color: countColor }}
+            transition={{ duration: 0.3 }}
+            className="font-black tabular-nums"
+            style={{ fontFamily: "monospace", fontSize: 28, lineHeight: 1 }}
+          >
             {String(liveCount).padStart(3, "0")}
-          </span>
+          </motion.span>
           {threshold > 0 && (
             <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
               /{threshold} <span style={{ color: countColor, fontWeight: 700 }}>{isOver ? `+${diff}` : `-${diff}`}</span>
             </span>
           )}
-          <span className="text-xs font-black tabular-nums" style={{ color: "#ffaa00", fontFamily: "monospace" }}>
+          <span className="text-xs font-black tabular-nums" style={{ color: "#ffaa00", fontFamily: "monospace", textShadow: "0 0 6px rgba(255,170,0,0.5)" }}>
             {cMm}:{cSs}
           </span>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
-  // ── CANCELLED (no bets / one-sided) ──
+  // ── CANCELLED ──
   if (effectiveStatus === "cancelled") {
     return (
-      <div className="w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid #33333366", borderRadius: 8 }}>
-        <span className="text-xs font-black" style={{ color: "#888", fontFamily: "monospace" }}>ROUND CANCELLED</span>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full px-3 py-2 flex items-center justify-between"
+        style={{ background: "rgba(0,0,0,0.85)", border: "1px solid #33333366", borderRadius: 10 }}
+      >
+        <div className="flex items-center gap-2">
+          <img src="/mascot/chill.gif" alt="" style={{ width: 28, height: 28, borderRadius: "50%" }} />
+          <span className="text-xs font-black" style={{ color: "#888", fontFamily: "monospace" }}>ROUND CANCELLED</span>
+        </div>
         <span className="text-xs font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>
           {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
         </span>
-      </div>
+      </motion.div>
     );
   }
 
   // ── RESOLVING ──
   if (effectiveStatus === "resolving") {
     return (
-      <div className="w-full py-4 text-center" style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", borderRadius: 12 }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <div className="w-3 h-3 rounded-full" style={{ background: "#ffaa00", animation: "pulse 0.8s ease-in-out infinite", boxShadow: "0 0 12px rgba(255,170,0,0.8)" }} />
-          <span className="text-lg font-black tracking-widest" style={{ color: "#ffaa00", fontFamily: "monospace" }}>
-            RESOLVING...
-          </span>
+      <motion.div
+        animate={{ borderColor: ["rgba(255,170,0,0.3)", "rgba(255,170,0,0.7)", "rgba(255,170,0,0.3)"] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="w-full py-3 text-center"
+        style={{ background: "rgba(255,170,0,0.08)", borderWidth: 1, borderStyle: "solid", borderRadius: 12 }}
+      >
+        <div className="flex items-center justify-center gap-3">
+          <img src="/mascot/confident.gif" alt="" style={{ width: 40, height: 40, borderRadius: "50%" }} />
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <motion.div
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+                className="w-3 h-3 rounded-full"
+                style={{ background: "#ffaa00", boxShadow: "0 0 12px rgba(255,170,0,0.8)" }}
+              />
+              <span className="text-lg font-black tracking-widest" style={{ color: "#ffaa00", fontFamily: "monospace", textShadow: "0 0 10px rgba(255,170,0,0.5)" }}>
+                RESOLVING...
+              </span>
+            </div>
+            <span className="text-xs" style={{ color: "#888" }}>Final count incoming</span>
+          </div>
         </div>
-        <span className="text-xs" style={{ color: "#888" }}>Counting final vehicles</span>
-      </div>
+      </motion.div>
     );
   }
 
@@ -191,71 +212,143 @@ export default function Countdown({
   if (effectiveStatus === "resolved") {
     const winningSide = winningRangeIndex === 1 ? "over" : winningRangeIndex === 0 ? "under" : null;
     const winColor = winningSide === "over" ? "#00ff88" : winningSide === "under" ? "#ff4444" : "#00aaff";
-    const winLabel = winningSide === "over" ? "OVER WINS" : winningSide === "under" ? "UNDER WINS" : "ROUND COMPLETE";
+    const winLabel = winningSide === "over" ? "OVER WINS!" : winningSide === "under" ? "UNDER WINS!" : "ROUND COMPLETE";
+    const mascotGif = winningSide ? "/mascot/victory.gif" : "/mascot/payout.gif";
 
     return (
-      <div className="result-reveal-flash w-full px-3 py-2 flex items-center justify-between" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${winColor}44`, borderRadius: 8 }}>
-        <div className="flex items-center gap-2">
-          {finalCount !== undefined && finalCount > 0 && (
-            <span className="font-black tabular-nums" style={{ fontFamily: "monospace", fontSize: 28, color: winColor, lineHeight: 1 }}>
-              {String(finalCount).padStart(3, "0")}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="w-full px-3 py-3"
+        style={{
+          background: `linear-gradient(135deg, rgba(0,0,0,0.9), ${winColor}15)`,
+          border: `2px solid ${winColor}66`,
+          borderRadius: 12,
+          boxShadow: `0 0 40px ${winColor}25`,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <motion.img
+              src={mascotGif}
+              alt=""
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+              style={{ width: 48, height: 48, borderRadius: "50%", border: `2px solid ${winColor}55` }}
+            />
+            <div>
+              {finalCount !== undefined && finalCount > 0 && (
+                <motion.span
+                  initial={{ scale: 2, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 150 }}
+                  className="font-black tabular-nums block"
+                  style={{ fontFamily: "monospace", fontSize: 32, color: winColor, lineHeight: 1, textShadow: `0 0 20px ${winColor}66` }}
+                >
+                  {String(finalCount).padStart(3, "0")}
+                </motion.span>
+              )}
+              <motion.span
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-sm font-black tracking-wider"
+                style={{ color: winColor, fontFamily: "monospace" }}
+              >
+                {winLabel}
+              </motion.span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xs font-black block" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+              {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
             </span>
-          )}
-          <span className="text-xs font-black tracking-wider" style={{ color: winColor, fontFamily: "monospace" }}>{winLabel}</span>
+            <img src="/mascot/payout.gif" alt="" style={{ width: 28, height: 28, borderRadius: "50%", marginTop: 4 }} />
+          </div>
         </div>
-        <span className="text-xs font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>
-          {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
-        </span>
-      </div>
+      </motion.div>
     );
   }
 
-  // ── LOCKED (betting closed) ──
+  // ── LOCKED ──
   if (effectiveStatus === "locked") {
     return (
-      <div className="w-full px-3 py-2 flex items-center justify-center gap-2" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 8 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full px-3 py-2 flex items-center justify-center gap-3"
+        style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 10 }}
+      >
+        <img src="/mascot/confident.gif" alt="" style={{ width: 28, height: 28, borderRadius: "50%" }} />
         <span className="text-xs font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>BETS CLOSED</span>
         <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>Watching the count...</span>
-      </div>
+      </motion.div>
     );
   }
 
   // ── OPEN (betting active) ──
   const timerColor = isUrgent ? "#ff4444" : "#00ff88";
+  const mascotSrc = isUrgent ? "/mascot/hurry.gif" : "/mascot/chill.gif";
+
   return (
-    <div className="w-full px-3 py-2" style={{ background: "rgba(0,0,0,0.7)", border: `1px solid ${timerColor}33`, borderRadius: 8 }}>
+    <motion.div
+      className="w-full px-3 py-2"
+      animate={isUrgent ? {
+        borderColor: ["rgba(255,68,68,0.3)", "rgba(255,68,68,0.8)", "rgba(255,68,68,0.3)"],
+        boxShadow: ["0 0 0px rgba(255,68,68,0)", "0 0 25px rgba(255,68,68,0.3)", "0 0 0px rgba(255,68,68,0)"],
+      } : {}}
+      transition={isUrgent ? { duration: 1, repeat: Infinity } : {}}
+      style={{
+        background: isUrgent ? "rgba(255,68,68,0.08)" : "rgba(0,0,0,0.85)",
+        border: `1px solid ${timerColor}44`,
+        borderRadius: 10,
+      }}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={isUrgent ? "hurry" : "chill"}
+              src={mascotSrc}
+              alt=""
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              style={{ width: 28, height: 28, borderRadius: "50%" }}
+            />
+          </AnimatePresence>
           <div className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: timerColor }} />
             <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: timerColor }} />
           </div>
-          <span className="text-xs font-black" style={{ color: timerColor, fontFamily: "monospace" }}>
-            {isUrgent ? "CLOSING" : "BETS OPEN"}
+          <span className="text-xs font-black tracking-wider" style={{ color: timerColor, fontFamily: "monospace" }}>
+            {isUrgent ? "LAST CHANCE!" : "BETS OPEN"}
           </span>
         </div>
-        <span
+        <motion.span
           className="font-black tabular-nums"
+          animate={isUrgent ? { scale: [1, 1.1, 1] } : {}}
+          transition={isUrgent ? { duration: 0.5, repeat: Infinity } : {}}
           style={{
             fontFamily: "monospace",
-            fontSize: 22,
+            fontSize: isUrgent ? 26 : 22,
             color: timerColor,
-            animation: isUrgent ? "pulse 0.8s ease-in-out infinite" : "none",
+            textShadow: isUrgent ? `0 0 15px ${timerColor}88` : "none",
           }}
         >
           {mm}:{ss}
-        </span>
+        </motion.span>
       </div>
-      {/* Thin progress bar */}
+      {/* Progress bar */}
       <div className="relative h-1 rounded-full overflow-hidden mt-1.5" style={{ background: "#1a1a1a" }}>
-        <div
-          className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000"
-          style={{
-            width: `${(1 - progress) * 100}%`,
-            background: timerColor,
-          }}
+        <motion.div
+          className="absolute left-0 top-0 h-full rounded-full"
+          style={{ width: `${(1 - progress) * 100}%`, background: timerColor }}
+          layout
+          transition={{ duration: 1 }}
         />
       </div>
-    </div>
+    </motion.div>
   );
 }

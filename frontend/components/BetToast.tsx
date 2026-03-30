@@ -24,10 +24,9 @@ export default function BetToast({ bets }: BetToastProps) {
 
     setVisibleBets((prev) => [...prev, ...newBets]);
 
-    // Auto-remove after 3 seconds
     const timer = setTimeout(() => {
       setVisibleBets((prev) => prev.filter((b) => !newBets.some((n) => n.id === b.id)));
-    }, 3000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [bets, seenIds]);
@@ -35,43 +34,62 @@ export default function BetToast({ bets }: BetToastProps) {
   return (
     <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
-        {visibleBets.map((bet) => (
-          <motion.div
-            key={bet.id}
-            initial={{ opacity: 0, x: 40, scale: 0.8 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-            style={{
-              background: bet.side === "over" ? "rgba(0,255,136,0.15)" : "rgba(255,68,68,0.15)",
-              border: `1px solid ${bet.side === "over" ? "rgba(0,255,136,0.4)" : "rgba(255,68,68,0.4)"}`,
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <span
-              className="text-xs font-black"
+        {visibleBets.map((bet) => {
+          const isOver = bet.side === "over";
+          const color = isOver ? "#00ff88" : "#ff4444";
+          const bg = isOver ? "rgba(0,255,136,0.15)" : "rgba(255,68,68,0.15)";
+          const border = isOver ? "rgba(0,255,136,0.4)" : "rgba(255,68,68,0.4)";
+
+          return (
+            <motion.div
+              key={bet.id}
+              initial={{ opacity: 0, x: 60, scale: 0.7 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 60, scale: 0.7 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl"
               style={{
-                color: bet.side === "over" ? "#00ff88" : "#ff4444",
-                fontFamily: "monospace",
+                background: bg,
+                border: `1px solid ${border}`,
+                backdropFilter: "blur(12px)",
+                boxShadow: `0 0 20px ${isOver ? "rgba(0,255,136,0.2)" : "rgba(255,68,68,0.2)"}`,
               }}
             >
-              {bet.side === "over" ? "\u25B2" : "\u25BC"}
-            </span>
-            <span
-              className="text-sm font-black tabular-nums"
-              style={{
-                color: bet.side === "over" ? "#00ff88" : "#ff4444",
-                fontFamily: "monospace",
-              }}
-            >
-              +{bet.amount.toFixed(3)} ETH
-            </span>
-            <span className="text-xs" style={{ color: "#666", fontFamily: "monospace" }}>
-              {bet.shortWallet}
-            </span>
-          </motion.div>
-        ))}
+              {/* Mascot mini */}
+              <img
+                src="/mascot/bet-placed.gif"
+                alt=""
+                style={{ width: 32, height: 32, borderRadius: "50%" }}
+              />
+              <div className="flex flex-col">
+                <span
+                  className="text-sm font-black tabular-nums"
+                  style={{ color, fontFamily: "monospace" }}
+                >
+                  {isOver ? "\u25B2 OVER" : "\u25BC UNDER"} +{bet.amount.toFixed(3)} ETH
+                </span>
+                <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
+                  {bet.shortWallet}
+                </span>
+              </div>
+
+              {/* Glow pulse */}
+              <motion.div
+                animate={{ scale: [1, 1.5, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                style={{
+                  position: "absolute",
+                  right: -4,
+                  top: -4,
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  background: color,
+                }}
+              />
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

@@ -23,6 +23,7 @@ import { Shield, Zap, Brain, Coins } from "lucide-react";
 import { timeAgo, type LiveMarket } from "@/lib/mock";
 import { useMarketStream } from "@/hooks/useMarketStream";
 import BetToast from "@/components/BetToast";
+import MascotOverlay from "@/components/MascotOverlay";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
@@ -296,6 +297,14 @@ export default function Home() {
             />
 
             <BetToast bets={market.recentBets} />
+
+            {/* Mascot overlay for round events */}
+            <MascotOverlay
+              status={market.status as "open" | "locked" | "resolving" | "resolved" | "cancelled"}
+              winningRangeIndex={winningRangeIndex}
+              finalCount={contractData.actualCarCount}
+              threshold={market.threshold}
+            />
 
             {/* Countdown overlaid on video — top for mobile visibility */}
             <div className="absolute bottom-2 left-2 right-2 z-10" style={{ pointerEvents: "auto" }}>
