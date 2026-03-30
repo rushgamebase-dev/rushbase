@@ -527,7 +527,11 @@ class StreamClient:
 
     async def ensure_connected(self) -> None:
         """Reconnect if WS is closed."""
-        if self._ws is None or self._ws.closed:
+        try:
+            is_open = self._ws is not None and self._ws.protocol.state.name == "OPEN"
+        except Exception:
+            is_open = False
+        if not is_open:
             log.info("[StreamClient] Reconnecting...")
             await self.connect(timeout=30)
 
@@ -602,8 +606,11 @@ class StreamClient:
             return None
 
     async def close(self) -> None:
-        if self._ws and not self._ws.closed:
-            await self._ws.close()
+        try:
+            if self._ws:
+                await self._ws.close()
+        except Exception:
+            pass
 
 
 # ── Adaptive threshold ────────────────────────────────────────────────────────
