@@ -68,6 +68,11 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           0%, 100% { box-shadow: 0 0 6px rgba(0,255,136,0.4), inset 0 0 8px rgba(0,255,136,0.1); }
           50% { box-shadow: 0 0 14px rgba(0,255,136,0.7), inset 0 0 12px rgba(0,255,136,0.2); }
         }
+        @keyframes diagonalSweep {
+          0%, 15% { opacity: 0; }
+          50% { opacity: 1; }
+          85%, 100% { opacity: 0; }
+        }
       `}</style>
       <div
         className="grid gap-[3px] rounded-lg p-1"
@@ -78,6 +83,9 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
       {tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
         const hasImage = tile.isActive && !!tile.owner;
+        const row = Math.floor(tile.id / 10);
+        const col = tile.id % 10;
+        const sweepDelay = ((row + col) / 18) * 5; // 0-5s spread across diagonal
 
         let borderColor = "#222";
         let shadow = "none";
@@ -165,6 +173,18 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
             >
               {tile.price.toFixed(3)}
             </span>
+
+            {/* Diagonal neon sweep */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: "linear-gradient(135deg, transparent 30%, rgba(0,255,200,0.12) 50%, transparent 70%)",
+                opacity: 0,
+                animation: `diagonalSweep 5s ${sweepDelay.toFixed(2)}s ease-in-out infinite`,
+                zIndex: 2,
+                borderRadius: "inherit",
+              }}
+            />
 
             {/* My tile pulsing dot */}
             {tile.isMine && (
