@@ -195,7 +195,7 @@ export default function Home() {
   useMarketStream();
 
   // Real-time bet stream via Ably
-  const { bets: liveBets } = useBetStream();
+  const { bets: _liveBets } = useBetStream(); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   // Reset live count when market changes (new round starts)
   useEffect(() => { setLiveCount(0); }, [activeMarketAddress]);
