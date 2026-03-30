@@ -597,6 +597,9 @@ class StreamServer:
         self._round_market = ''
         self._round_id = 0
 
+        # Evidence
+        self._init_evidence()
+
     def _build_roi_mask(self, h, w):
         """Create binary mask from ROI polygons. Called once on first frame."""
         if not self._roi_polygons:
@@ -629,7 +632,8 @@ class StreamServer:
             return cv2.bitwise_and(frame, self._roi_mask)
         return frame
 
-        # Evidence frame tracking
+    def _init_evidence(self):
+        """Called from __init__ — separated to avoid dead code after return."""
         self._evidence_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "evidence")
         self._evidence_frames: list[str] = []
         self._evidence_hashes: list[str] = []
