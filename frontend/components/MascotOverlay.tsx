@@ -94,7 +94,7 @@ export default function MascotOverlay({
         title: "BETS ARE OPEN!",
         subtitle: "Place your prediction now",
         color: "#00ff88",
-        duration: 3000,
+        duration: 4000,
       });
     }
 
@@ -107,7 +107,7 @@ export default function MascotOverlay({
         title: "LAST CHANCE!",
         subtitle: `${timeLeft}s left to bet`,
         color: "#ff4444",
-        duration: 4000,
+        duration: 5000,
       });
     }
 
@@ -120,7 +120,7 @@ export default function MascotOverlay({
         title: "COUNTING STARTED!",
         subtitle: "Watching the road...",
         color: "#ffaa00",
-        duration: 2500,
+        duration: 3500,
       });
     }
 
@@ -138,7 +138,7 @@ export default function MascotOverlay({
         title: winLabel,
         subtitle: finalCount !== undefined ? `Final count: ${finalCount} vehicles` : undefined,
         color: winColor,
-        duration: 5000,
+        duration: 6000,
         confetti: true,
         size: "big",
       });
@@ -152,7 +152,7 @@ export default function MascotOverlay({
         title: "ROUND CANCELLED",
         subtitle: "No bets placed — next round starting",
         color: "#888888",
-        duration: 3000,
+        duration: 4000,
       });
     }
 
@@ -196,8 +196,8 @@ export default function MascotOverlay({
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
               style={{
-                width: card.size === "big" ? 120 : 96,
-                height: card.size === "big" ? 120 : 96,
+                width: card.size === "big" ? 140 : 110,
+                height: card.size === "big" ? 140 : 110,
                 filter: `drop-shadow(0 0 15px ${card.color}55)`,
               }}
             />
@@ -226,7 +226,7 @@ export default function MascotOverlay({
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-xl font-black tracking-wider text-center"
+              className="text-2xl md:text-3xl font-black tracking-wider text-center"
               style={{
                 color: card.color,
                 fontFamily: "monospace",

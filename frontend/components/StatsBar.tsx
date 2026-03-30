@@ -14,7 +14,7 @@ export default function StatsBar({
   marketsResolved = 0,
 }: StatsBarProps) {
   const stats = [
-    { label: "VOL 24H", value: `${volume24h.toFixed(1)} ETH`, color: "#00ff88" },
+    { label: "VOL 24H", value: volume24h >= 1000 ? `$${(volume24h / 1000).toFixed(1)}K` : volume24h > 0 ? `$${volume24h.toFixed(0)}` : "—", color: "#00ff88" },
     { label: "DISTRIBUTED", value: `${totalDistributed.toFixed(1)} ETH`, color: "#ffd700" },
     { label: "ACTIVE BETTORS", value: activeBettors.toLocaleString(), color: "#00aaff" },
     { label: "MARKETS RESOLVED", value: marketsResolved.toLocaleString(), color: "#aaa" },

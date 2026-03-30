@@ -31,6 +31,22 @@ export async function GET(req: NextRequest) {
     const avgPoolSize = marketsResolved > 0 ? totalVolume / marketsResolved : 0;
     const avgBettorsPerRound = marketsResolved > 0 ? Math.round(totalBettors / marketsResolved) : 0;
 
+    // Fetch $RUSH 24h volume from DexScreener
+    let volume24h = 0;
+    try {
+      const dexRes = await fetch(
+        "https://api.dexscreener.com/latest/dex/tokens/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b",
+        { next: { revalidate: 60 } } // cache 60s
+      );
+      if (dexRes.ok) {
+        const dexData = await dexRes.json();
+        const pairs = dexData?.pairs || [];
+        if (pairs.length > 0) {
+          volume24h = pairs[0]?.volume?.h24 || 0;
+        }
+      }
+    } catch { /* DexScreener unavailable — show 0 */ }
+
     return NextResponse.json({
       totalVolume: Math.round(totalVolume * 1000) / 1000,
       marketsResolved,
@@ -39,7 +55,7 @@ export async function GET(req: NextRequest) {
       avgPoolSize: Math.round(avgPoolSize * 1000) / 1000,
       biggestRound: Math.round(biggestRound * 1000) / 1000,
       avgBettorsPerRound,
-      volume24h: 0,
+      volume24h,
     }, {
       headers: {
         "X-RateLimit-Remaining": String(rl.remaining),

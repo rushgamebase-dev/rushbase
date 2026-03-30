@@ -36,7 +36,14 @@ export default function RoundHistory({ history }: RoundHistoryProps) {
       <div className="flex flex-wrap gap-1.5">
         {history.map((round) => {
           const isOver = round.result === "over";
+          const isCancelled = !round.result || (round.result !== "over" && round.result !== "under");
           const isHovered = hoveredId === round.roundId;
+
+          const color = isCancelled ? "#666" : isOver ? "#00ff88" : "#ff4444";
+          const bg = isCancelled ? "rgba(100,100,100,0.1)" : isOver ? "rgba(0,255,136,0.15)" : "rgba(255,68,68,0.15)";
+          const borderColor = isCancelled ? "rgba(100,100,100,0.25)" : isOver ? "rgba(0,255,136,0.35)" : "rgba(255,68,68,0.35)";
+          const icon = isCancelled ? "—" : isOver ? "▲" : "▼";
+          const label = isCancelled ? "CANCELLED" : isOver ? "OVER" : "UNDER";
 
           return (
             <div
@@ -44,27 +51,26 @@ export default function RoundHistory({ history }: RoundHistoryProps) {
               className="relative"
               onMouseEnter={() => setHoveredId(round.roundId)}
               onMouseLeave={() => setHoveredId(null)}
+              onTouchStart={() => setHoveredId(isHovered ? null : round.roundId)}
             >
               <div
                 className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold cursor-default transition-all"
                 style={{
-                  background: isOver
-                    ? "rgba(0,255,136,0.15)"
-                    : "rgba(255,68,68,0.15)",
-                  border: `1px solid ${isOver ? "rgba(0,255,136,0.35)" : "rgba(255,68,68,0.35)"}`,
-                  color: isOver ? "#00ff88" : "#ff4444",
+                  background: bg,
+                  border: `1px solid ${borderColor}`,
+                  color,
                   transform: isHovered ? "scale(1.15)" : "scale(1)",
                   fontFamily: "monospace",
                 }}
-                aria-label={`Round ${round.roundId}: ${round.result === "over" ? "OVER" : "UNDER"} — ${round.actualCount} vehicles`}
+                aria-label={`Round ${round.roundId}: ${label} — ${round.actualCount} vehicles`}
               >
-                {isOver ? "▲" : "▼"}
+                {icon}
               </div>
 
               {/* Tooltip */}
               {isHovered && (
                 <div
-                  className="absolute bottom-full left-1/2 mb-2 z-50 whitespace-nowrap pointer-events-none animate-fade-in-up"
+                  className="absolute bottom-full left-1/2 mb-2 z-50 whitespace-nowrap pointer-events-none"
                   style={{ transform: "translateX(-50%)" }}
                 >
                   <div
@@ -76,13 +82,12 @@ export default function RoundHistory({ history }: RoundHistoryProps) {
                       fontFamily: "monospace",
                     }}
                   >
-                    <div className="font-bold" style={{ color: isOver ? "#00ff88" : "#ff4444" }}>
-                      #{round.roundId} {isOver ? "OVER" : "UNDER"}
+                    <div className="font-bold" style={{ color }}>
+                      #{round.roundId} {label}
                     </div>
                     <div style={{ color: "#aaa" }}>Count: {round.actualCount}</div>
-                    <div style={{ color: "#aaa" }}>Pool: {round.pool.toFixed(2)} ETH</div>
+                    {!isCancelled && <div style={{ color: "#aaa" }}>Pool: {round.pool.toFixed(2)} ETH</div>}
                   </div>
-                  {/* Arrow */}
                   <div
                     className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0"
                     style={{
