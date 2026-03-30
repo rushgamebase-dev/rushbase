@@ -876,8 +876,23 @@ class StreamServer:
                 ret, f = c.read()
                 if ret and f is not None:
                     _last_frame_time[0] = time.time()
+                    # Drain FFmpeg internal buffer — always keep the LATEST frame.
+                    # Without this, FFmpeg accumulates 2+ minutes of HLS segments
+                    # and the stream falls behind real-time.
+                    latest = f
+                    while True:
+                        ret2, f2 = c.read()
+                        if ret2 and f2 is not None:
+                            latest = f2
+                            _last_frame_time[0] = time.time()
+                        else:
+                            break
                     try:
-                        _frame_q.put(f, timeout=1)
+                        # Clear old frame from queue, put newest
+                        while not _frame_q.empty():
+                            try: _frame_q.get_nowait()
+                            except: break
+                        _frame_q.put_nowait(latest)
                     except _queue.Full:
                         pass
                 else:
