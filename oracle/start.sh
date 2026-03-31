@@ -136,7 +136,7 @@ echo "[Launcher] Starting persistent stream server..."
 
 cd "$SCRIPT_DIR"
 
-CAMERA="${CAMERA:-serpong-toll-km14}"
+CAMERA="${CAMERA:-peace-bridge}"
 python3 -u stream_server.py --camera "$CAMERA" --port "$WS_PORT" &
 STREAM_PID=$!
 echo "[Launcher] Stream server PID: $STREAM_PID (camera: $CAMERA, port: $WS_PORT)"
