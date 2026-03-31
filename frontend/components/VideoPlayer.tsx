@@ -41,7 +41,7 @@ export default function VideoPlayer({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   streamUrl: _streamUrl,
 }: VideoPlayerProps) {
-  const audioContextRef = useRef<AudioContext | null>(null);
+  // audioContextRef removed — no beep
 
   // Stable refs for values used inside WS callbacks
   const marketAddressRef = useRef(marketAddress);
@@ -88,50 +88,7 @@ export default function VideoPlayer({
   const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
   const prevCountRef = useRef(vehicleCount);
 
-  // Beep on count increment
-  const playBeep = useCallback(() => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx.state === "suspended") return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(1200, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.12);
-    } catch {
-      // AudioContext unavailable
-    }
-  }, []);
-
-  useEffect(() => {
-    if (vehicleCount > prevCountRef.current) {
-      playBeep();
-    }
-    prevCountRef.current = vehicleCount;
-  }, [vehicleCount, playBeep]);
-
-  // Unlock audio on first click
-  useEffect(() => {
-    const unlock = () => {
-      if (audioContextRef.current?.state === "suspended") {
-        audioContextRef.current.resume();
-      }
-    };
-    document.addEventListener("click", unlock, { once: true });
-    document.addEventListener("touchstart", unlock, { once: true });
-    return () => {
-      document.removeEventListener("click", unlock);
-      document.removeEventListener("touchstart", unlock);
-    };
-  }, []);
+  // No beep — count shown visually only
 
   // Oracle WebSocket — metadata only (no video frames)
   const connectOracle = useCallback(() => {
