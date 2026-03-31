@@ -19,19 +19,10 @@ export default function BetToast({ bets }: BetToastProps) {
     setSeenIds((prev) => {
       const next = new Set(prev);
       newBets.forEach((b) => next.add(b.id));
-      // Prune old IDs to prevent memory leak
-      if (next.size > 200) {
-        const arr = Array.from(next);
-        return new Set(arr.slice(arr.length - 100));
-      }
       return next;
     });
 
-    setVisibleBets((prev) => {
-      const merged = [...prev, ...newBets];
-      // Keep only the 5 most recent
-      return merged.slice(-5);
-    });
+    setVisibleBets((prev) => [...prev, ...newBets]);
 
     const timer = setTimeout(() => {
       setVisibleBets((prev) => prev.filter((b) => !newBets.some((n) => n.id === b.id)));
@@ -41,8 +32,8 @@ export default function BetToast({ bets }: BetToastProps) {
   }, [bets, seenIds]);
 
   return (
-    <div className="absolute bottom-3 right-3 z-20 flex flex-col-reverse gap-2 pointer-events-none">
-      <AnimatePresence initial={false}>
+    <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+      <AnimatePresence>
         {visibleBets.map((bet) => {
           const isOver = bet.side === "over";
           const color = isOver ? "#00ff88" : "#ff4444";
@@ -51,12 +42,11 @@ export default function BetToast({ bets }: BetToastProps) {
 
           return (
             <motion.div
-              layout
               key={bet.id}
-              initial={{ opacity: 0, y: 40, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              initial={{ opacity: 0, x: 60, scale: 0.7 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 60, scale: 0.7 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="flex items-center gap-2 px-3 py-2 rounded-xl"
               style={{
                 background: bg,
