@@ -26,6 +26,60 @@ import BetToast from "@/components/BetToast";
 import MascotOverlay from "@/components/MascotOverlay";
 import { useBetStream } from "@/hooks/useBetStream";
 
+// ─── Maintenance mode — flip to true to show offline screen ──────────────────
+const MAINTENANCE_MODE = true;
+
+function MaintenanceScreen() {
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      style={{ background: "#0a0a0a" }}
+    >
+      <img
+        src="/mascot/hurry.gif"
+        alt="Rush mascot"
+        style={{
+          width: 120,
+          height: 120,
+          filter: "drop-shadow(0 0 20px rgba(0,255,136,0.4))",
+          marginBottom: 24,
+        }}
+      />
+      <h1
+        className="text-2xl md:text-3xl font-black tracking-widest"
+        style={{
+          color: "#00ff88",
+          fontFamily: "ui-monospace, SFMono-Regular, monospace",
+          textShadow: "0 0 24px rgba(0,255,136,0.3)",
+          marginBottom: 8,
+        }}
+      >
+        UPGRADING SYSTEMS
+      </h1>
+      <p
+        className="text-sm"
+        style={{ color: "#555", fontFamily: "monospace", marginBottom: 4 }}
+      >
+        We&apos;re deploying improvements to the oracle engine.
+      </p>
+      <p
+        className="text-sm"
+        style={{ color: "#555", fontFamily: "monospace" }}
+      >
+        Back online shortly. Your funds are safe on-chain.
+      </p>
+      <div
+        className="mt-6 w-8 h-8 rounded-full border-2 border-t-transparent"
+        style={{
+          borderColor: "#00ff8855",
+          borderTopColor: "transparent",
+          animation: "spin 1s linear infinite",
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
 
 function usePlatformStatCards(stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }, distributed?: number) {
@@ -168,6 +222,8 @@ function useIsDesktop() {
 }
 
 export default function Home() {
+  if (MAINTENANCE_MODE) return <MaintenanceScreen />;
+
   const isDesktop = useIsDesktop();
 
   const { marketAddress: activeMarketAddress, isWaiting, marketCount } = useActiveMarket();
