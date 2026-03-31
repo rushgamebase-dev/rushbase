@@ -596,6 +596,7 @@ class StreamServer:
         self._round_duration = 300
         self._round_market = ''
         self._round_id = 0
+        self._refresh_cap = False  # signal reader to recreate VideoCapture between rounds
 
         # Evidence
         self._init_evidence()
@@ -693,6 +694,7 @@ class StreamServer:
             json.dump(result, f, indent=2)
         self._round_active = False
         self._state = self.STATE_IDLE
+        self._refresh_cap = True  # signal reader to recreate VideoCapture
         print(f"[STATE] idle — round {self._round_id} complete: {count} vehicles")
         return result
 
@@ -858,6 +860,24 @@ class StreamServer:
 
         def _reader():
             while _reader_alive[0]:
+                # Refresh cap between rounds — resets FFmpeg buffer, eliminates delay
+                if self._refresh_cap:
+                    self._refresh_cap = False
+                    print("[Reader] Refreshing VideoCapture (between rounds)")
+                    c = _cap_holder[0]
+                    if c is not None:
+                        try: c.release()
+                        except: pass
+                    new_url = get_stream_url(self.stream_url)
+                    _cap_holder[0] = cv2.VideoCapture(new_url)
+                    _last_frame_time[0] = time.time()
+                    # Drain queue so main loop doesn't get stale frames
+                    while not _frame_q.empty():
+                        try: _frame_q.get_nowait()
+                        except: break
+                    print("[Reader] Fresh VideoCapture ready")
+                    continue
+
                 c = _cap_holder[0]
                 if c is None or not c.isOpened():
                     print("[Reader] Reconnecting...")
