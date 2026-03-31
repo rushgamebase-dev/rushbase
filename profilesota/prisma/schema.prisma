@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Core Identity ───────────────────────────────────────────────────────────
+
+model User {
+  id         String    @id @default(uuid())
+  wallet     String    @unique @db.VarChar(42)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  lastSeenAt DateTime? @map("last_seen_at")
+
+  profile  UserProfile?
+  stats    UserStats?
+  bets     Bet[]
+  badges   UserBadge[]
+  labels   UserLabel[]
+  settings UserSettings?
+
+  @@map("users")
+}
+
+// ─── Public Profile ──────────────────────────────────────────────────────────
+
+model UserProfile {
+  id          String  @id @default(uuid())
+  userId      String  @unique @map("user_id")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle      String? @unique @db.VarChar(20)
+  displayName String? @map("display_name") @db.VarChar(40)
+  bio         String? @db.VarChar(160)
+  avatarUrl   String? @map("avatar_url")
+  isPublic    Boolean @default(true) @map("is_public")
+
+  @@index([handle])
+  @@map("user_profiles")
+}
+
+// ─── Pre-aggregated Stats ────────────────────────────────────────────────────
+
+model UserStats {
+  userId              String   @id @map("user_id")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalBets           Int      @default(0) @map("total_bets")
+  totalWins           Int      @default(0) @map("total_wins")
+  totalLosses         Int      @default(0) @map("total_losses")
+  totalVolume         Decimal  @default(0) @map("total_volume") @db.Decimal(36, 18)
+  totalPnl            Decimal  @default(0) @map("total_pnl") @db.Decimal(36, 18)
+  biggestWin          Decimal  @default(0) @map("biggest_win") @db.Decimal(36, 18)
+  currentStreak       Int      @default(0) @map("current_streak")
+  bestStreak          Int      @default(0) @map("best_streak")
+  marketsParticipated Int      @default(0) @map("markets_participated")
+  xp                  Int      @default(0)
+  level               Int      @default(1)
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([totalPnl])
+  @@index([totalVolume])
+  @@index([bestStreak])
+  @@index([xp])
+  @@map("user_stats")
+}
+
+// ─── Bet Records ─────────────────────────────────────────────────────────────
+
+model Bet {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketAddress String     @map("market_address") @db.VarChar(42)
+  marketDesc    String?    @map("market_desc")
+  rangeIndex    Int        @map("range_index")
+  rangeLabel    String     @map("range_label")
+  amount        Decimal    @db.Decimal(36, 18)
+  txHash        String     @map("tx_hash") @db.VarChar(66)
+  outcome       BetOutcome @default(PENDING)
+  claimAmount   Decimal?   @map("claim_amount") @db.Decimal(36, 18)
+  pnl           Decimal?   @db.Decimal(36, 18)
+  actualCount   Int?       @map("actual_count")
+  threshold     Int?
+  placedAt      DateTime   @default(now()) @map("placed_at")
+  resolvedAt    DateTime?  @map("resolved_at")
+
+  @@unique([marketAddress, userId, txHash])
+  @@index([userId, placedAt])
+  @@index([marketAddress])
+  @@map("bets")
+}
+
+enum BetOutcome {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+}
+
+// ─── Badge Definitions ───────────────────────────────────────────────────────
+
+model Badge {
+  id          String        @id @default(uuid())
+  slug        String        @unique @db.VarChar(50)
+  name        String        @db.VarChar(100)
+  description String
+  imageUrl    String?       @map("image_url")
+  category    BadgeCategory
+  rarity      BadgeRarity   @default(COMMON)
+  trigger     String        @db.VarChar(50)
+  threshold   Decimal       @db.Decimal(36, 18)
+  xpReward    Int           @default(0) @map("xp_reward")
+  sortOrder   Int           @default(0) @map("sort_order")
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  users UserBadge[]
+
+  @@map("badges")
+}
+
+enum BadgeCategory {
+  MILESTONE
+  STREAK
+  VOLUME
+  SPECIAL
+  MANUAL
+}
+
+enum BadgeRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// ─── User × Badge Junction ──────────────────────────────────────────────────
+
+model UserBadge {
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt  DateTime @default(now()) @map("earned_at")
+  displayed Boolean  @default(true)
+
+  @@id([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// ─── User Labels (roles/tags) ────────────────────────────────────────────────
+
+model UserLabel {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   @db.VarChar(30)
+  color     String?  @db.VarChar(7)
+  icon      String?  @db.VarChar(30)
+  grantedAt DateTime @default(now()) @map("granted_at")
+  grantedBy String?  @map("granted_by")
+
+  @@unique([userId, label])
+  @@index([userId])
+  @@map("user_labels")
+}
+
+// ─── User Settings ───────────────────────────────────────────────────────────
+
+model UserSettings {
+  userId         String  @id @map("user_id")
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatColor      String? @map("chat_color") @db.VarChar(7)
+  showStats      Boolean @default(true) @map("show_stats")
+  showBetHistory Boolean @default(true) @map("show_bet_history")
+
+  @@map("user_settings")
+}
+
+// ─── SIWE Nonces ─────────────────────────────────────────────────────────────
+
+model SiweNonce {
+  nonce     String   @id @db.VarChar(64)
+  wallet    String   @db.VarChar(42)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("siwe_nonces")
+}
+
+// ─── Leaderboard Snapshots ───────────────────────────────────────────────────
+
+model LeaderboardSnapshot {
+  id        String   @id @default(uuid())
+  category  String   @db.VarChar(20)
+  entries   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([category, createdAt])
+  @@map("leaderboard_snapshots")
+}
