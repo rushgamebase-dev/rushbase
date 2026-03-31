@@ -32,7 +32,8 @@ const STATIC_ORACLE_WS_URL =
     : "";
 
 export default function VideoPlayer({
-  vehicleCount: externalVehicleCount,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  vehicleCount: _externalVehicleCount,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isLive: _isLive = true,
   cameraName = "LIVE CAMERA",
@@ -79,16 +80,14 @@ export default function VideoPlayer({
 
   // Oracle connection state
   const [oracleConnected, setOracleConnected] = useState(false);
-  const [oracleCount, setOracleCount] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_oracleCount, setOracleCount] = useState(0);
   const [videoUid, setVideoUid] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
 
-  const vehicleCount = oracleConnected ? oracleCount : externalVehicleCount;
-  const prevCountRef = useRef(vehicleCount);
-
-  // No beep — count shown visually only
+  // vehicleCount computed by parent via onCountUpdate callback
 
   // Oracle WebSocket — metadata only (no video frames)
   const connectOracle = useCallback(() => {
