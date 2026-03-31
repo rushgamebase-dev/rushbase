@@ -319,8 +319,13 @@ export default function MarketDetailPage() {
             {/* Live Stream + Detection Overlay */}
             <div className="card p-0 overflow-hidden" role="region" aria-label="Live vehicle detection stream">
               <LiveStreamOverlay
-                wsUrl={typeof window !== "undefined" ? `ws://${window.location.hostname}:9000` : "ws://localhost:9000"}
+                wsUrl={typeof window !== "undefined"
+                  ? new URLSearchParams(window.location.search).get("ws") || process.env.NEXT_PUBLIC_ORACLE_WS_URL || `ws://${window.location.hostname}:9000`
+                  : "ws://localhost:9000"}
                 threshold={50}
+                videoUid={typeof window !== "undefined"
+                  ? new URLSearchParams(window.location.search).get("video") || ""
+                  : ""}
               />
             </div>
 
