@@ -584,7 +584,10 @@ class StreamClient:
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
-                self._ws = await _ws.connect(self.ws_url, open_timeout=5)
+                self._ws = await _ws.connect(
+                    self.ws_url, open_timeout=5,
+                    ping_interval=None, ping_timeout=None,  # disable client pings — server handles keepalive
+                )
                 log.info("[StreamClient] Connected to %s", self.ws_url)
                 return
             except Exception:

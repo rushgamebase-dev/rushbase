@@ -113,7 +113,7 @@ export default function Countdown({
   const ss = String(seconds).padStart(2, "0");
   const effectiveStatus = status;
   const progress = totalDuration > 0 ? Math.max(0, timeLeft / totalDuration) : 0;
-  const isUrgent = timeLeft <= 30 && timeLeft > 0 && effectiveStatus === "open" && (!oraclePhase || oraclePhase === "betting");
+  const isUrgent = timeLeft <= 30 && timeLeft > 0 && effectiveStatus === "open" && oraclePhase === "betting";
 
   // ── COUNTING (betting closed, watching vehicles) ──
   // Use oracle phase as authority; fallback to lockTime math

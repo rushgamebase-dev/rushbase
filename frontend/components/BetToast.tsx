@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Bet } from "@/lib/mock";
 
@@ -10,26 +10,29 @@ interface BetToastProps {
 
 export default function BetToast({ bets }: BetToastProps) {
   const [visibleBets, setVisibleBets] = useState<Bet[]>([]);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const seenIdsRef = useRef(new Set<string>());
+
+  // Clear seen IDs when bets array resets (new round)
+  useEffect(() => {
+    if (bets.length === 0) {
+      seenIdsRef.current.clear();
+      setVisibleBets([]);
+    }
+  }, [bets.length === 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const newBets = bets.filter((b) => !seenIds.has(b.id));
+    const newBets = bets.filter((b) => !seenIdsRef.current.has(b.id));
     if (newBets.length === 0) return;
 
-    setSeenIds((prev) => {
-      const next = new Set(prev);
-      newBets.forEach((b) => next.add(b.id));
-      return next;
-    });
-
-    setVisibleBets((prev) => [...prev, ...newBets]);
+    newBets.forEach((b) => seenIdsRef.current.add(b.id));
+    setVisibleBets((prev) => [...prev, ...newBets].slice(-5)); // max 5 visible
 
     const timer = setTimeout(() => {
       setVisibleBets((prev) => prev.filter((b) => !newBets.some((n) => n.id === b.id)));
-    }, 4000);
+    }, 5000);
 
     return () => clearTimeout(timer);
-  }, [bets, seenIds]);
+  }, [bets]);
 
   return (
     <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
