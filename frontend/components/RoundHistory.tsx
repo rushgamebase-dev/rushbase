@@ -49,7 +49,7 @@ export default function RoundHistory({ history }: RoundHistoryProps) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
         {history.map((round) => {
           const isOver = round.result === "over";
           const isCancelled = round.pool <= 0;
