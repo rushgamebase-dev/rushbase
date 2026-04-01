@@ -716,7 +716,7 @@ class AdaptiveThreshold:
 
     HISTORY_SIZE = 5
     MIN_THRESHOLD = 1
-    MAX_THRESHOLD = 200
+    MAX_THRESHOLD = 500
 
     def __init__(self, initial: int = 50) -> None:
         self._history: list[int] = []

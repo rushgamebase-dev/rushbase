@@ -34,7 +34,7 @@ export interface MarketData {
 // Polling is just a safety net — 30s is enough to catch anything missed.
 // Critical data polled frequently — events are unreliable with HTTP transport.
 // State/pools/count MUST update within seconds, not 30s.
-const POLL_INTERVAL = 15_000;
+const POLL_INTERVAL = 5_000;
 
 /**
  * Reads all data from a specific PredictionMarket contract.

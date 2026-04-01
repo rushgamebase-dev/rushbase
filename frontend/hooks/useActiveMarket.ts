@@ -26,7 +26,7 @@ export function useActiveMarket() {
     functionName: "getMarketCount",
     query: {
       enabled,
-      refetchInterval: 30_000,
+      refetchInterval: 10_000,
     },
   });
 
