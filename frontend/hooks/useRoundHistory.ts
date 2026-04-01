@@ -5,7 +5,7 @@ import type { RoundResult } from "@/lib/mock";
 
 const POLL_INTERVAL = 15_000; // 15s
 
-export function useRoundHistory(limit = 20) {
+export function useRoundHistory(limit = 10) {
   const [history, setHistory] = useState<RoundResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
