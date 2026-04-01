@@ -25,14 +25,24 @@ export default function BetToast({ bets }: BetToastProps) {
     if (newBets.length === 0) return;
 
     newBets.forEach((b) => seenIdsRef.current.add(b.id));
-    setVisibleBets((prev) => [...prev, ...newBets].slice(-5)); // max 5 visible
 
-    const timer = setTimeout(() => {
-      setVisibleBets((prev) => prev.filter((b) => !newBets.some((n) => n.id === b.id)));
-    }, 5000);
-
-    return () => clearTimeout(timer);
+    // Add expiry timestamp to each bet
+    const now = Date.now();
+    const withExpiry = newBets.map((b) => ({ ...b, _expiry: now + 5000 }));
+    setVisibleBets((prev) => [...prev, ...withExpiry].slice(-5));
   }, [bets]);
+
+  // Auto-remove expired toasts every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleBets((prev) => {
+        const now = Date.now();
+        const filtered = prev.filter((b: Bet & { _expiry?: number }) => !b._expiry || b._expiry > now);
+        return filtered.length === prev.length ? prev : filtered;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
@@ -62,11 +72,11 @@ export default function BetToast({ bets }: BetToastProps) {
               <img
                 src="/mascot/bet-placed.gif"
                 alt=""
-                style={{ width: 32, height: 32, borderRadius: "50%" }}
+                style={{ width: 24, height: 24, borderRadius: "50%" }}
               />
               <div className="flex flex-col">
                 <span
-                  className="text-sm font-black tabular-nums"
+                  className="text-xs font-black tabular-nums"
                   style={{ color, fontFamily: "monospace" }}
                 >
                   {isOver ? "\u25B2 OVER" : "\u25BC UNDER"} +{bet.amount.toFixed(3)} ETH

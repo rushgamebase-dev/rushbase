@@ -333,7 +333,7 @@ export default function Home() {
 
               {/* Vehicle count — live counter (hidden on mobile; countdown overlay shows it) */}
               <div
-                className="hidden md:flex flex-col items-end"
+                className="flex flex-col items-end"
                 style={{
                   background: "rgba(0,0,0,0.5)",
                   border: `1px solid ${hasActiveMarket ? "rgba(0,255,136,0.2)" : "#1a1a1a"}`,
@@ -886,7 +886,7 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
     <div
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3"
       style={{
-        height: 56,
+        height: 60,
         background: "#0d0d0d",
         borderTop: "2px solid rgba(0,255,136,0.3)",
         boxShadow: "0 -4px 24px rgba(0,255,136,0.08)",
@@ -912,7 +912,7 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
         onClick={onTap}
         className="flex-1 rounded font-black text-xs tracking-widest transition-all"
         style={{
-          height: 36,
+          height: 44,
           background: "rgba(0,255,136,0.1)",
           border: "1px solid rgba(0,255,136,0.3)",
           color: "#00ff88",
@@ -928,7 +928,7 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
         onClick={onTap}
         className="flex-1 rounded font-black text-xs tracking-widest transition-all"
         style={{
-          height: 36,
+          height: 44,
           background: "rgba(255,68,68,0.1)",
           border: "1px solid rgba(255,68,68,0.3)",
           color: "#ff4444",

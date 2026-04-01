@@ -196,8 +196,8 @@ export default function MascotOverlay({
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
               style={{
-                width: card.size === "big" ? 140 : 110,
-                height: card.size === "big" ? 140 : 110,
+                width: card.size === "big" ? 100 : 72,
+                height: card.size === "big" ? 100 : 72,
                 filter: `drop-shadow(0 0 15px ${card.color}55)`,
               }}
             />

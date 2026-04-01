@@ -151,8 +151,8 @@ export default function Countdown({
             initial={{ scale: 1.4, color: "#ffffff" }}
             animate={{ scale: 1, color: countColor }}
             transition={{ duration: 0.3 }}
-            className="font-black tabular-nums"
-            style={{ fontFamily: "monospace", fontSize: 28, lineHeight: 1 }}
+            className="font-black tabular-nums text-xl md:text-3xl"
+            style={{ fontFamily: "monospace", lineHeight: 1 }}
           >
             {String(liveCount).padStart(3, "0")}
           </motion.span>
@@ -338,12 +338,11 @@ export default function Countdown({
           </span>
         </div>
         <motion.span
-          className="font-black tabular-nums"
+          className="font-black tabular-nums text-lg md:text-2xl"
           animate={isUrgent ? { scale: [1, 1.1, 1] } : {}}
           transition={isUrgent ? { duration: 0.5, repeat: Infinity } : {}}
           style={{
             fontFamily: "monospace",
-            fontSize: isUrgent ? 26 : 22,
             color: timerColor,
             textShadow: isUrgent ? `0 0 15px ${timerColor}88` : "none",
           }}

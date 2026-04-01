@@ -22,7 +22,7 @@ export default function StatsBar({
 
   return (
     <div
-      className="flex items-center justify-center gap-0 overflow-x-auto"
+      className="grid grid-cols-2 md:flex md:items-center md:justify-center gap-0 overflow-x-auto"
       style={{
         background: "#0d0d0d",
         borderBottom: "1px solid #1a1a1a",

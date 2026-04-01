@@ -438,7 +438,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
             max="10"
             step="0.001"
             disabled={!isOpen}
-            className="flex-1 bg-transparent py-2.5 pr-3 text-right focus:outline-none tabular"
+            className="flex-1 bg-transparent py-3 pr-3 text-right focus:outline-none tabular"
             style={{
               color: "#e0e0e0",
               fontFamily: "monospace",
@@ -450,13 +450,13 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         </div>
 
         {/* Quick amounts */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-2">
           {QUICK_AMOUNTS.map((q) => (
             <button
               key={q}
               onClick={() => setAmount(String(q))}
               disabled={!isOpen}
-              className="flex-1 py-1.5 rounded text-xs font-bold transition-all"
+              className="flex-1 py-2.5 rounded text-xs font-bold transition-all"
               style={{
                 background: parseFloat(amount) === q ? "rgba(0,255,136,0.15)" : "#0d0d0d",
                 border: `1px solid ${parseFloat(amount) === q ? "rgba(0,255,136,0.4)" : "#1a1a1a"}`,
@@ -478,7 +478,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               }
             }}
             disabled={!isOpen}
-            className="px-2 py-1.5 rounded text-xs font-bold transition-all"
+            className="px-2 py-2.5 rounded text-xs font-bold transition-all"
             style={{
               background: "#0d0d0d",
               border: "1px solid #1a1a1a",
