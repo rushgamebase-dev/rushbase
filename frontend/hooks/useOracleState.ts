@@ -99,13 +99,17 @@ export function useOracleState(
     currentMarketRef.current = currentMarketAddress;
   }, [currentMarketAddress]);
 
-  // Reset count when market changes (new round)
+  // Reset ALL state when market changes (new round)
   useEffect(() => {
+    setPhase("idle");
     setLiveCount(0);
     setCountIn(0);
     setCountOut(0);
     setCountSource("none");
+    setElapsed(0);
+    setRemaining(0);
     lastBeepCountRef.current = 0;
+    lastKnownRoundIdRef.current = null;
   }, [currentMarketAddress]);
 
   // ── Oracle WS URL resolution ────────────────────────────────────────────

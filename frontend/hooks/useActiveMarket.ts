@@ -16,7 +16,7 @@ export function useActiveMarket() {
     functionName: "getActiveMarkets",
     query: {
       enabled,
-      refetchInterval: 15_000,
+      refetchInterval: 5_000,
     },
   });
 

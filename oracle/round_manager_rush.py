@@ -217,7 +217,7 @@ class Config:
             "FEE_RECIPIENT",
             "0xdd12D83786C2BAc7be3D59869834C23E91449A2D",
         )
-        self.round_duration: int = int(os.environ.get("ROUND_DURATION", "300"))
+        self.counting_window: int = int(os.environ.get("COUNTING_WINDOW", os.environ.get("ROUND_DURATION", "150")))
         self.betting_window: int = int(os.environ.get("BETTING_WINDOW", "150"))
         self.ws_port: int = int(os.environ.get("WS_PORT", "8765"))
         self.ledger_url: str = os.environ.get(
@@ -603,7 +603,8 @@ class StreamClient:
             await self.connect(timeout=30)
 
     async def start_round(self, market_address: str, duration: int,
-                          camera_id: str, round_id: int) -> None:
+                          camera_id: str, round_id: int,
+                          betting_duration: int = 150) -> None:
         """Tell stream_server to start counting."""
         await self.ensure_connected()
         assert self._ws is not None
@@ -611,6 +612,7 @@ class StreamClient:
             "type": "start_round",
             "marketAddress": market_address,
             "duration": duration,
+            "bettingDuration": betting_duration,
             "cameraId": camera_id,
             "roundId": round_id,
         }))
@@ -920,20 +922,21 @@ class RushRoundManager:
 
     async def _run_counting(self, market_address: str, camera: dict) -> Optional[tuple[int, dict]]:
         """Run counting phase. Returns (count, result_dict) or None on failure."""
-        log.info("Counting vehicles for %ds...", self.cfg.round_duration)
+        log.info("Counting vehicles for %ds...", self.cfg.counting_window)
         self._persist_state("counting", market_address, camera_id=camera["id"])
 
         try:
             await self.stream_client.ensure_connected()
             await self.stream_client.start_round(
                 market_address=market_address,
-                duration=self.cfg.round_duration,
+                duration=self.cfg.counting_window,
                 camera_id=camera["id"],
                 round_id=self.round_number,
+                betting_duration=self.cfg.betting_window,
             )
 
             result = await self.stream_client.wait_for_round_complete(
-                timeout=self.cfg.round_duration + 30,
+                timeout=self.cfg.betting_window + self.cfg.counting_window + 30,
                 expected_round_id=self.round_number,
             )
 
@@ -1065,7 +1068,7 @@ class RushRoundManager:
         """Build ledger record (deduplicated — used for both resolve and cancel)."""
         record = {
             "address": market_address,
-            "createdAt": int(time.time()) - self.cfg.round_duration,
+            "createdAt": int(time.time()) - self.cfg.counting_window,
             "resolvedAt": int(time.time()),
             "state": state,
             "streamUrl": stream_url,
@@ -1139,7 +1142,7 @@ class RushRoundManager:
         log.info("=" * 60)
         log.info("  SinalBet Rush Round Manager")
         log.info("  Factory:  %s", self.cfg.factory_address)
-        log.info("  Duration: %ds per round", self.cfg.round_duration)
+        log.info("  Duration: %ds per round", self.cfg.counting_window)
         log.info("  Cameras:  %s", " | ".join(c["name"] for c in self.cameras))
         log.info("=" * 60)
 
