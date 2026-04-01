@@ -71,6 +71,12 @@ class VehicleCounter:
         self.lanes = []            # processed lanes (set on first frame)
         self.lanes_ready = False
         self.model = YOLO(model_name)
+
+        # Round/source context — set by StreamServer._start_round()
+        self._round_id = 0
+        self._source_id = ""
+        # Callback fired on each individual crossing — StreamServer broadcasts it
+        self._on_vehicle_counted = None
         self.confidence = confidence
         self.line_position = line_position  # 0-1, where on x-axis the line center is
         self.line_angle = line_angle
@@ -327,11 +333,28 @@ class VehicleCounter:
                                     self.total_count += 1
                                     self.counted_number[tid] = self.total_count
                                     lane["count"] += 1
-                                    if lane["direction"] == "toward":
+                                    direction = lane["direction"]
+                                    if direction == "toward":
                                         self.count_in += 1
                                     else:
                                         self.count_out += 1
-                                self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                                    self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                                    # Emit discrete vehicle_counted event
+                                    if self._on_vehicle_counted:
+                                        self._on_vehicle_counted({
+                                            "type": "vehicle_counted",
+                                            "roundId": self._round_id,
+                                            "sourceId": self._source_id,
+                                            "trackId": int(tid),
+                                            "lineId": lane["name"],
+                                            "count": self.total_count,
+                                            "seq": self._frame_count,
+                                            "timestamp": time.time(),
+                                            "classId": int(cls),
+                                            "direction": direction,
+                                        })
+                                else:
+                                    self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
                                 break  # counted, don't check other lanes
 
                     # Store per-lane side for the first lane the vehicle is in
@@ -377,6 +400,19 @@ class VehicleCounter:
                             self.total_count += 1
                             self.counted_number[tid] = self.total_count
                             self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                            if self._on_vehicle_counted:
+                                self._on_vehicle_counted({
+                                    "type": "vehicle_counted",
+                                    "roundId": self._round_id,
+                                    "sourceId": self._source_id,
+                                    "trackId": int(tid),
+                                    "lineId": "uid",
+                                    "count": self.total_count,
+                                    "seq": self._frame_count,
+                                    "timestamp": time.time(),
+                                    "classId": int(cls),
+                                    "direction": "in",
+                                })
             else:
                 # ─── Line crossing mode ───
                 for i in range(len(detections)):
@@ -410,11 +446,26 @@ class VehicleCounter:
                             self.counted_ids.add(tid)
                             self.total_count += 1
                             self.counted_number[tid] = self.total_count
+                            direction = "in" if side1 > 0 else "out"
                             if side1 > 0:
                                 self.count_in += 1
                             else:
                                 self.count_out += 1
                             self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                            crossed_line = "line1" if (ps1 is not None and ps1 * side1 < 0) else "line2"
+                            if self._on_vehicle_counted:
+                                self._on_vehicle_counted({
+                                    "type": "vehicle_counted",
+                                    "roundId": self._round_id,
+                                    "sourceId": self._source_id,
+                                    "trackId": int(tid),
+                                    "lineId": crossed_line,
+                                    "count": self.total_count,
+                                    "seq": self._frame_count,
+                                    "timestamp": time.time(),
+                                    "classId": int(cls),
+                                    "direction": direction,
+                                })
 
                     self.prev_pos[tid] = (cx, cy, side1, side2)
 
@@ -642,10 +693,13 @@ class StreamServer:
 
     def _new_counter(self):
         """Create a fresh VehicleCounter — reuses the already-loaded YOLO model."""
+        # min_frames=1 for crossing modes (cross-product sign flip is sufficient gate)
+        # min_frames=3 only for uid mode (needs movement validation, no crossing line)
+        mf = 3 if self._count_mode == 'uid' else 1
         c = VehicleCounter(model_name=self._model_name, confidence=self._confidence,
                            line_position=self._line_pos, line_angle=self._line_angle,
                            line_points=self._line_points, line_points2=self._line_points2,
-                           count_mode=self._count_mode, lanes=self._lanes, min_frames=3)
+                           count_mode=self._count_mode, lanes=self._lanes, min_frames=mf)
         c.model = self.counter.model  # reuse loaded model — no GPU reload
         return c
 
@@ -659,6 +713,11 @@ class StreamServer:
         self._state = self.STATE_COUNTING
         # Fresh counter — zero carryover
         self.counter = self._new_counter()
+        # Wire round context and vehicle_counted callback into counter
+        self.counter._round_id = self._round_id
+        self.counter._source_id = self.camera_id
+        self._pending_vehicle_events = []  # collect events from sync callback
+        self.counter._on_vehicle_counted = lambda evt: self._pending_vehicle_events.append(evt)
         # Fresh evidence
         self._evidence_frames = []
         self._evidence_hashes = []
@@ -940,6 +999,12 @@ class StreamServer:
                 # ── Process with YOLO (always — for visual annotations) ──
                 annotated, count = self.counter.process_frame(yolo_frame)
 
+                # ── Broadcast discrete vehicle_counted events (if any) ──
+                if self._round_active and hasattr(self, '_pending_vehicle_events'):
+                    for evt in self._pending_vehicle_events:
+                        await self._broadcast_json(evt)
+                    self._pending_vehicle_events.clear()
+
                 # Debug overlay
                 uptime = frame_start - server_start
                 fps_actual = frame_idx / max(uptime, 0.1)
@@ -971,6 +1036,7 @@ class StreamServer:
                         "marketAddress": self._round_market,
                         "cameraId": self.camera_id,
                         "roundId": self._round_id,
+                        "seq": frame_idx,
                     })
                 else:
                     msg = json.dumps({

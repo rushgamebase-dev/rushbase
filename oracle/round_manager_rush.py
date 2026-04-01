@@ -244,24 +244,24 @@ class Config:
 # ── Camera loader ─────────────────────────────────────────────────────────────
 
 def load_cameras() -> list[dict]:
-    """Return the list of camera configs from cameras.json."""
-    cameras_path = _HERE / "cameras.json"
+    """Load cameras from Nova Engine config (single source of truth)."""
+    # Primary: Nova Engine cameras.json (unified config)
+    nova_path = Path(__file__).parent.parent.parent / "solana_prediction_market" / "novaenginedestream" / "src" / "config" / "cameras.json"
+    # Fallback: local cameras.json
+    cameras_path = nova_path if nova_path.exists() else _HERE / "cameras.json"
     with open(cameras_path) as f:
         data = json.load(f)
+    log.info("Loaded %d cameras from %s", len(data["cameras"]), cameras_path)
     return data["cameras"]
 
 
 def pick_round_cameras(cameras: list[dict]) -> list[dict]:
-    """
-    Return the cameras used for alternating rounds.
-    Rounds alternate: peace-bridge → netherlands-highway → peace-bridge → ...
-    """
-    by_id = {c["id"]: c for c in cameras}
-    primary_ids = ["peace-bridge"]
-    result = [by_id[cid] for cid in primary_ids if cid in by_id]
-    if not result:
-        result = cameras[:1]
-    return result
+    """Return enabled cameras for round rotation."""
+    enabled = [c for c in cameras if c.get("enabled", True)]
+    if not enabled:
+        log.warning("No enabled cameras — using first available")
+        return cameras[:1]
+    return enabled
 
 
 # ── Chain helpers ─────────────────────────────────────────────────────────────
@@ -614,19 +614,28 @@ class StreamClient:
             "cameraId": camera_id,
             "roundId": round_id,
         }))
-        # Wait for acknowledgement
+        # Wait for acknowledgement (skip binary frames)
         try:
-            raw = await asyncio.wait_for(self._ws.recv(), timeout=5)
-            data = json.loads(raw)
-            if data.get("type") == "round_started":
-                log.info("[StreamClient] Round %d started on stream_server", round_id)
-            else:
-                log.warning("[StreamClient] Unexpected response: %s", data)
+            deadline = time.time() + 10
+            while time.time() < deadline:
+                raw = await asyncio.wait_for(self._ws.recv(), timeout=5)
+                if isinstance(raw, bytes) or not isinstance(raw, str):
+                    continue
+                try:
+                    data = json.loads(raw)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
+                if data.get("type") == "round_started":
+                    log.info("[StreamClient] Round %d started on stream_server", round_id)
+                    break
+                else:
+                    log.warning("[StreamClient] Unexpected response: %s", data)
+                    break
         except asyncio.TimeoutError:
             log.warning("[StreamClient] No ack for start_round (proceeding anyway)")
 
-    async def wait_for_round_complete(self, timeout: float) -> Optional[dict]:
-        """Wait for round_complete message from stream_server."""
+    async def wait_for_round_complete(self, timeout: float, expected_round_id: int = 0) -> Optional[dict]:
+        """Wait for round_complete message from stream_server. Validates roundId if provided."""
         await self.ensure_connected()
         assert self._ws is not None
         deadline = time.time() + timeout
@@ -634,11 +643,23 @@ class StreamClient:
             try:
                 remaining = max(1, deadline - time.time())
                 raw = await asyncio.wait_for(self._ws.recv(), timeout=remaining)
-                # Skip binary frames and non-round-complete messages
+                # Skip binary frames (JPEG video, etc)
                 if isinstance(raw, bytes):
                     continue
-                data = json.loads(raw)
+                if not isinstance(raw, str):
+                    continue
+                try:
+                    data = json.loads(raw)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
                 if data.get("type") == "round_complete":
+                    # Validate roundId — reject mismatched events
+                    if expected_round_id > 0 and data.get("roundId", 0) != expected_round_id:
+                        log.warning(
+                            "[StreamClient] round_complete roundId mismatch: got %s, expected %d — discarding",
+                            data.get("roundId"), expected_round_id,
+                        )
+                        continue
                     return data
             except asyncio.TimeoutError:
                 break
@@ -797,68 +818,72 @@ class RushRoundManager:
         self._shutdown = True
         log.info("Shutdown requested — will exit after this round.")
 
-    # ── Single round ──────────────────────────────────────────────────────────
+    # ── State persistence ────────────────────────────────────────────────────
 
-    async def _run_round(self) -> None:
-        self.round_number += 1
-        camera = self.cameras[(self.round_number - 1) % len(self.cameras)]
-        cam_id     = camera["id"]
-        stream_url = camera.get("streamUrl") or camera.get("imageUrl", "")
-        cam_name   = camera["name"]
-        threshold  = self.thresholds[cam_id].value
+    _STATE_FILE = "/tmp/rush_round_state.json"
 
-        log.info("Round #%d starting", self.round_number)
-        log.info("Camera: %s (%s)", cam_name, stream_url)
-        log.info("Threshold: %d  (Under %d / Over %d)", threshold, threshold, threshold)
+    def _persist_state(self, phase: str, market_address: str = "", count: int = 0, camera_id: str = "") -> None:
+        """Write minimal state for crash recovery."""
+        try:
+            state = {
+                "round_number": self.round_number,
+                "phase": phase,
+                "market_address": market_address,
+                "camera_id": camera_id,
+                "count": count,
+                "ts": int(time.time()),
+            }
+            import json as _j
+            with open(self._STATE_FILE + ".tmp", "w") as f:
+                _j.dump(state, f)
+            os.replace(self._STATE_FILE + ".tmp", self._STATE_FILE)
+        except OSError:
+            pass
 
-        # ── Step 0: Check for active markets (cancel orphans or skip) ─────────
+    # ── Round sub-steps ───────────────────────────────────────────────────────
+
+    async def _cleanup_orphans(self) -> bool:
+        """Cancel orphan markets. Returns False if active non-orphan exists (skip round)."""
         try:
             factory_read = self.w3_factory_read()
             active = factory_read.functions.getActiveMarkets().call()
-            if len(active) > 0:
-                # Check if these are orphan markets (lock time passed)
-                now = int(time.time())
-                all_orphans = True
-                for addr in active:
-                    try:
-                        orphan_market = self.chain.w3.eth.contract(
-                            address=Web3.to_checksum_address(addr),
-                            abi=MARKET_ABI,
-                        )
-                        market_state = orphan_market.functions.state().call()
-                        # Already resolved/cancelled — treat as orphan
-                        if market_state >= 2:
-                            continue
-                        market_lock = orphan_market.functions.lockTime().call()
-                        if now < market_lock:
-                            all_orphans = False
-                            break
-                    except Exception:
-                        pass
+            if not active:
+                return True
 
-                if all_orphans:
-                    # Cancel all orphan markets
-                    for addr in active:
-                        log.info("Cancelling orphan market: %s", addr)
-                        self.chain.cancel_market(addr)
-                        self._publish_ably("market_cancelled", {
-                            "marketAddress": addr,
-                            "ts": int(time.time() * 1000),
-                        })
-                        self.chain.refund_all(addr)
-                    log.info("Cancelled %d orphan market(s) — proceeding to create new one", len(active))
-                else:
-                    log.warning(
-                        "Active market(s) still within lock window: %s — skipping round",
-                        active,
-                    )
-                    return
+            now = int(time.time())
+            all_orphans = True
+            for addr in active:
+                try:
+                    m = self.chain.w3.eth.contract(address=Web3.to_checksum_address(addr), abi=MARKET_ABI)
+                    if m.functions.state().call() >= 2:
+                        continue  # already resolved/cancelled
+                    if now < m.functions.lockTime().call():
+                        all_orphans = False
+                        break
+                except Exception:
+                    pass
+
+            if all_orphans:
+                for addr in active:
+                    log.info("Cancelling orphan market: %s", addr)
+                    self.chain.cancel_market(addr)
+                    self._publish_ably("market_cancelled", {"marketAddress": addr, "ts": int(time.time() * 1000)})
+                    self.chain.refund_all(addr)
+                log.info("Cancelled %d orphan market(s)", len(active))
+                return True
+            else:
+                log.warning("Active market(s) still within lock window: %s — skipping round", active)
+                return False
+
         except Exception as exc:
             log.warning("Could not check active markets (proceeding anyway): %s", exc)
+            return True
 
-        # ── Step 1: Create market ─────────────────────────────────────────────
+    async def _create_market(self, camera: dict, threshold: int) -> Optional[tuple[str, str]]:
+        """Create market on-chain. Returns (market_address, create_tx) or None."""
+        cam_name = camera["name"]
+        stream_url = camera.get("streamUrl") or camera.get("imageUrl", "")
         description = f"{cam_name} — How many vehicles in 5 min?"
-        market_address: Optional[str] = None
 
         for attempt in range(1, MAX_TX_RETRIES + 1):
             try:
@@ -868,53 +893,36 @@ class RushRoundManager:
                     duration_secs=self.cfg.betting_window,
                     threshold=threshold,
                 )
-                log.info(
-                    "Market created: %s (tx: %s)",
-                    market_address,
-                    create_tx,
-                )
-                # Broadcast to all connected frontends via Ably
+                log.info("Market created: %s (tx: %s)", market_address, create_tx)
+
                 lock_time_val = 0
                 try:
-                    mc = self.chain.w3.eth.contract(
-                        address=Web3.to_checksum_address(market_address),
-                        abi=MARKET_ABI,
-                    )
+                    mc = self.chain.w3.eth.contract(address=Web3.to_checksum_address(market_address), abi=MARKET_ABI)
                     lock_time_val = mc.functions.lockTime().call()
                 except Exception:
                     pass
+
                 self._publish_ably("market_created", {
-                    "marketAddress": market_address,
-                    "txHash": create_tx,
-                    "threshold": threshold,
-                    "lockTime": lock_time_val,
-                    "description": description,
-                    "cameraId": camera["id"],
+                    "marketAddress": market_address, "txHash": create_tx,
+                    "threshold": threshold, "lockTime": lock_time_val,
+                    "description": description, "cameraId": camera["id"],
                     "ts": int(time.time() * 1000),
                 })
-                break
+                return market_address, create_tx
+
             except Exception as exc:
-                log.error(
-                    "createMarket attempt %d/%d failed: %s",
-                    attempt,
-                    MAX_TX_RETRIES,
-                    exc,
-                )
+                log.error("createMarket attempt %d/%d failed: %s", attempt, MAX_TX_RETRIES, exc)
                 if attempt < MAX_TX_RETRIES:
                     await asyncio.sleep(5 * attempt)
-                else:
-                    log.error("All createMarket attempts exhausted — skipping round")
-                    return
 
-        assert market_address is not None
+        log.error("All createMarket attempts exhausted — skipping round")
+        return None
 
-        # ── Step 1.5: House bot seeds both sides ─────────────────────────────
-        self.chain.house_bet(market_address)
-
-        # ── Step 2: Start counting on persistent stream_server ────────────────
+    async def _run_counting(self, market_address: str, camera: dict) -> Optional[tuple[int, dict]]:
+        """Run counting phase. Returns (count, result_dict) or None on failure."""
         log.info("Counting vehicles for %ds...", self.cfg.round_duration)
+        self._persist_state("counting", market_address, camera_id=camera["id"])
 
-        count: Optional[int] = None
         try:
             await self.stream_client.ensure_connected()
             await self.stream_client.start_round(
@@ -924,36 +932,29 @@ class RushRoundManager:
                 round_id=self.round_number,
             )
 
-            # Wait for round_complete from stream_server (duration + 30s buffer)
             result = await self.stream_client.wait_for_round_complete(
-                timeout=self.cfg.round_duration + 30
+                timeout=self.cfg.round_duration + 30,
+                expected_round_id=self.round_number,
             )
 
             if result is None:
-                # Fallback: read result.json
                 log.warning("No round_complete via WS — reading result.json fallback")
                 result = self.stream_client.read_result()
+                if result is not None and result.get("roundId") != self.round_number:
+                    log.error("result.json roundId mismatch: got %s, expected %d", result.get("roundId"), self.round_number)
+                    result = None
 
             if result is None:
                 raise RuntimeError("No result from stream_server")
 
             count = int(result["count"])
-            log.info(
-                "Count complete: %d vehicles (in=%d out=%d)",
-                count,
-                result.get("in_count", 0),
-                result.get("out_count", 0),
-            )
+            log.info("Count complete: %d vehicles (in=%d out=%d)", count, result.get("in_count", 0), result.get("out_count", 0))
+            return count, result
 
         except asyncio.CancelledError:
             log.warning("Round cancelled — stopping stream counting")
             await self.stream_client.stop_round()
-            self.chain.cancel_market(market_address)
-            self._publish_ably("market_cancelled", {
-                "marketAddress": market_address,
-                "ts": int(time.time() * 1000),
-            })
-            self.chain.refund_all(market_address)
+            self._cancel_and_refund(market_address)
             raise
 
         except Exception as exc:
@@ -962,170 +963,118 @@ class RushRoundManager:
                 await self.stream_client.stop_round()
             except Exception:
                 pass
-            self.chain.cancel_market(market_address)
-            self._publish_ably("market_cancelled", {
-                "marketAddress": market_address,
-                "ts": int(time.time() * 1000),
-            })
-            self.chain.refund_all(market_address)
-            return
+            self._cancel_and_refund(market_address)
+            return None
 
-        # ── Step 2.5: Check pool before resolving ─────────────────────────────
-        # If no bets or only one side has bets, cancel instead of resolving
-        # to avoid wasting gas or penalizing one-sided bettors with a 5% fee.
+    def _cancel_and_refund(self, market_address: str) -> None:
+        """Cancel market and refund all bettors. Best-effort."""
+        self.chain.cancel_market(market_address)
+        self._publish_ably("market_cancelled", {"marketAddress": market_address, "ts": int(time.time() * 1000)})
+        self.chain.refund_all(market_address)
+
+    async def _resolve_or_cancel(
+        self, market_address: str, create_tx: str, count: int,
+        camera: dict, threshold: int, result: dict,
+    ) -> None:
+        """Check pool, then resolve or cancel the market."""
+        cam_name = camera["name"]
+        stream_url = camera.get("streamUrl") or camera.get("imageUrl", "")
+        description = f"{cam_name} — How many vehicles in 5 min?"
+        total_pool = pool_under = pool_over = 0
+
+        # Pool check
         try:
-            market_contract = self.chain.w3.eth.contract(
-                address=Web3.to_checksum_address(market_address),
-                abi=MARKET_ABI,
-            )
-            total_pool = market_contract.functions.totalPool().call()
-            pool_under = market_contract.functions.poolByRange(0).call()
-            pool_over = market_contract.functions.poolByRange(1).call()
+            mc = self.chain.w3.eth.contract(address=Web3.to_checksum_address(market_address), abi=MARKET_ABI)
+            total_pool = mc.functions.totalPool().call()
+            pool_under = mc.functions.poolByRange(0).call()
+            pool_over = mc.functions.poolByRange(1).call()
 
+            should_cancel = False
+            cancel_reason = ""
             if total_pool == 0:
-                log.info("No bets placed — cancelling market (no gas wasted on resolve)")
-                self.chain.cancel_market(market_address)
-                self._publish_ably("market_cancelled", {
-                    "marketAddress": market_address,
-                    "ts": int(time.time() * 1000),
-                })
-                self.chain.refund_all(market_address)
-                self._post_ledger({
-                    "address": market_address,
-                    "createdAt": int(time.time()) - self.cfg.round_duration,
-                    "resolvedAt": int(time.time()),
-                    "state": "cancelled",
-                    "streamUrl": stream_url,
-                    "description": description,
-                    "cameraName": cam_name,
-                    "threshold": threshold,
-                    "actualCount": count,
-                    "winningRange": None,
-                    "winningRangeIndex": None,
-                    "totalPool": "0",
-                    "overPool": "0",
-                    "underPool": "0",
-                    "totalBettors": 0,
-                    "feeCollected": "0",
-                    "txHashCreate": create_tx,
-                    "txHashResolve": None,
-                    "roundNumber": self.round_number,
-                    "bets": [],
-                })
-                self.thresholds[cam_id].update(count)
+                should_cancel = True
+                cancel_reason = "No bets placed"
+            elif pool_under == 0 or pool_over == 0:
+                should_cancel = True
+                cancel_reason = f"One-sided (no {'UNDER' if pool_under == 0 else 'OVER'} bets)"
+
+            if should_cancel:
+                log.info("%s — cancelling market", cancel_reason)
+                self._cancel_and_refund(market_address)
+                self._post_ledger(self._build_ledger(
+                    market_address, create_tx, None, "cancelled",
+                    stream_url, description, cam_name, threshold, count,
+                    total_pool, pool_under, pool_over, result,
+                ))
                 return
 
-            if pool_under == 0 or pool_over == 0:
-                empty_side = "UNDER" if pool_under == 0 else "OVER"
-                log.info(
-                    "One-sided market (no %s bets) — cancelling to protect bettors from losing 5%% fee without adversary",
-                    empty_side,
-                )
-                self.chain.cancel_market(market_address)
-                self._publish_ably("market_cancelled", {
-                    "marketAddress": market_address,
-                    "ts": int(time.time() * 1000),
-                })
-                self.chain.refund_all(market_address)
-                self._post_ledger({
-                    "address": market_address,
-                    "createdAt": int(time.time()) - self.cfg.round_duration,
-                    "resolvedAt": int(time.time()),
-                    "state": "cancelled",
-                    "streamUrl": stream_url,
-                    "description": description,
-                    "cameraName": cam_name,
-                    "threshold": threshold,
-                    "actualCount": count,
-                    "winningRange": None,
-                    "winningRangeIndex": None,
-                    "totalPool": str(total_pool / 10**18),
-                    "overPool": str(pool_over / 10**18),
-                    "underPool": str(pool_under / 10**18),
-                    "totalBettors": 0,
-                    "feeCollected": "0",
-                    "txHashCreate": create_tx,
-                    "txHashResolve": None,
-                    "roundNumber": self.round_number,
-                    "bets": [],
-                })
-                self.thresholds[cam_id].update(count)
-                return
-
-            log.info(
-                "Pool check OK: total=%.4f ETH, under=%.4f, over=%.4f — proceeding to resolve",
-                total_pool / 10**18,
-                pool_under / 10**18,
-                pool_over / 10**18,
-            )
+            log.info("Pool check OK: total=%.4f ETH, under=%.4f, over=%.4f",
+                     total_pool / 10**18, pool_under / 10**18, pool_over / 10**18)
         except Exception as exc:
             log.warning("Could not check pool (proceeding to resolve anyway): %s", exc)
 
-        # ── Step 3: Resolve market ────────────────────────────────────────────
+        # Resolve
+        self._persist_state("resolving", market_address, count, camera_id=camera["id"])
         winning_label = f"Under {threshold}" if count <= threshold else f"Over {threshold}"
-        log.info(
-            "Market resolved: %d vehicles → %s wins",
-            count,
-            winning_label,
-        )
+        winning_idx = 0 if count <= threshold else 1
+        log.info("Market resolved: %d vehicles → %s wins", count, winning_label)
 
         resolve_tx: Optional[str] = None
         for attempt in range(1, MAX_TX_RETRIES + 1):
             try:
                 resolve_tx = self.chain.resolve_market(market_address, count)
-                log.info(
-                    "resolveMarket confirmed (tx: %s)",
-                    resolve_tx,
-                )
+                log.info("resolveMarket confirmed (tx: %s)", resolve_tx)
                 self._publish_ably("market_resolved", {
-                    "marketAddress": market_address,
-                    "actualCount": count,
-                    "winningRangeIndex": 0 if count <= threshold else 1,
-                    "txHash": resolve_tx,
+                    "marketAddress": market_address, "actualCount": count,
+                    "winningRangeIndex": winning_idx, "txHash": resolve_tx,
                     "ts": int(time.time() * 1000),
                 })
                 break
             except Exception as exc:
-                log.error(
-                    "resolveMarket attempt %d/%d failed: %s",
-                    attempt,
-                    MAX_TX_RETRIES,
-                    exc,
-                )
+                log.error("resolveMarket attempt %d/%d failed: %s", attempt, MAX_TX_RETRIES, exc)
                 if attempt < MAX_TX_RETRIES:
                     await asyncio.sleep(5 * attempt)
                 else:
                     log.error("All resolveMarket attempts exhausted — market left unresolved")
 
-        # Auto-distribute winnings to all bettors
+        # Distribute winnings
         if resolve_tx:
             distribute_tx = self.chain.distribute_all(market_address)
             if distribute_tx:
                 log.info("Auto-distributed winnings (tx: %s)", distribute_tx)
                 self._publish_ably("winnings_distributed", {
-                    "marketAddress": market_address,
-                    "txHash": distribute_tx,
+                    "marketAddress": market_address, "txHash": distribute_tx,
                     "ts": int(time.time() * 1000),
                 })
 
-        # ── Step 4: Post to ledger API ────────────────────────────────────────
-        # Extract evidence data from result.json if available
-        evidence_data = None
-        if result and "evidence" in result:
-            evidence_data = result["evidence"]
+        # Post to ledger
+        self._post_ledger(self._build_ledger(
+            market_address, create_tx, resolve_tx, "resolved",
+            stream_url, description, cam_name, threshold, count,
+            total_pool, pool_under, pool_over, result,
+            winning_label=winning_label, winning_idx=winning_idx,
+        ))
+        self._persist_state("resolved", market_address, count, camera_id=camera["id"])
 
-        ledger_record = {
+    def _build_ledger(
+        self, market_address, create_tx, resolve_tx, state,
+        stream_url, description, cam_name, threshold, count,
+        total_pool, pool_under, pool_over, result,
+        winning_label=None, winning_idx=None,
+    ) -> dict:
+        """Build ledger record (deduplicated — used for both resolve and cancel)."""
+        record = {
             "address": market_address,
             "createdAt": int(time.time()) - self.cfg.round_duration,
             "resolvedAt": int(time.time()),
-            "state": "resolved",
+            "state": state,
             "streamUrl": stream_url,
             "description": description,
             "cameraName": cam_name,
             "threshold": threshold,
             "actualCount": count,
             "winningRange": winning_label,
-            "winningRangeIndex": 0 if count <= threshold else 1,
+            "winningRangeIndex": winning_idx,
             "totalPool": str(total_pool / 10**18) if total_pool else "0",
             "overPool": str(pool_over / 10**18) if pool_over else "0",
             "underPool": str(pool_under / 10**18) if pool_under else "0",
@@ -1136,13 +1085,47 @@ class RushRoundManager:
             "roundNumber": self.round_number,
             "bets": [],
         }
-        if evidence_data is not None:
-            ledger_record["evidence"] = evidence_data
+        if result and "evidence" in result:
+            record["evidence"] = result["evidence"]
+        return record
 
-        self._post_ledger(ledger_record)
+    # ── Single round (orchestrator) ───────────────────────────────────────────
 
-        # ── Step 5: Update adaptive threshold ─────────────────────────────────
+    async def _run_round(self) -> None:
+        self.round_number += 1
+        camera = self.cameras[(self.round_number - 1) % len(self.cameras)]
+        cam_id = camera["id"]
+        threshold = self.thresholds[cam_id].value
+
+        log.info("Round #%d | %s | threshold=%d", self.round_number, camera["name"], threshold)
+        self._persist_state("preparing", camera_id=cam_id)
+
+        # Step 1: Cleanup orphans
+        if not await self._cleanup_orphans():
+            return
+
+        # Step 2: Create market
+        market_result = await self._create_market(camera, threshold)
+        if not market_result:
+            return
+        market_address, create_tx = market_result
+        self._persist_state("betting", market_address, camera_id=cam_id)
+
+        # Step 3: Seed liquidity
+        self.chain.house_bet(market_address)
+
+        # Step 4: Count vehicles
+        count_result = await self._run_counting(market_address, camera)
+        if count_result is None:
+            return
+        count, result = count_result
+
+        # Step 5: Resolve or cancel
+        await self._resolve_or_cancel(market_address, create_tx, count, camera, threshold, result)
+
+        # Step 6: Update threshold
         self.thresholds[cam_id].update(count)
+        self._persist_state("idle", camera_id=cam_id)
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 

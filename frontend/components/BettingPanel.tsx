@@ -20,6 +20,8 @@ interface BettingPanelProps {
   winningRangeIndex?: number;
   /** Unix timestamp (seconds) when betting closes on-chain */
   lockTime?: number;
+  /** Oracle-authoritative phase — overrides local clock for betting expiry */
+  oraclePhase?: "idle" | "betting" | "counting" | "final";
 }
 
 const QUICK_AMOUNTS = [0.001, 0.005, 0.01, 0.05];
@@ -31,7 +33,7 @@ function formatEth(n: number): string {
   return n.toFixed(2);
 }
 
-export default function BettingPanel({ market, marketAddress, winningRangeIndex = -1, lockTime = 0 }: BettingPanelProps) {
+export default function BettingPanel({ market, marketAddress, winningRangeIndex = -1, lockTime = 0, oraclePhase }: BettingPanelProps) {
   const { address: walletAddress, isConnected } = useAccount();
   useClaimWinnings(marketAddress ?? null); // keep hook active for claim polling
   const { openModal: openConnectModal, WalletModalComponent } = useWalletModal();
@@ -71,16 +73,19 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
 
   const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
 
-  // Enforce the SAME rule as the contract: require(block.timestamp < lockTime)
-  // Use state for bettingExpired to avoid hydration mismatch (Date.now differs server vs client)
-  const [bettingExpired, setBettingExpired] = useState(false);
+  // Oracle phase is the authority for betting expiry.
+  // Fallback to lockTime check if oracle phase not available.
+  const [lockTimeExpired, setLockTimeExpired] = useState(false);
   useEffect(() => {
     if (!lockTime || lockTime <= 0) return;
-    function check() { setBettingExpired(Math.floor(Date.now() / 1000) >= lockTime); }
+    function check() { setLockTimeExpired(Math.floor(Date.now() / 1000) >= lockTime); }
     check();
     const id = setInterval(check, 1000);
     return () => clearInterval(id);
   }, [lockTime]);
+  const bettingExpired = oraclePhase
+    ? (oraclePhase === "counting" || oraclePhase === "final")
+    : lockTimeExpired;
   const isOpen = market.status === "open" && !bettingExpired;
   const amountNum = parseFloat(amount) || 0;
   const canBet = isOpen && selectedSide !== null && amountNum >= 0.001 && amountNum <= 10;

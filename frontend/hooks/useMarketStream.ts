@@ -28,11 +28,16 @@ export interface MarketEvent {
  * This replaces polling as the primary detection method for market lifecycle events.
  * wagmi event watchers (BetPlaced, MarketResolved) handle bet-level events.
  */
-export function useMarketStream(onEvent?: (event: MarketEvent) => void) {
+export function useMarketStream(onEvent?: (event: MarketEvent) => void, currentMarketAddress?: string | null) {
   const queryClient = useQueryClient();
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
   const mountedRef = useRef(true);
+  const currentMarketRef = useRef(currentMarketAddress);
+
+  // Keep ref in sync without recreating handleEvent
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { currentMarketRef.current = currentMarketAddress; }, [currentMarketAddress]);
 
   const handleEvent = useCallback(
     (msg: Ably.Message) => {
@@ -56,7 +61,15 @@ export function useMarketStream(onEvent?: (event: MarketEvent) => void) {
         ts: data.ts as number | undefined,
       };
 
-      // Invalidate all contract reads → forces immediate refetch
+      // market_created always processed (signals new round)
+      // market_resolved / market_cancelled: only invalidate if for current market
+      if (event.type !== "market_created" && event.marketAddress && currentMarketRef.current) {
+        if (event.marketAddress.toLowerCase() !== currentMarketRef.current.toLowerCase()) {
+          return; // stale event from different market — discard
+        }
+      }
+
+      // Invalidate contract reads → forces immediate refetch
       queryClient.invalidateQueries({ queryKey: ["readContract"] });
 
       onEvent?.(event);

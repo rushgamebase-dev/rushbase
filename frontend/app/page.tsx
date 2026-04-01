@@ -15,6 +15,7 @@ import Chat from "@/components/Chat";
 import Countdown from "@/components/Countdown";
 import RoundHistory from "@/components/RoundHistory";
 import StatsBar from "@/components/StatsBar";
+import { useOracleState } from "@/hooks/useOracleState";
 // ClaimBanner removed — distributeAll auto-pays winners, no manual claim needed
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import Link from "next/link";
@@ -184,26 +185,72 @@ export default function Home() {
   // Use active market if available, otherwise keep showing the last one
   const marketAddress = activeMarketAddress || lastMarketAddress;
   const contractData = useMarketContract(marketAddress);
-  const [liveCount, setLiveCount] = useState(0);
   const { stats } = useStats();
   const { history: roundHistory } = useRoundHistory();
   const { isConnected } = useAccount();
   const tilesData = useTilesContract();
   const onChainDistributed = parseFloat(tilesData.totalDistributed || "0");
 
+  // Centralized Oracle WebSocket state — owns count, phase, roundId validation
+  const oracle = useOracleState(marketAddress);
+
   // Subscribe to Ably market events for instant oracle broadcasts
-  useMarketStream();
+  useMarketStream(undefined, marketAddress);
 
   // Real-time bet stream via Ably
   const { bets: liveBets } = useBetStream(marketAddress ?? undefined);
 
-  // Reset live count when market changes (new round starts)
-  useEffect(() => { setLiveCount(0); }, [activeMarketAddress]);
-
   const market = buildMarketFromContract(contractData, isWaiting && !lastMarketAddress, marketCount, liveBets);
 
-  // Use live oracle count if available; fallback to contract data but never jump backwards
-  const displayCount = liveCount > 0 ? liveCount : (market.vehicleCount ?? 0);
+  // displayCount: oracle WS is authority during counting, contract after resolution
+  const displayCount =
+    oracle.countSource === "oracle-ws" ? oracle.liveCount :
+    contractData.state === 2 ? contractData.actualCarCount :
+    (market.vehicleCount ?? 0);
+
+  // ── Beep player — fires on oracle.beepCount increments ──
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastBeepRef = useRef(0);
+
+  useEffect(() => {
+    if (oracle.beepCount <= lastBeepRef.current) return;
+    const delta = Math.min(oracle.beepCount - lastBeepRef.current, 5);
+    lastBeepRef.current = oracle.beepCount;
+    // eslint-disable-next-line no-console
+    console.log(`[TIMING] BEEP delta=${delta} count=${oracle.liveCount} | scheduled=${new Date().toISOString()} | perfNow=${performance.now().toFixed(1)}`);
+    try {
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") return;
+      for (let i = 0; i < delta; i++) {
+        const t = ctx.currentTime + i * 0.04;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(600, t + 0.08);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        osc.start(t);
+        osc.stop(t + 0.12);
+      }
+    } catch { /* AudioContext unavailable */ }
+  }, [oracle.beepCount]);
+
+  // Unlock audio on first user gesture
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+      if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
+    };
+    document.addEventListener("click", unlock, { once: true });
+    document.addEventListener("touchstart", unlock, { once: true });
+    return () => {
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+  }, []);
 
   const lockTime = contractData.lockTime ? Number(contractData.lockTime) : 0;
   // contractState removed — was only used by ClaimBanner (now removed)
@@ -323,12 +370,10 @@ export default function Home() {
           {/* Video + Countdown overlay */}
           <div className="relative">
             <VideoPlayer
-              vehicleCount={displayCount}
-              isLive={hasActiveMarket}
+              connected={oracle.connected}
+              videoUid={oracle.videoUid}
               cameraName={cameraName}
-              onCountUpdate={setLiveCount}
-              marketAddress={marketAddress || undefined}
-              streamUrl={contractData.streamUrl || undefined}
+              frameUrl={oracle.frameUrl}
             />
 
             <BetToast bets={market.recentBets} />
@@ -339,8 +384,8 @@ export default function Home() {
               winningRangeIndex={winningRangeIndex}
               finalCount={contractData.actualCarCount}
               threshold={market.threshold}
-              timeLeft={lockTime > 0 ? Math.max(0, lockTime - Math.floor(Date.now() / 1000)) : 999}
-              isCounting={market.status === "open" && lockTime > 0 && Math.floor(Date.now() / 1000) >= lockTime}
+              timeLeft={oracle.remaining > 0 ? Math.ceil(oracle.remaining) : (lockTime > 0 ? Math.max(0, lockTime - Math.floor(Date.now() / 1000)) : 999)}
+              isCounting={oracle.phase === "counting"}
             />
 
             {/* Countdown overlaid on video — top for mobile visibility */}
@@ -354,6 +399,8 @@ export default function Home() {
                     winningRangeIndex={winningRangeIndex}
                     liveCount={displayCount}
                     threshold={market.threshold}
+                    oraclePhase={oracle.phase}
+                    oracleRemaining={oracle.remaining}
                   />
                 </div>
               ) : (
@@ -367,7 +414,7 @@ export default function Home() {
 
           {/* Mobile betting panel — shows right after video on small screens */}
           <div ref={mobileBettingPanelRef} className="lg:hidden">
-            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} />
+            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
           </div>
 
           {/* Current count card (standalone) — hidden on mobile; countdown overlay already shows it */}
@@ -505,7 +552,7 @@ export default function Home() {
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
-            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} />
+            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
           </div>
         </div>
 

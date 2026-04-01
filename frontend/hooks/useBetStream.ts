@@ -30,6 +30,9 @@ export function useBetStream(marketAddress?: string) {
   }, [marketAddress]);
   const clientRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
+  const marketAddressRef = useRef(marketAddress);
+
+  useEffect(() => { marketAddressRef.current = marketAddress; }, [marketAddress]);
 
   useEffect(() => {
     let mounted = true;
@@ -49,7 +52,12 @@ export function useBetStream(marketAddress?: string) {
 
         channel.subscribe("bet_placed", (msg) => {
           if (!mounted) return;
-          const data = msg.data as LiveBet;
+          const data = msg.data as LiveBet & { marketAddress?: string };
+          // Discard bets from a different market
+          if (data.marketAddress && marketAddressRef.current &&
+              data.marketAddress.toLowerCase() !== marketAddressRef.current.toLowerCase()) {
+            return;
+          }
           setBets(prev => {
             const now = Date.now();
             const exists = prev.some(b => b.id === data.id);

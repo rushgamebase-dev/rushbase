@@ -13,6 +13,10 @@ interface CountdownProps {
   winningRangeIndex?: number;
   liveCount?: number;
   threshold?: number;
+  /** Oracle-authoritative phase — overrides local clock derivation */
+  oraclePhase?: "idle" | "betting" | "counting" | "final";
+  /** Oracle-authoritative remaining seconds — overrides lockTime math */
+  oracleRemaining?: number;
 }
 
 export default function Countdown({
@@ -24,6 +28,8 @@ export default function Countdown({
   threshold = 0,
   finalCount,
   winningRangeIndex = -1,
+  oraclePhase,
+  oracleRemaining,
 }: CountdownProps) {
   const clockOffsetRef = useRef(0);
 
@@ -110,12 +116,17 @@ export default function Countdown({
   const isUrgent = timeLeft <= 30 && effectiveStatus === "open";
 
   // ── COUNTING (betting closed, watching vehicles) ──
-  if (effectiveStatus === "open" && timeLeft <= 0) {
+  // Use oracle phase as authority; fallback to lockTime math
+  const isCounting = oraclePhase ? oraclePhase === "counting" : (effectiveStatus === "open" && timeLeft <= 0);
+  // Use oracle remaining when available; fallback to lockTime-derived timer
+  const countingDisplay = oracleRemaining !== undefined ? Math.ceil(oracleRemaining) : countingTimeLeft;
+
+  if (isCounting) {
     const isOver = liveCount > threshold;
     const countColor = isOver ? "#00ff88" : "#ff4444";
     const diff = isOver ? liveCount - threshold : threshold - liveCount;
-    const cMm = String(Math.floor(countingTimeLeft / 60)).padStart(2, "0");
-    const cSs = String(countingTimeLeft % 60).padStart(2, "0");
+    const cMm = String(Math.floor(countingDisplay / 60)).padStart(2, "0");
+    const cSs = String(countingDisplay % 60).padStart(2, "0");
 
     return (
       <motion.div
