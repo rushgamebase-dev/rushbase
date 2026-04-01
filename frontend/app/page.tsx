@@ -238,17 +238,19 @@ export default function Home() {
     } catch { /* AudioContext unavailable */ }
   }, [oracle.beepCount]);
 
-  // Unlock audio on first user gesture
+  // Unlock audio on ANY user gesture (persistent, not once)
   useEffect(() => {
     const unlock = () => {
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
       if (audioCtxRef.current.state === "suspended") audioCtxRef.current.resume();
     };
-    document.addEventListener("click", unlock, { once: true });
-    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock);
+    document.addEventListener("touchstart", unlock);
+    document.addEventListener("keydown", unlock);
     return () => {
       document.removeEventListener("click", unlock);
       document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("keydown", unlock);
     };
   }, []);
 

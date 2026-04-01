@@ -177,7 +177,7 @@ export function useOracleState(
 
     if (msg.type === "init") {
       // First message on connect — set state immediately (no jump from 0)
-      const wsPhase = msg.state === "counting" ? "counting" : "idle";
+      const wsPhase = msg.state === "counting" ? "counting" : msg.state === "betting_open" ? "betting" : "idle";
       setPhase(wsPhase);
       if (msg.count !== undefined) {
         setLiveCount(msg.count);
@@ -243,8 +243,10 @@ export function useOracleState(
       }
       if (msg.marketAddress) setWsMarketAddress(msg.marketAddress);
       if (msg.cameraId) setCameraId(msg.cameraId);
-      // Set phase to counting if oracle says so
+      // Set phase from oracle state
       if (msg.state === "counting") setPhase("counting");
+      else if (msg.state === "betting_open") setPhase("betting");
+      else if (msg.state === "resolved") setPhase("final");
       return;
     }
 
