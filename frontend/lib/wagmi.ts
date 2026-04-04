@@ -5,7 +5,7 @@ import { injected, coinbaseWallet } from "wagmi/connectors";
 // Alchemy RPC — public Base RPC was also hitting 429 rate limits.
 const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ||
-  "https://base-rpc.publicnode.com";
+  "https://optimistic-jackson:snout-repost-vest-tyke-runny-stays@base-mainnet.core.chainstack.com";
 
 const transport = http(RPC_URL, {
   retryCount: 3,
