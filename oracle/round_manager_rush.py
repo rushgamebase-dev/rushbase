@@ -714,7 +714,7 @@ class AdaptiveThreshold:
     derives the Under/Over threshold for the next round.
     """
 
-    HISTORY_SIZE = 5
+    HISTORY_SIZE = 2
     MIN_THRESHOLD = 1
     MAX_THRESHOLD = 500
 
