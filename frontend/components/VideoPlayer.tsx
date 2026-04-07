@@ -92,7 +92,7 @@ export default function VideoPlayer({
         <button
           onClick={() => setAudioOn(!audioOn)}
           style={{
-            position: "absolute", bottom: 8, right: 8,
+            position: "absolute", top: 8, right: 20,
             background: audioOn ? "rgba(0,255,136,0.2)" : "rgba(0,0,0,0.6)",
             border: `1px solid ${audioOn ? "#00ff88" : "#555"}`,
             borderRadius: 4, padding: "3px 8px",
