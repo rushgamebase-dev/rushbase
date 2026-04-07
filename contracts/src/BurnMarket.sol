@@ -31,7 +31,12 @@ contract BurnMarket {
     address public immutable factory;
     address public immutable oracle;
     IERC20  public immutable bettingToken;
-    bool    public constant isTokenMode = true;
+    bool    public immutable isTokenMode;
+
+    // Compatibility with PredictionMarket ABI (frontend expects these)
+    address public constant feeRecipient = address(0);
+    uint256 public constant disputeWindowSecs = 0;
+    bytes32 public constant attestationHash = bytes32(0);
 
     string  public streamUrl;
     string  public description;
@@ -97,6 +102,7 @@ contract BurnMarket {
         factory = msg.sender;
         oracle = p.oracle;
         bettingToken = IERC20(p.bettingToken);
+        isTokenMode = true;
         feeBps = p.feeBps; // stored but unused (burn replaces fee)
 
         streamUrl = p.streamUrl;

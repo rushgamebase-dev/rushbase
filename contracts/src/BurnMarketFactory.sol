@@ -13,6 +13,10 @@ contract BurnMarketFactory {
     address public oracle;
     address public bettingToken; // $RUSH
 
+    // Compatibility with MarketFactory ABI (frontend expects these)
+    address public constant feeRecipient = address(0);
+    uint256 public constant feeBps = 0;
+
     address[] public markets;
     mapping(address => bool) public isMarket;
 
