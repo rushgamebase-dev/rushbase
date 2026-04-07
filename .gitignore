@@ -12,3 +12,7 @@ __pycache__/
 *.pyc
 .vercel
 .env*.local
+
+# Oracle artifacts
+oracle/evidence/
+oracle/.url_cache.json

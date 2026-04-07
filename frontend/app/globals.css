@@ -31,6 +31,15 @@ body {
   /* Do NOT set overflow-y here — let the page scroll naturally */
 }
 
+/* Hide scrollbar for nav overflow (mobile) */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari/WebKit */
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
