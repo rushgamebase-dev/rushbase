@@ -73,7 +73,8 @@ contract ConsensusEngineTest is Test {
         factory = new MarketFactory(
             address(consensus),
             feeWallet,
-            500
+            500,
+            address(0)
         );
 
         string[] memory labels = new string[](4);

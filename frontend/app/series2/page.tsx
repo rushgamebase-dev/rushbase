@@ -7,9 +7,19 @@ import Header from "@/components/Header";
 import { RUSH_TILES_V2_ABI, RUSH_TILES_V2_ADDRESS, BASE_MAINNET } from "@/lib/contracts";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink, Shield, Flame, Crown } from "lucide-react";
+import Image from "next/image";
 
 const GRID = 100;
 const EXPLORER = BASE_MAINNET.blockExplorerUrls[0];
+const FOUNDER_IMAGES = 5;
+const NORMAL_IMAGES = 10;
+
+function getTileImage(tileId: number, isFounder: boolean): string {
+  if (isFounder) {
+    return `/tiles-v2/founder/${(tileId % FOUNDER_IMAGES) + 1}.jpg`;
+  }
+  return `/tiles-v2/normal/${(tileId % NORMAL_IMAGES) + 1}.jpg`;
+}
 
 interface TileV2 {
   id: number;
@@ -293,17 +303,25 @@ export default function Series2Page() {
                 <button
                   key={tile.id}
                   onClick={() => setSelected(tile)}
-                  className="w-28 h-36 rounded-xl flex flex-col items-center justify-center gap-2 transition-all hover:scale-105"
+                  className="w-32 h-44 rounded-xl overflow-hidden relative transition-all hover:scale-105"
                   style={{
-                    background: "linear-gradient(180deg, #111, #0a0a0a)",
                     border: "1px solid rgba(0,255,136,0.2)",
                     boxShadow: "0 0 20px rgba(0,255,136,0.05)",
                     cursor: "pointer",
                   }}
                 >
-                  <div className="text-2xl font-black" style={{ color: "#00ff88" }}>#{tile.id + 1}</div>
-                  <div className="text-[9px] tracking-widest" style={{ color: "#555" }}>OPEN</div>
-                  <div className="text-[10px] font-bold" style={{ color: "#888" }}>from 0.1 ETH</div>
+                  <img
+                    src={getTileImage(tile.id, false)}
+                    alt={`Seat ${tile.id + 1}`}
+                    className="w-full h-full object-cover"
+                    style={{ filter: "brightness(0.6)" }}
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1"
+                    style={{ background: "linear-gradient(180deg, transparent 20%, rgba(0,0,0,0.8) 100%)" }}>
+                    <div className="text-xl font-black" style={{ color: "#00ff88", textShadow: "0 2px 8px rgba(0,0,0,1)" }}>#{tile.id + 1}</div>
+                    <div className="text-[9px] tracking-widest" style={{ color: "#aaa" }}>OPEN</div>
+                    <div className="text-[10px] font-bold" style={{ color: "#00ff88" }}>from 0.1 ETH</div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -372,9 +390,9 @@ export default function Series2Page() {
               <button
                 key={tile.id}
                 onClick={() => { if (isEmpty) setSelected(tile); }}
-                className="relative aspect-square rounded-sm flex flex-col items-center justify-center transition-all"
+                className="relative aspect-square rounded-sm overflow-hidden flex flex-col items-center justify-center transition-all"
                 style={{
-                  background: bg,
+                  background: tile.isActive ? `url(${getTileImage(tile.id, isFounder)}) center/cover` : bg,
                   border: `1px solid ${borderColor}`,
                   cursor: isEmpty ? "pointer" : "default",
                   fontSize: 9,
@@ -382,8 +400,11 @@ export default function Series2Page() {
                 onMouseEnter={(e) => { if (isEmpty) (e.currentTarget.style.borderColor = "rgba(0,255,136,0.5)"); }}
                 onMouseLeave={(e) => { if (isEmpty) (e.currentTarget.style.borderColor = borderColor); }}
               >
-                <span style={{ color: numColor, fontWeight: 800, fontFamily: "monospace" }}>{tile.id + 1}</span>
-                {isFounder && <Crown size={8} style={{ color: "#ffd700", marginTop: 1 }} />}
+                {tile.isActive && (
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.6) 100%)" }} />
+                )}
+                <span style={{ color: numColor, fontWeight: 800, fontFamily: "monospace", position: "relative", zIndex: 2, textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none" }}>{tile.id + 1}</span>
+                {isFounder && <Crown size={8} style={{ color: "#ffd700", marginTop: 1, position: "relative", zIndex: 2 }} />}
                 {isEmpty && <span style={{ color: "#333", fontSize: 7 }}>OPEN</span>}
               </button>
             );

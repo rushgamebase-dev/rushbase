@@ -14,6 +14,7 @@ contract MarketFactory {
     address public admin;
     address public oracle;
     address public feeRecipient;
+    address public bettingToken;      // address(0) = ETH, else ERC20
     uint256 public feeBps;
 
     address[] public markets;
@@ -46,7 +47,8 @@ contract MarketFactory {
     constructor(
         address _oracle,
         address _feeRecipient,
-        uint256 _feeBps
+        uint256 _feeBps,
+        address _bettingToken
     ) {
         require(_feeBps <= 2000, "FEE_TOO_HIGH");
         require(_oracle != address(0), "ZERO_ORACLE");
@@ -55,6 +57,7 @@ contract MarketFactory {
         oracle = _oracle;
         feeRecipient = _feeRecipient;
         feeBps = _feeBps;
+        bettingToken = _bettingToken;
     }
 
     // ─── Market Creation ─────────────────────────────────────────────────
@@ -87,7 +90,7 @@ contract MarketFactory {
             marketAddress,
             _description,
             _roundDurationSecs,
-            false // ETH only
+            bettingToken != address(0)
         );
 
         return marketAddress;
@@ -108,7 +111,7 @@ contract MarketFactory {
                 oracle: oracle,
                 disputeManager: address(0),
                 feeRecipient: feeRecipient,
-                bettingToken: address(0),       // ETH only
+                bettingToken: bettingToken,
                 streamUrl: _streamUrl,
                 description: _description,
                 roundDurationSecs: _roundDurationSecs,
@@ -141,6 +144,10 @@ contract MarketFactory {
     function setFeeRecipient(address _feeRecipient) external onlyAdmin {
         emit FeeRecipientChanged(feeRecipient, _feeRecipient);
         feeRecipient = _feeRecipient;
+    }
+
+    function setBettingToken(address _bettingToken) external onlyAdmin {
+        bettingToken = _bettingToken;
     }
 
     function setDefaultFee(uint256 _feeBps) external onlyAdmin {

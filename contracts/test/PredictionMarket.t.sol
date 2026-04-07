@@ -83,7 +83,8 @@ contract PredictionMarketTest is Test {
         factory = new MarketFactory(
             oracle,
             feeWallet,
-            500   // 5% fee
+            500,
+            address(0)
         );
 
         address marketAddr = factory.createMarket(

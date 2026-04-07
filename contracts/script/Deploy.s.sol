@@ -28,7 +28,7 @@ contract DeployScript is Script {
         vm.startBroadcast(key);
 
         // 1. Market Factory (ETH mode, configurable fee)
-        MarketFactory factory = new MarketFactory(oracle, feeRecipient, feeBps);
+        MarketFactory factory = new MarketFactory(oracle, feeRecipient, feeBps, address(0));
         console.log("MarketFactory:", address(factory));
 
         // 2. RushTiles

@@ -75,7 +75,8 @@ contract IntegrationTest is Test {
         factory = new MarketFactory(
             address(consensus),
             feeWallet,
-            FEE_BPS
+            FEE_BPS,
+            address(0)
         );
 
         // ── Range setup ──
