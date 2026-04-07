@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface VideoPlayerProps {
   connected: boolean;
   videoUid: string;
   cameraName?: string;
   cameraId?: string;
-  /** LIVE GAME MODE: JPEG frame URL from Oracle WS (authoritative, synced with count/beep) */
   frameUrl?: string;
 }
 
 const CF_SUBDOMAIN = "customer-vn9syvcedwumw0ut.cloudflarestream.com";
 
-// YouTube audio sources per camera (direct from YouTube, bypasses engine)
 const YOUTUBE_AUDIO: Record<string, string> = {
   "bird-feeder-live": "QaGCkKIPAZU",
   "tokyo-shinjuku-crossing": "6dp-bvQ7RWo",
@@ -21,6 +19,24 @@ const YOUTUBE_AUDIO: Record<string, string> = {
   "peace-bridge": "DnUFAShZKus",
   "netherlands-highway": "Jy1Y9f8NEY0",
 };
+
+// Load YouTube IFrame API once
+let ytApiLoaded = false;
+function loadYTApi(): Promise<void> {
+  if (ytApiLoaded || (window as any).YT?.Player) {
+    ytApiLoaded = true;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+    (window as any).onYouTubeIframeAPIReady = () => {
+      ytApiLoaded = true;
+      resolve();
+    };
+  });
+}
 
 export default function VideoPlayer({
   connected,
@@ -30,8 +46,57 @@ export default function VideoPlayer({
   frameUrl,
 }: VideoPlayerProps) {
   const [audioOn, setAudioOn] = useState(false);
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isLiveMode = !!frameUrl;
   const youtubeId = cameraId ? YOUTUBE_AUDIO[cameraId] : null;
+
+  const toggleAudio = useCallback(async () => {
+    if (audioOn) {
+      // Turn off
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+      setAudioOn(false);
+    } else if (youtubeId) {
+      // Turn on — create player on user click (satisfies autoplay policy)
+      await loadYTApi();
+      const YT = (window as any).YT;
+      // Create a tiny container for the player
+      let el = document.getElementById("yt-audio-player");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "yt-audio-player";
+        el.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;";
+        containerRef.current?.appendChild(el);
+      }
+      playerRef.current = new YT.Player("yt-audio-player", {
+        height: "1",
+        width: "1",
+        videoId: youtubeId,
+        playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, showinfo: 0 },
+        events: {
+          onReady: (e: any) => {
+            e.target.unMute();
+            e.target.setVolume(80);
+            e.target.playVideo();
+          },
+        },
+      });
+      setAudioOn(true);
+    }
+  }, [audioOn, youtubeId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch {}
+        playerRef.current = null;
+      }
+    };
+  }, []);
 
   const iframeSrc = !isLiveMode && videoUid
     ? `https://${CF_SUBDOMAIN}/${videoUid}/iframe?autoplay=true&muted=true&loop=true`
@@ -39,6 +104,7 @@ export default function VideoPlayer({
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full"
       style={{
         aspectRatio: "16/9",
@@ -49,20 +115,13 @@ export default function VideoPlayer({
       }}
     >
       {isLiveMode ? (
-        /* LIVE GAME MODE — same frame that generated the count */
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={frameUrl}
           alt="Live"
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            display: "block",
-          }}
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
         />
       ) : iframeSrc ? (
-        /* BROADCAST MODE — Cloudflare CDN, higher latency */
         <iframe
           src={iframeSrc}
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
@@ -79,18 +138,10 @@ export default function VideoPlayer({
           <span className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>{cameraName}</span>
         </div>
       )}
-      {/* YouTube audio (hidden iframe, direct from source — no engine) */}
-      {audioOn && youtubeId && (
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0`}
-          style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
-          allow="autoplay; encrypted-media"
-        />
-      )}
-      {/* Audio toggle button */}
+      {/* Audio toggle */}
       {youtubeId && (
         <button
-          onClick={() => setAudioOn(!audioOn)}
+          onClick={toggleAudio}
           style={{
             position: "absolute", top: 8, right: 20,
             background: audioOn ? "rgba(0,255,136,0.2)" : "rgba(0,0,0,0.6)",
@@ -99,6 +150,7 @@ export default function VideoPlayer({
             fontSize: 11, fontFamily: "monospace", fontWeight: 900,
             color: audioOn ? "#00ff88" : "#888",
             cursor: "pointer",
+            zIndex: 10,
           }}
         >
           {audioOn ? "🔊" : "🔇"}
@@ -110,7 +162,6 @@ export default function VideoPlayer({
         background: connected ? "#00ff88" : "#ff4444",
         boxShadow: connected ? "0 0 6px #00ff88" : "0 0 6px #ff4444",
       }} />
-      {/* Mode badge */}
       {isLiveMode && (
         <div style={{
           position: "absolute", top: 6, left: 8,
