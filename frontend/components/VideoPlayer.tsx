@@ -68,12 +68,12 @@ export default function VideoPlayer({
       if (!el) {
         el = document.createElement("div");
         el.id = "yt-audio-player";
-        el.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;";
+        el.style.cssText = "position:absolute;bottom:4px;left:4px;width:72px;height:40px;overflow:hidden;border-radius:4px;opacity:0.3;z-index:5;";
         containerRef.current?.appendChild(el);
       }
       playerRef.current = new YT.Player("yt-audio-player", {
-        height: "1",
-        width: "1",
+        height: "40",
+        width: "72",
         videoId: youtubeId,
         playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, showinfo: 0 },
         events: {
