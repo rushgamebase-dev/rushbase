@@ -67,20 +67,30 @@ export default function Header() {
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffe44d")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffd700")}
           >
-            TILES
+            TILES S1
+          </Link>
+
+          <Link
+            href="/series2"
+            className="flex items-center gap-1.5 text-xs font-bold transition-colors"
+            style={{ color: "#ff6600", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff8833")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff6600")}
+          >
+            SERIES 2
             <span
               className="px-1 py-0.5 rounded text-center"
               style={{
                 fontSize: 9,
-                background: "rgba(255,215,0,0.12)",
-                border: "1px solid rgba(255,215,0,0.3)",
-                color: "#ffd700",
+                background: "rgba(255,102,0,0.12)",
+                border: "1px solid rgba(255,102,0,0.3)",
+                color: "#ff6600",
                 fontFamily: "monospace",
                 letterSpacing: "0.06em",
                 lineHeight: 1,
               }}
             >
-              EARN
+              NEW
             </span>
           </Link>
 

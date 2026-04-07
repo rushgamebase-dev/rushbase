@@ -95,6 +95,37 @@ export const MARKET_ABI = parseAbi([
   "event Refunded(address indexed user, uint256 amount)",
 ]);
 
+// ─── RushTiles V2 ABI ────────────────────────────────────────────────────────
+
+export const RUSH_TILES_V2_ABI = parseAbi([
+  "function claimTile(uint8 tileIndex, uint80 price, bool founder) payable",
+  "function buyoutTile(uint8 tileIndex, uint80 newPrice) payable",
+  "function abandonTile(uint8 tileIndex)",
+  "function setPrice(uint8 tileIndex, uint80 newPrice) payable",
+  "function addDeposit(uint8 tileIndex) payable",
+  "function withdrawDeposit(uint8 tileIndex, uint96 amount)",
+  "function pokeTax(uint8 tileIndex)",
+  "function distributeFees()",
+  "function claimFees()",
+  "function claimDevFees()",
+  "function getTile(uint8) view returns ((address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime, bool isFounder))",
+  "function getAllTiles() view returns ((address owner, uint80 price, uint96 deposit, uint40 lastTaxTime, uint40 lastBuyoutTime, bool isFounder)[100])",
+  "function getPlayer(address) view returns ((uint128 rewardSnapshot, uint96 accumulatedFees, uint32 shareCount, uint8 tileCount))",
+  "function getPlayerTiles(address) view returns (uint8[])",
+  "function pendingFees(address) view returns (uint96)",
+  "function effectivePrice(uint8) view returns (uint80)",
+  "function totalShares() view returns (uint128)",
+  "function totalDistributed() view returns (uint96)",
+  "function treasuryBalance() view returns (uint96)",
+  "function devPending() view returns (uint96)",
+  "function totalBuyouts() view returns (uint32)",
+  "function totalClaims() view returns (uint32)",
+  "function paused() view returns (bool)",
+  "function NORMAL_PRICE() view returns (uint80)",
+  "function FOUNDER_PRICE() view returns (uint80)",
+  "function GRID_SIZE() view returns (uint256)",
+]);
+
 // ─── RushTiles ABI — matches RushTiles.sol + IRushTiles.sol exactly ─────────
 
 export const RUSH_TILES_ABI = parseAbi([
@@ -201,6 +232,7 @@ export const STATE_COLORS: Record<string, string> = {
 
 export const FACTORY_ADDRESS = "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9" as `0x${string}`;
 export const RUSH_TILES_ADDRESS = "0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4" as `0x${string}`;
+export const RUSH_TILES_V2_ADDRESS = "0x5b7b2a6AC4f3A017fb943C9F550d609174532fFF" as `0x${string}`;
 
 // USDC on Base mainnet (for future token mode)
 export const USDC_ADDRESS_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
