@@ -244,7 +244,7 @@ export default function Series2Page() {
     <div style={{ background: "#0a0a0a", color: "#ccc", minHeight: "100vh", fontFamily: "monospace" }}>
       <Header />
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Hero */}
         <div className="text-center mb-10">
           <div className="text-[10px] font-bold tracking-[0.3em] mb-2" style={{ color: "#ffd700" }}>
@@ -258,7 +258,7 @@ export default function Series2Page() {
           </p>
 
           {/* Stats bar */}
-          <div className="flex justify-center gap-6 mt-6">
+          <div className="flex justify-center gap-4 sm:gap-6 mt-6">
             <div className="text-center">
               <div className="text-2xl font-black" style={{ color: available > 0 ? "#00ff88" : "#ff4444" }}>{available}</div>
               <div className="text-[9px] tracking-widest" style={{ color: "#555" }}>AVAILABLE</div>
@@ -301,7 +301,7 @@ export default function Series2Page() {
                 <button
                   key={tile.id}
                   onClick={() => setSelected(tile)}
-                  className="w-32 h-44 rounded-xl overflow-hidden relative transition-all hover:scale-105"
+                  className="w-24 h-32 sm:w-32 sm:h-44 rounded-xl overflow-hidden relative transition-all hover:scale-105"
                   style={{
                     border: "1px solid rgba(0,255,136,0.2)",
                     boxShadow: "0 0 20px rgba(0,255,136,0.05)",
@@ -327,8 +327,8 @@ export default function Series2Page() {
         )}
 
         {/* Tiers info */}
-        <div className="flex justify-center gap-4 mb-10 flex-wrap">
-          <div className="p-4 rounded-xl w-56" style={{ background: "#111", border: "1px solid rgba(0,255,136,0.15)" }}>
+        <div className="flex justify-center gap-3 sm:gap-4 mb-10 flex-wrap px-2">
+          <div className="p-3 sm:p-4 rounded-xl w-full sm:w-56" style={{ background: "#111", border: "1px solid rgba(0,255,136,0.15)" }}>
             <div className="text-xs font-black tracking-widest mb-2" style={{ color: "#00ff88" }}>NORMAL SEAT</div>
             <div className="text-xl font-black" style={{ color: "#e0e0e0" }}>0.1 ETH</div>
             <div className="flex flex-col gap-1 mt-3 text-[10px]" style={{ color: "#666" }}>
@@ -338,7 +338,7 @@ export default function Series2Page() {
               <span>Earn from prediction markets</span>
             </div>
           </div>
-          <div className="p-4 rounded-xl w-56" style={{ background: "#111", border: "1px solid rgba(255,215,0,0.2)" }}>
+          <div className="p-3 sm:p-4 rounded-xl w-full sm:w-56" style={{ background: "#111", border: "1px solid rgba(255,215,0,0.2)" }}>
             <div className="flex items-center gap-1 mb-2">
               <Crown size={12} style={{ color: "#ffd700" }} />
               <span className="text-xs font-black tracking-widest" style={{ color: "#ffd700" }}>FOUNDER SEAT</span>
@@ -358,8 +358,8 @@ export default function Series2Page() {
           <div className="text-xs font-bold tracking-widest" style={{ color: "#555" }}>ALL 100 SEATS</div>
         </div>
         <div
-          className="grid gap-[3px] max-w-2xl mx-auto p-1 rounded-lg"
-          style={{ gridTemplateColumns: "repeat(10, 1fr)", background: "#0a0a0a", border: "1px solid #1a1a1a" }}
+          className="grid gap-[2px] sm:gap-[3px] max-w-2xl mx-auto p-1 rounded-lg"
+          style={{ gridTemplateColumns: "repeat(10, 1fr)", background: "#0a0a0a", border: "1px solid #1a1a1a", fontSize: "clamp(6px, 1.5vw, 9px)" }}
         >
           {tiles.map((tile) => {
             const isEmpty = !tile.isActive;
@@ -410,7 +410,7 @@ export default function Series2Page() {
         </div>
 
         {/* Legend */}
-        <div className="flex justify-center gap-4 mt-3 text-[9px]" style={{ fontFamily: "monospace" }}>
+        <div className="flex justify-center gap-2 sm:gap-4 mt-3 text-[8px] sm:text-[9px] flex-wrap" style={{ fontFamily: "monospace" }}>
           <div className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "#141414", border: "1px solid #222" }} />
             <span style={{ color: "#555" }}>Open</span>
