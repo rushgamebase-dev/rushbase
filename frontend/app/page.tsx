@@ -375,6 +375,7 @@ export default function Home() {
               connected={oracle.connected}
               videoUid={oracle.videoUid}
               cameraName={cameraName}
+              cameraId={oracle.cameraId ?? undefined}
               frameUrl={oracle.frameUrl}
             />
 
