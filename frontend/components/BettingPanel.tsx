@@ -255,7 +255,15 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {ethBalance !== null && (
+          {isTokenMode && rushBalanceFormatted > 0 && (
+            <span
+              className="text-xs tabular"
+              style={{ color: "#ffd700", fontFamily: "monospace" }}
+            >
+              {rushBalanceFormatted.toLocaleString()} $RUSH
+            </span>
+          )}
+          {!isTokenMode && ethBalance !== null && (
             <div
               className="text-xs tabular"
               style={{ color: "#555", fontFamily: "monospace" }}
@@ -307,7 +315,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         >
           <span className="text-xs font-bold" style={{ color: "#ff4444", fontFamily: "monospace" }}>
             {betError.includes("exceeds") || betError.includes("insufficient")
-              ? "Insufficient ETH balance for bet + gas"
+              ? isTokenMode ? "Insufficient $RUSH balance" : "Insufficient ETH balance for bet + gas"
               : betError.includes("rejected") || betError.includes("denied")
               ? "Transaction rejected in wallet"
               : betError.includes("reverted") || betError.includes("BETTING_CLOSED")
@@ -376,7 +384,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 {market.overOdds > 0 ? `${market.overOdds.toFixed(2)}x` : "—"}
               </div>
               <div className="text-xs" style={{ color: "#555" }}>
-                {market.overPool > 0 ? `${formatEth(market.overPool)} ETH` : "No bets yet"}
+                {market.overPool > 0 ? `${isTokenMode ? market.overPool.toLocaleString() + " $RUSH" : formatEth(market.overPool) + " ETH"}` : "No bets yet"}
               </div>
             </div>
           </div>
@@ -429,7 +437,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 {market.underOdds > 0 ? `${market.underOdds.toFixed(2)}x` : "—"}
               </div>
               <div className="text-xs" style={{ color: "#555" }}>
-                {market.underPool > 0 ? `${formatEth(market.underPool)} ETH` : "No bets yet"}
+                {market.underPool > 0 ? `${isTokenMode ? market.underPool.toLocaleString() + " $RUSH" : formatEth(market.underPool) + " ETH"}` : "No bets yet"}
               </div>
             </div>
           </div>
@@ -463,9 +471,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
         >
           <span
             className="pl-3 pr-2 text-sm font-bold shrink-0"
-            style={{ color: "#00ff88", fontFamily: "monospace" }}
+            style={{ color: isTokenMode ? "#ffd700" : "#00ff88", fontFamily: "monospace" }}
           >
-            ETH
+            {isTokenMode ? "$RUSH" : "ETH"}
           </span>
           <input
             type="number"
@@ -511,7 +519,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           ))}
           <button
             onClick={() => {
-              if (ethBalance !== null) {
+              if (isTokenMode && rushBalanceFormatted > 0) {
+                setAmount(String(Math.floor(rushBalanceFormatted * 0.95)));
+              } else if (ethBalance !== null) {
                 const maxBet = Math.min(ethBalance * 0.95, 10);
                 setAmount(maxBet.toFixed(4));
               } else {
@@ -541,7 +551,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
             <div className="flex justify-between text-xs mb-1">
               <span style={{ color: "#555", fontFamily: "monospace" }}>BET</span>
               <span style={{ color: "#aaa", fontFamily: "monospace" }}>
-                {amountNum.toFixed(4)} ETH
+                {isTokenMode ? `${amountNum.toLocaleString()} $RUSH` : `${amountNum.toFixed(4)} ETH`}{isTokenMode && amountUsd ? ` (~$${amountUsd})` : ""}
               </span>
             </div>
             <div className="flex justify-between text-xs mb-1">
@@ -563,7 +573,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                   textShadow: "0 0 8px rgba(0,255,136,0.4)",
                 }}
               >
-                +{profit.toFixed(4)} ETH
+                +{isTokenMode ? profit.toLocaleString() + " $RUSH" : profit.toFixed(4) + " ETH"}
               </span>
             </div>
           </div>
@@ -614,7 +624,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                     <span className="text-sm font-black tracking-widest" style={{ color: "#00ff88", fontFamily: "monospace" }}>YOU WON!</span>
                   </div>
                   <div className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
-                    You bet {userSide?.toUpperCase()} — {userTotalBet.toFixed(4)} ETH
+                    You bet {userSide?.toUpperCase()} — {isTokenMode ? `${userTotalBet.toLocaleString()} $RUSH` : `${userTotalBet.toFixed(4)} ETH`}
                   </div>
                   {wasPaid && (
                     <div className="text-xs mt-1 font-bold" style={{ color: "#00ff88", fontFamily: "monospace" }}>
@@ -630,7 +640,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                     <span className="text-sm font-black tracking-widest" style={{ color: "#ff4444", fontFamily: "monospace" }}>YOU LOST</span>
                   </div>
                   <div className="text-xs" style={{ color: "#666", fontFamily: "monospace" }}>
-                    You bet {userSide?.toUpperCase()} — {userTotalBet.toFixed(4)} ETH
+                    You bet {userSide?.toUpperCase()} — {isTokenMode ? `${userTotalBet.toLocaleString()} $RUSH` : `${userTotalBet.toFixed(4)} ETH`}
                   </div>
                   <div className="text-xs mt-1" style={{ color: "#444", fontFamily: "monospace" }}>
                     Better luck next round
