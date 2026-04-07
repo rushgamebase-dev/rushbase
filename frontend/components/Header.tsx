@@ -49,7 +49,7 @@ export default function Header() {
         </Link>
 
         {/* Nav links */}
-        <nav className="flex items-center gap-2 md:gap-4 overflow-x-auto" aria-label="Main navigation">
+        <nav className="flex items-center gap-1.5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-none" aria-label="Main navigation">
           <Link
             href="/"
             className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
