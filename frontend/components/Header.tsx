@@ -15,6 +15,7 @@ export default function Header() {
   const isAdmin = !!address && ADMIN_ADDRESSES.includes(address.toLowerCase());
 
   return (
+    <>
     <header
       className="sticky top-0 z-50 flex items-center justify-between px-4 h-14"
       style={{
@@ -193,5 +194,19 @@ export default function Header() {
         <WalletButton />
       </div>
     </header>
+
+      {/* Burn announcement banner */}
+      <div
+        className="w-full py-1.5 text-center text-[10px] font-bold tracking-widest"
+        style={{
+          background: "linear-gradient(90deg, rgba(255,68,0,0.08), rgba(255,140,0,0.12), rgba(255,68,0,0.08))",
+          borderBottom: "1px solid rgba(255,100,0,0.15)",
+          color: "#ff8800",
+          fontFamily: "monospace",
+        }}
+      >
+        ALL MARKETS NOW IN $RUSH ONLY — 30% OF EVERY BET IS BURNED FOREVER
+      </div>
+    </>
   );
 }
