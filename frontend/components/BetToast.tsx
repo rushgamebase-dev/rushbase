@@ -18,7 +18,7 @@ export default function BetToast({ bets }: BetToastProps) {
       seenIdsRef.current.clear();
       setVisibleBets([]);
     }
-  }, [bets.length === 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bets.length]);
 
   useEffect(() => {
     const newBets = bets.filter((b) => !seenIdsRef.current.has(b.id));

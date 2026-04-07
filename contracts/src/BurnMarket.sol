@@ -157,7 +157,7 @@ contract BurnMarket {
 
     function lockMarket() external onlyOracle inState(MarketState.OPEN) {
         state = MarketState.LOCKED;
-        lockTime = block.timestamp;
+        // lockTime stays at createdAt + roundDurationSecs (immutable countdown target)
         emit MarketLocked(lockTime);
     }
 
@@ -166,7 +166,7 @@ contract BurnMarket {
 
         if (state == MarketState.OPEN) {
             state = MarketState.LOCKED;
-            lockTime = block.timestamp;
+            // lockTime stays at createdAt + roundDurationSecs (immutable countdown target)
         }
 
         actualCarCount = _actualCarCount;

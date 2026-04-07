@@ -106,7 +106,8 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const [lockTimeExpired, setLockTimeExpired] = useState(false);
   useEffect(() => {
     if (!lockTime || lockTime <= 0) return;
-    function check() { setLockTimeExpired(Math.floor(Date.now() / 1000) >= lockTime); }
+    const SAFETY_MARGIN = 5; // stop accepting bets 5s before on-chain lockTime
+    function check() { setLockTimeExpired(Math.floor(Date.now() / 1000) >= lockTime - SAFETY_MARGIN); }
     check();
     const id = setInterval(check, 1000);
     return () => clearInterval(id);

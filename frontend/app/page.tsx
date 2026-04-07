@@ -25,6 +25,7 @@ import { timeAgo, type LiveMarket } from "@/lib/mock";
 import { useMarketStream } from "@/hooks/useMarketStream";
 import BetToast from "@/components/BetToast";
 import MascotOverlay from "@/components/MascotOverlay";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useBetStream } from "@/hooks/useBetStream";
 
 // ─── Platform stats (real values from contracts or zero) ─────────────────────
@@ -395,16 +396,18 @@ export default function Home() {
             <div className="absolute bottom-2 left-2 right-2 z-10" style={{ pointerEvents: "auto" }}>
               {hasActiveMarket ? (
                 <div>
-                  <Countdown
-                    lockTime={lockTime > 0 ? lockTime : undefined}
-                    status={market.status}
-                    finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
-                    winningRangeIndex={winningRangeIndex}
-                    liveCount={displayCount}
-                    threshold={market.threshold}
-                    oraclePhase={oracle.phase}
-                    oracleRemaining={oracle.remaining}
-                  />
+                  <ErrorBoundary>
+                    <Countdown
+                      lockTime={lockTime > 0 ? lockTime : undefined}
+                      status={market.status}
+                      finalCount={market.vehicleCount > 0 ? market.vehicleCount : undefined}
+                      winningRangeIndex={winningRangeIndex}
+                      liveCount={displayCount}
+                      threshold={market.threshold}
+                      oraclePhase={oracle.phase}
+                      oracleRemaining={oracle.remaining}
+                    />
+                  </ErrorBoundary>
                 </div>
               ) : (
                 <div className="px-3 py-2 rounded" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 8 }}>
@@ -417,7 +420,9 @@ export default function Home() {
 
           {/* Mobile betting panel — shows right after video on small screens */}
           <div ref={mobileBettingPanelRef} className="lg:hidden">
-            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
+            <ErrorBoundary>
+              <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
+            </ErrorBoundary>
           </div>
 
           {/* Current count card (standalone) — hidden on mobile; countdown overlay already shows it */}
@@ -555,7 +560,9 @@ export default function Home() {
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
-            <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
+            <ErrorBoundary>
+              <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
+            </ErrorBoundary>
           </div>
         </div>
 

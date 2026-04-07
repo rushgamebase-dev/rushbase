@@ -69,8 +69,24 @@ export function useMarketStream(onEvent?: (event: MarketEvent) => void, currentM
         }
       }
 
-      // Invalidate contract reads → forces immediate refetch
-      queryClient.invalidateQueries({ queryKey: ["readContract"] });
+      // Invalidate market-related contract reads only (not tiles, tokens, etc.)
+      queryClient.invalidateQueries({
+        queryKey: ["readContract"],
+        predicate: (query) => {
+          const key = query.queryKey as unknown[];
+          // Match queries that reference the current market or factory
+          return key.some((k) =>
+            typeof k === "object" && k !== null && (
+              "functionName" in k && typeof (k as Record<string, unknown>).functionName === "string" &&
+              ["state", "totalPool", "lockTime", "totalBettors", "actualCarCount",
+               "winningRangeIndex", "poolByRange", "getActiveMarkets", "getMarketCount",
+               "getUserBets", "getUserClaimable", "isClaimable"].includes(
+                (k as Record<string, unknown>).functionName as string
+              )
+            )
+          );
+        },
+      });
 
       onEvent?.(event);
     },

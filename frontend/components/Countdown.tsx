@@ -47,6 +47,8 @@ export default function Countdown({
       } catch { /* use raw client clock */ }
     }
     syncClock();
+    const resyncInterval = setInterval(syncClock, 60_000);
+    return () => clearInterval(resyncInterval);
   }, []);
 
   function correctedNow() {

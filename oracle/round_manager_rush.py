@@ -949,14 +949,20 @@ class RushRoundManager:
             if not active:
                 return True
 
+            LOCKED_GRACE_SECS = 300  # 5 min grace after lockTime for LOCKED markets
             now = int(time.time())
             all_orphans = True
             for addr in active:
                 try:
                     m = self.chain.w3.eth.contract(address=Web3.to_checksum_address(addr), abi=MARKET_ABI)
-                    if m.functions.state().call() >= 2:
+                    market_state = m.functions.state().call()
+                    if market_state >= 2:
                         continue  # already resolved/cancelled
-                    if now < m.functions.lockTime().call():
+                    market_lock = m.functions.lockTime().call()
+                    if market_state == 1 and now > market_lock + LOCKED_GRACE_SECS:
+                        log.info("LOCKED market %s past grace period — treating as orphan", addr)
+                        continue  # orphan: stuck in LOCKED past grace
+                    if now < market_lock:
                         all_orphans = False
                         break
                 except Exception:

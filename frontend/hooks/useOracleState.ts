@@ -172,6 +172,10 @@ export function useOracleState(
     if (msg.roundId !== undefined && lastKnownRoundIdRef.current !== null && msg.roundId < lastKnownRoundIdRef.current) {
       return; // stale — older round
     }
+    // Track latest roundId for monotonic check
+    if (msg.roundId !== undefined) {
+      lastKnownRoundIdRef.current = msg.roundId;
+    }
 
     // ── Handle by type ──────────────────────────────────────────────────
 

@@ -207,6 +207,39 @@ export default function Header() {
       >
         ALL MARKETS NOW IN $RUSH ONLY — 30% OF EVERY BET IS BURNED FOREVER
       </div>
+
+      {/* Mobile-only Series 2 CTA — big and unmissable */}
+      <Link
+        href="/series2"
+        className="md:hidden flex items-center justify-center gap-3 w-full py-3"
+        style={{
+          background: "linear-gradient(90deg, rgba(255,102,0,0.15), rgba(255,60,0,0.2), rgba(255,102,0,0.15))",
+          borderBottom: "2px solid rgba(255,102,0,0.4)",
+        }}
+      >
+        <span
+          className="text-base font-black tracking-widest"
+          style={{
+            color: "#ff6600",
+            fontFamily: "monospace",
+            textShadow: "0 0 12px rgba(255,102,0,0.5)",
+          }}
+        >
+          SERIES 2 — TILES OPEN
+        </span>
+        <span
+          className="px-2 py-1 rounded-md text-xs font-black"
+          style={{
+            background: "rgba(255,102,0,0.2)",
+            border: "1px solid rgba(255,102,0,0.5)",
+            color: "#ff8833",
+            fontFamily: "monospace",
+            animation: "pulse 2s ease-in-out infinite",
+          }}
+        >
+          NEW
+        </span>
+      </Link>
     </>
   );
 }
