@@ -59,6 +59,18 @@ export default function Header() {
             PREDICT
           </Link>
 
+          <a
+            href="https://markets.rushgame.vip/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium transition-colors"
+            style={{ color: "#00aaff", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#44ccff")}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#00aaff")}
+          >
+            MARKETS
+          </a>
+
           {/* TILES — highlighted with gold color */}
           <Link
             href="/tiles"

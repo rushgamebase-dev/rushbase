@@ -167,6 +167,46 @@ MARKET_PLACEBET_ABI = [
     },
 ]
 
+MARKET_PLACEBET_TOKEN_ABI = [
+    {
+        "name": "placeBetToken",
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "inputs": [
+            {"name": "rangeIndex", "type": "uint256"},
+            {"name": "amount", "type": "uint256"},
+        ],
+        "outputs": [],
+    },
+    {
+        "name": "isTokenMode",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [{"name": "", "type": "bool"}],
+    },
+]
+
+ERC20_ABI = [
+    {
+        "name": "approve",
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "inputs": [
+            {"name": "spender", "type": "address"},
+            {"name": "amount", "type": "uint256"},
+        ],
+        "outputs": [{"name": "", "type": "bool"}],
+    },
+    {
+        "name": "balanceOf",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [{"name": "account", "type": "address"}],
+        "outputs": [{"name": "", "type": "uint256"}],
+    },
+]
+
 FACTORY_READ_ABI = [
     {
         "name": "getActiveMarkets",
@@ -199,6 +239,10 @@ TX_WAIT_TIMEOUT = 120                 # seconds to wait for receipt
 # House bot — transparent liquidity seeder
 HOUSE_BOT_KEY = os.environ.get("HOUSE_BOT_KEY", "")
 HOUSE_BOT_BET_WEI = MIN_BET_WEI      # 0.001 ETH per side
+
+# $RUSH token mode
+RUSH_TOKEN = os.environ.get("RUSH_TOKEN", "0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b")
+RUSH_BET_AMOUNT = 1000 * 10**18       # 1000 $RUSH per side
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -515,6 +559,7 @@ class ChainClient:
     def house_bet(self, market_address: str) -> bool:
         """
         Place minimum bets on both sides of a market using the house bot wallet.
+        Detects token mode and uses placeBetToken with ERC20 approval if needed.
         Returns True if both bets succeed, False otherwise.
         """
         if not HOUSE_BOT_KEY:
@@ -522,41 +567,94 @@ class ChainClient:
 
         try:
             house_account = Account.from_key(HOUSE_BOT_KEY)
-            market = self.w3.eth.contract(
-                address=Web3.to_checksum_address(market_address),
-                abi=MARKET_PLACEBET_ABI,
-            )
+            addr = Web3.to_checksum_address(market_address)
+
+            # Check if token mode
+            market_check = self.w3.eth.contract(address=addr, abi=MARKET_PLACEBET_TOKEN_ABI)
+            is_token = False
+            try:
+                is_token = market_check.functions.isTokenMode().call()
+            except Exception:
+                pass
+
             gas_price = self.w3.eth.gas_price
 
-            # Bet on UNDER (range 0)
-            nonce = self.w3.eth.get_transaction_count(house_account.address, "pending")
-            tx0 = market.functions.placeBet(0).build_transaction({
-                "from": house_account.address,
-                "nonce": nonce,
-                "gas": 200_000,
-                "gasPrice": gas_price,
-                "value": HOUSE_BOT_BET_WEI,
-            })
-            signed0 = house_account.sign_transaction(tx0)
-            hash0 = self.w3.eth.send_raw_transaction(signed0.raw_transaction).hex()
+            if is_token:
+                # Approve $RUSH token to market (max uint256)
+                token = self.w3.eth.contract(
+                    address=Web3.to_checksum_address(RUSH_TOKEN),
+                    abi=ERC20_ABI,
+                )
+                nonce = self.w3.eth.get_transaction_count(house_account.address, "pending")
+                approve_tx = token.functions.approve(addr, UINT256_MAX).build_transaction({
+                    "from": house_account.address,
+                    "nonce": nonce,
+                    "gas": 100_000,
+                    "gasPrice": gas_price,
+                })
+                signed_approve = house_account.sign_transaction(approve_tx)
+                approve_hash = self.w3.eth.send_raw_transaction(signed_approve.raw_transaction).hex()
+                self.wait_for_receipt(approve_hash, timeout=30)
 
-            # Bet on OVER (range 1)
-            nonce1 = nonce + 1
-            tx1 = market.functions.placeBet(1).build_transaction({
-                "from": house_account.address,
-                "nonce": nonce1,
-                "gas": 200_000,
-                "gasPrice": gas_price,
-                "value": HOUSE_BOT_BET_WEI,
-            })
-            signed1 = house_account.sign_transaction(tx1)
-            hash1 = self.w3.eth.send_raw_transaction(signed1.raw_transaction).hex()
+                # placeBetToken UNDER
+                market = self.w3.eth.contract(address=addr, abi=MARKET_PLACEBET_TOKEN_ABI)
+                nonce2 = self.w3.eth.get_transaction_count(house_account.address, "pending")
+                tx0 = market.functions.placeBetToken(0, RUSH_BET_AMOUNT).build_transaction({
+                    "from": house_account.address,
+                    "nonce": nonce2,
+                    "gas": 200_000,
+                    "gasPrice": gas_price,
+                })
+                signed0 = house_account.sign_transaction(tx0)
+                hash0 = self.w3.eth.send_raw_transaction(signed0.raw_transaction).hex()
+                self.wait_for_receipt(hash0, timeout=30)
 
-            log.info(
-                "House bot seeded %s: UNDER tx=%s, OVER tx=%s (%.4f ETH each)",
-                market_address, hash0[:10], hash1[:10],
-                HOUSE_BOT_BET_WEI / 10**18,
-            )
+                # placeBetToken OVER
+                nonce3 = self.w3.eth.get_transaction_count(house_account.address, "pending")
+                tx1 = market.functions.placeBetToken(1, RUSH_BET_AMOUNT).build_transaction({
+                    "from": house_account.address,
+                    "nonce": nonce3,
+                    "gas": 200_000,
+                    "gasPrice": gas_price,
+                })
+                signed1 = house_account.sign_transaction(tx1)
+                hash1 = self.w3.eth.send_raw_transaction(signed1.raw_transaction).hex()
+
+                log.info(
+                    "House bot seeded %s (TOKEN): UNDER tx=%s, OVER tx=%s (%d RUSH each)",
+                    market_address, hash0[:10], hash1[:10],
+                    RUSH_BET_AMOUNT // 10**18,
+                )
+            else:
+                # ETH mode (original)
+                market = self.w3.eth.contract(address=addr, abi=MARKET_PLACEBET_ABI)
+                nonce = self.w3.eth.get_transaction_count(house_account.address, "pending")
+                tx0 = market.functions.placeBet(0).build_transaction({
+                    "from": house_account.address,
+                    "nonce": nonce,
+                    "gas": 200_000,
+                    "gasPrice": gas_price,
+                    "value": HOUSE_BOT_BET_WEI,
+                })
+                signed0 = house_account.sign_transaction(tx0)
+                hash0 = self.w3.eth.send_raw_transaction(signed0.raw_transaction).hex()
+
+                nonce1 = nonce + 1
+                tx1 = market.functions.placeBet(1).build_transaction({
+                    "from": house_account.address,
+                    "nonce": nonce1,
+                    "gas": 200_000,
+                    "gasPrice": gas_price,
+                    "value": HOUSE_BOT_BET_WEI,
+                })
+                signed1 = house_account.sign_transaction(tx1)
+                hash1 = self.w3.eth.send_raw_transaction(signed1.raw_transaction).hex()
+
+                log.info(
+                    "House bot seeded %s (ETH): UNDER tx=%s, OVER tx=%s (%.4f ETH each)",
+                    market_address, hash0[:10], hash1[:10],
+                    HOUSE_BOT_BET_WEI / 10**18,
+                )
             return True
 
         except Exception as exc:
