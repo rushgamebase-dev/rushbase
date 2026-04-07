@@ -214,17 +214,24 @@ contract BurnMarket {
         uint256 totalClaim = 0;
 
         Bet[] storage userBets = betsByUser[user];
+        uint256[] memory winningIndexes = new uint256[](userBets.length);
+        uint256 winCount = 0;
+
         for (uint256 i = 0; i < userBets.length; i++) {
             if (userBets[i].rangeIndex == winningRangeIndex && !userBets[i].claimed) {
-                userBets[i].claimed = true;
                 totalClaim += (userBets[i].amount * distributable) / winPool;
+                winningIndexes[winCount] = i;
+                winCount++;
             }
         }
 
         if (totalClaim > 0) {
-            // Try to send to user, fallback silently if fails
+            // Transfer first, mark claimed only on success
             try bettingToken.transfer(user, totalClaim) returns (bool success) {
                 if (success) {
+                    for (uint256 j = 0; j < winCount; j++) {
+                        userBets[winningIndexes[j]].claimed = true;
+                    }
                     emit WinningsClaimed(user, totalClaim);
                 }
             } catch {}
@@ -249,17 +256,23 @@ contract BurnMarket {
     function _refundFor(address user) internal {
         Bet[] storage userBets = betsByUser[user];
         uint256 totalRefund = 0;
+        uint256[] memory refundIndexes = new uint256[](userBets.length);
+        uint256 refundCount = 0;
 
         for (uint256 i = 0; i < userBets.length; i++) {
             if (!userBets[i].claimed) {
-                userBets[i].claimed = true;
                 totalRefund += userBets[i].amount;
+                refundIndexes[refundCount] = i;
+                refundCount++;
             }
         }
 
         if (totalRefund > 0) {
             try bettingToken.transfer(user, totalRefund) returns (bool success) {
                 if (success) {
+                    for (uint256 j = 0; j < refundCount; j++) {
+                        userBets[refundIndexes[j]].claimed = true;
+                    }
                     emit Refunded(user, totalRefund);
                 }
             } catch {}

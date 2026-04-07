@@ -113,6 +113,7 @@ except Exception:
     log.warning("Ably not available — bets won't show in recent bets")
 
 seen_markets = set()
+failed_markets = {}  # market -> timestamp of last failure (cooldown 60s)
 approved_markets = set()
 
 def send_chat(text):
@@ -221,10 +222,10 @@ def place_bet(market, side, amount_wei=BET_RUSH_WEI):
 
 def seed_market(market):
     log.info("Seeding %s...", market[:12])
-    seen_markets.add(market)
 
     if not approve_token(market):
         log.error("  Cannot seed — approval failed")
+        failed_markets[market] = time.time()
         return False
 
     tx0 = place_bet(market, 0, BET_RUSH_WEI)
@@ -245,6 +246,7 @@ def seed_market(market):
         log.error("  OVER FAILED")
         return False
 
+    seen_markets.add(market)  # only mark seen after successful seed
     log.info("Seeded %s — %s + %s $RUSH", market[:12], BET_RUSH, BET_RUSH)
     global _chat_index
     send_chat(CHAT_AFTER_SEED[_chat_index % len(CHAT_AFTER_SEED)])
@@ -261,8 +263,12 @@ def run():
         try:
             markets = get_active_markets()
             for m in markets:
-                if m not in seen_markets:
-                    seed_market(m)
+                if m in seen_markets:
+                    continue
+                # Cooldown: don't retry failed markets for 60s
+                if m in failed_markets and time.time() - failed_markets[m] < 60:
+                    continue
+                seed_market(m)
         except Exception as exc:
             log.warning("Error: %s", exc)
 
