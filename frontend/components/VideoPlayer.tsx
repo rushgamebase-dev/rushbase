@@ -21,7 +21,7 @@ export default function VideoPlayer({
   const isLiveMode = !!frameUrl;
 
   const iframeSrc = !isLiveMode && videoUid
-    ? `https://${CF_SUBDOMAIN}/${videoUid}/iframe?autoplay=true&muted=true&loop=true`
+    ? `https://${CF_SUBDOMAIN}/${videoUid}/iframe?autoplay=true&muted=false&loop=true`
     : "";
 
   return (
