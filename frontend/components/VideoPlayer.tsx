@@ -21,6 +21,7 @@ const YOUTUBE_AUDIO: Record<string, string> = {
 };
 
 // Load YouTube IFrame API once
+/* eslint-disable @typescript-eslint/no-explicit-any */
 let ytApiLoaded = false;
 function loadYTApi(): Promise<void> {
   if (ytApiLoaded || (window as any).YT?.Player) {
