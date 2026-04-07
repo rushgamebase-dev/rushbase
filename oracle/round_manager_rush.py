@@ -229,8 +229,8 @@ MARKET_RESOLVED_ABI = {
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 UINT256_MAX = 2 ** 256 - 1
-MIN_BET_WEI = 10 ** 15               # 0.001 ETH
-MAX_BET_WEI = 10 ** 18               # 1 ETH
+MIN_BET_WEI = 100 * 10 ** 18         # 100 $RUSH (token mode)
+MAX_BET_WEI = 10_000_000 * 10 ** 18  # 10M $RUSH max
 DEFAULT_GAS  = 3_000_000
 INTER_ROUND_SECS = 15
 MAX_TX_RETRIES = 3
@@ -569,13 +569,9 @@ class ChainClient:
             house_account = Account.from_key(HOUSE_BOT_KEY)
             addr = Web3.to_checksum_address(market_address)
 
-            # Check if token mode
-            market_check = self.w3.eth.contract(address=addr, abi=MARKET_PLACEBET_TOKEN_ABI)
-            is_token = False
-            try:
-                is_token = market_check.functions.isTokenMode().call()
-            except Exception:
-                pass
+            # All BurnMarkets are token mode — force true
+            # (BurnMarketFactory only creates token markets)
+            is_token = True
 
             gas_price = self.w3.eth.gas_price
 
@@ -1215,8 +1211,8 @@ class RushRoundManager:
         market_address, create_tx = market_result
         self._persist_state("betting", market_address, camera_id=cam_id)
 
-        # Step 3: Seed liquidity
-        self.chain.house_bet(market_address)
+        # Step 3: Seed liquidity (handled by standalone house_bot.py)
+        # self.chain.house_bet(market_address)
 
         # Step 4: Count vehicles
         count_result = await self._run_counting(market_address, camera)

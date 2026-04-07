@@ -167,10 +167,13 @@ def publish_bet(side, tx_hash, amount=1000):
         pass
 
 RPCS = [
-    RPC_URL,
+    RPC_URL,  # Chainstack (paid, primary)
     "https://base.drpc.org",
     "https://base-rpc.publicnode.com",
 ]
+
+# Use Chainstack for factory polling too
+FACTORY_RPC = RPC_URL
 
 def approve_token(market):
     if market in approved_markets:
