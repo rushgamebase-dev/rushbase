@@ -7,8 +7,6 @@ import Header from "@/components/Header";
 import { RUSH_TILES_V2_ABI, RUSH_TILES_V2_ADDRESS, BASE_MAINNET } from "@/lib/contracts";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink, Shield, Flame, Crown } from "lucide-react";
-import Image from "next/image";
-
 const GRID = 100;
 const EXPLORER = BASE_MAINNET.blockExplorerUrls[0];
 const FOUNDER_IMAGES = 5;

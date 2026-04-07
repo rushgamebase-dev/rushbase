@@ -1,5 +1,17 @@
 import { parseAbi } from "viem";
 
+// ─── ERC20 ABI ──────────────────────────────────────────────────────────────
+
+export const ERC20_ABI = parseAbi([
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function balanceOf(address account) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)",
+]);
+
+export const RUSH_TOKEN_ADDRESS = "0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b" as `0x${string}`;
+
 // ─── MarketFactory ABI — matches MarketFactory.sol exactly ──────────────────
 
 export const FACTORY_ABI = parseAbi([

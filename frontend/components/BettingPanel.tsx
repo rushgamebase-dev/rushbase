@@ -9,7 +9,10 @@ import type { Bet, LiveMarket } from "@/lib/mock";
 import { timeAgo } from "@/lib/mock";
 import { usePlaceBet } from "@/hooks/usePlaceBet";
 import { useBetStream } from "@/hooks/useBetStream";
+import { useTokenApproval } from "@/hooks/useTokenApproval";
+import { useRushPrice } from "@/hooks/useRushPrice";
 import { BASE_MAINNET, MARKET_ABI } from "@/lib/contracts";
+import { parseUnits, formatUnits } from "viem";
 import ClaimSection from "@/components/ClaimSection";
 import { useClaimWinnings } from "@/hooks/useClaimWinnings";
 
@@ -48,18 +51,34 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     query: { enabled: !!marketAddress && !!walletAddress && market.status === "resolved" },
   });
 
+  // Detect token mode
+  const { data: isTokenModeData } = useReadContract({
+    address: marketAddress || undefined,
+    abi: MARKET_ABI,
+    functionName: "isTokenMode",
+    query: { enabled: !!marketAddress },
+  });
+  const isTokenMode = !!isTokenModeData;
+
   const {
     placeBet: placeBetContract,
     isLoading: isBetLoading,
     isSuccess: isBetSuccess,
     txHash: betTxHash,
     error: betError,
-  } = usePlaceBet(marketAddress ?? null);
+  } = usePlaceBet(marketAddress ?? null, isTokenMode);
+
+  const { priceUsd: rushPriceUsd } = useRushPrice();
 
   const { publishBet } = useBetStream();
 
   const [selectedSide, setSelectedSide] = useState<"over" | "under" | null>(null);
   const [amount, setAmount] = useState("");
+
+  // Token approval + balance (must be after amount state)
+  const betAmountWei = amount ? parseUnits(amount, 18) : BigInt(0);
+  const { balance: rushBalance, needsApproval, approve: approveRush, isApproving } =
+    useTokenApproval(marketAddress ?? null, betAmountWei);
   const [lastBetIds, setLastBetIds] = useState<Set<string>>(new Set());
   const [flashBetId, setFlashBetId] = useState<string | null>(null);
   const prevOverOddsRef = useRef(market.overOdds);
@@ -72,6 +91,15 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const ethBalance = balanceData ? parseFloat(formatEther(balanceData.value)) : null;
+  const rushBalanceFormatted = rushBalance > BigInt(0) ? parseFloat(formatUnits(rushBalance, 18)) : 0;
+  const _displayBalance = isTokenMode ? rushBalanceFormatted : ethBalance;
+  void _displayBalance; // used in future UI update
+
+  // USD quick amounts for token mode
+  const QUICK_AMOUNTS_USD = [1, 5, 10, 50];
+  const rushQuickAmounts = rushPriceUsd && rushPriceUsd > 0
+    ? QUICK_AMOUNTS_USD.map(usd => Math.floor(usd / rushPriceUsd))
+    : [100, 500, 1000, 5000];
 
   // Oracle phase is the authority for betting expiry.
   // Fallback to lockTime check if oracle phase not available.
@@ -166,9 +194,19 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     }
     if (!canBet || isBetLoading) return;
 
+    // Token mode: approve first if needed
+    if (isTokenMode && needsApproval) {
+      const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+      await approveRush(maxApproval);
+      return; // user will click bet again after approval confirms
+    }
+
     const rangeIndex = selectedSide === "over" ? 1 : 0;
     await placeBetContract(rangeIndex, amount);
   }
+
+  // USD conversion helper
+  const amountUsd = amount && rushPriceUsd ? (parseFloat(amount) * rushPriceUsd).toFixed(2) : null;
 
   const statusColor =
     market.status === "open"
@@ -451,7 +489,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
 
         {/* Quick amounts */}
         <div className="flex gap-2">
-          {QUICK_AMOUNTS.map((q) => (
+          {(isTokenMode ? rushQuickAmounts : QUICK_AMOUNTS).map((q) => (
             <button
               key={q}
               onClick={() => setAmount(String(q))}
@@ -465,7 +503,10 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 cursor: isOpen ? "pointer" : "not-allowed",
               }}
             >
-              {q}
+              {isTokenMode ? `${q}` : q}
+              {isTokenMode && rushPriceUsd ? (
+                <span style={{ display: "block", fontSize: 8, color: "#444" }}>~${(q * rushPriceUsd).toFixed(0)}</span>
+              ) : null}
             </button>
           ))}
           <button
@@ -637,6 +678,14 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           >
             {!isConnected ? (
               "CONNECT WALLET"
+            ) : isApproving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span
+                  className="inline-block w-4 h-4 rounded-full border-2 border-black border-t-transparent"
+                  style={{ animation: "spin 0.8s linear infinite" }}
+                />
+                APPROVING $RUSH...
+              </span>
             ) : isBetLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <span
@@ -651,6 +700,10 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               "ENTER AMOUNT"
             ) : !isOpen ? (
               "BETTING CLOSED"
+            ) : isTokenMode && needsApproval ? (
+              `APPROVE $RUSH`
+            ) : isTokenMode ? (
+              `BET ${selectedSide.toUpperCase()} — ${amountNum.toLocaleString()} $RUSH${amountUsd ? ` (~$${amountUsd})` : ""}`
             ) : (
               `BET ${selectedSide.toUpperCase()} — ${amountNum.toFixed(3)} ETH`
             )}
