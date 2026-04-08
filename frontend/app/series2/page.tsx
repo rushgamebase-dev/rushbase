@@ -787,7 +787,7 @@ function FullGrid({
 function S1ProofLink() {
   return (
     <section className="py-8 border-t" style={{ borderColor: "#1a1a1a" }}>
-      <div className="text-center">
+      <div className="text-center max-w-lg mx-auto">
         <div
           className="text-[10px] font-bold tracking-[0.2em] mb-3"
           style={{ color: "#555", fontFamily: "monospace" }}
@@ -795,17 +795,31 @@ function S1ProofLink() {
           SERIES 1 TRACK RECORD
         </div>
         <div className="text-sm mb-2" style={{ color: "#666", fontFamily: "monospace" }}>
-          11.8+ ETH distributed to 100 holders in 8 days
+          <span style={{ color: "#ffd700", fontWeight: 800 }}>11.8+ ETH</span> distributed to 100 holders in 8 days
         </div>
-        <a
-          href={`${EXPLORER}/address/0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
-          style={{ color: "#00aaff", fontFamily: "monospace" }}
-        >
-          Verify on Basescan <ExternalLink size={11} />
-        </a>
+        <div className="text-xs mb-3 px-4" style={{ color: "#444", fontFamily: "monospace", lineHeight: 1.6 }}>
+          Series 2 is a new series — it does not replace Series 1.
+          S1 holders keep earning 100% of protocol trading fees and Flaunch $RUSH trading fees.
+          Both series are independent revenue streams.
+        </div>
+        <div className="flex justify-center gap-3 flex-wrap">
+          <a
+            href={`${EXPLORER}/address/0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+            style={{ color: "#00aaff", fontFamily: "monospace" }}
+          >
+            Verify S1 on Basescan <ExternalLink size={11} />
+          </a>
+          <a
+            href="/tiles"
+            className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
+            style={{ color: "#00ff88", fontFamily: "monospace" }}
+          >
+            View Series 1 Tiles →
+          </a>
+        </div>
       </div>
     </section>
   );

@@ -765,6 +765,24 @@ export default function TilesPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0" }}>
       <Header />
 
+      {/* S1 Status Banner */}
+      <div
+        className="w-full text-center py-2.5 px-4"
+        style={{
+          background: "linear-gradient(90deg, rgba(0,255,136,0.08), rgba(255,215,0,0.08), rgba(0,255,136,0.08))",
+          borderBottom: "1px solid rgba(0,255,136,0.15)",
+          fontFamily: "monospace",
+          fontSize: "12px",
+        }}
+      >
+        <span style={{ color: "#999" }}>Series 1 is </span>
+        <span style={{ color: "#00ff88", fontWeight: 800 }}>LIVE & EARNING</span>
+        <span style={{ color: "#999" }}> — </span>
+        <span style={{ color: "#ffd700", fontWeight: 800 }}>{parseFloat(tilesContract.totalDistributed).toFixed(2)} ETH</span>
+        <span style={{ color: "#999" }}> distributed to 100 holders. </span>
+        <span style={{ color: "#666" }}>S1 revenue is independent from Series 2.</span>
+      </div>
+
       {/* 3-column layout */}
       <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
 
