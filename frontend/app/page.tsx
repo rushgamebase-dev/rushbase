@@ -72,7 +72,7 @@ const WHY_RUSH = [
   {
     icon: <Brain size={20} />,
     title: "AI-Powered Oracle",
-    desc: "YOLOv8 real-time vehicle detection — verifiable on every round.",
+    desc: "AI-powered real-time vehicle detection — verifiable on every round.",
   },
   {
     icon: <Coins size={20} />,

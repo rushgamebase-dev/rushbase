@@ -1,6 +1,6 @@
 # Wave Engine — Beach Wave Detection (Prototype)
 
-Experimental wave/tide detection system for live beach cameras. Uses computer vision to detect ocean wave patterns crossing virtual threshold zones. Unlike the main Rush oracle (which uses YOLO), the Wave Engine uses OpenCV color analysis — no GPU required.
+Experimental wave/tide detection system for live beach cameras. Uses computer vision to detect ocean wave patterns crossing virtual threshold zones. Unlike the main Rush oracle, the Wave Engine uses OpenCV color analysis — no GPU required.
 
 ## Concept: Territory Invasion
 

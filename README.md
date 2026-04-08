@@ -68,8 +68,8 @@ Revenue and burn mechanics are enforced on-chain and **cannot be changed by anyo
                               ^
                               |
 +-------------------------------------------------------------+
-|  Oracle Engine (Python, YOLOv8x, BoT-SORT)                  |
-|  Line-crossing detection, evidence frames, SHA-256 hashes   |
+|  Oracle Engine (Python, Computer Vision)                     |
+|  Real-time vehicle detection, evidence frames, SHA-256       |
 |  WebSocket broadcast, Cloudflare tunnel                      |
 +-------------------------------------------------------------+
                               ^
@@ -202,12 +202,12 @@ Rush has two series of **100 protocol tiles** each. Each tile represents shares 
 
 ## Oracle System
 
-The Rush Oracle uses **YOLOv8x** with **BoT-SORT** tracking for real-time vehicle counting on live traffic cameras.
+The Rush Oracle uses a proprietary computer vision pipeline for real-time vehicle counting on live traffic cameras.
 
 ### How It Works
 
 - AI detects and tracks vehicles on live camera feeds
-- Virtual counting lines detect crossings with deduplication
+- Real-time vehicle counting with multi-object tracking
 - Evidence frames captured every 30 seconds with SHA-256 hashes
 - Adaptive threshold keeps markets balanced
 - Multi-class support (cars, trucks, buses, motorcycles)
@@ -276,7 +276,7 @@ python3 watchdog.py    # Production (supervised)
 | **Contracts** | Solidity 0.8.24, Foundry, OpenZeppelin |
 | **Frontend** | Next.js 14, TypeScript, wagmi v2, viem, Tailwind, Framer Motion |
 | **Real-time** | Ably (market events), WebSocket (detection stream) |
-| **Oracle** | Python, YOLOv8x, BoT-SORT, Supervision, OpenCV |
+| **Oracle** | Python, Computer Vision, OpenCV |
 | **Infrastructure** | Vercel, Chainstack RPC, Cloudflare tunnels |
 
 ---

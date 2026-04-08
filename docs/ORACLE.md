@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Rush Oracle is a real-time computer vision system that observes live traffic cameras, counts vehicles, and settles prediction markets on-chain. Every round result is backed by evidence frames with SHA-256 hashes for transparency.
+The Rush Oracle is a proprietary AI system that observes live traffic cameras, counts vehicles in real-time, and settles prediction markets on-chain. Every round result is backed by evidence frames with SHA-256 hashes for transparency.
 
 ## How It Works
 
@@ -11,11 +11,11 @@ Live Traffic Camera
         |
         v
   AI Detection Engine
-  (YOLOv8x + Object Tracking)
+  (Proprietary Vision System)
         |
         v
   Vehicle Counting
-  (line-crossing detection)
+  (real-time tracking)
         |
         v
   On-Chain Settlement
@@ -23,8 +23,8 @@ Live Traffic Camera
 ```
 
 1. **Watch** — The oracle connects to a live traffic camera stream
-2. **Detect** — YOLOv8x identifies vehicles in real-time with object tracking
-3. **Count** — Virtual counting lines detect when vehicles cross, with deduplication to prevent double-counting
+2. **Detect** — AI identifies and tracks vehicles in real-time
+3. **Count** — The system counts vehicles with built-in deduplication to prevent double-counting
 4. **Settle** — The final count is submitted on-chain, the market resolves, and winners are paid automatically
 
 ## Round Lifecycle

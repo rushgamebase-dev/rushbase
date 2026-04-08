@@ -137,7 +137,7 @@ export function useOracleState(
   // ── Message handler ─────────────────────────────────────────────────────
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    // Binary frame = JPEG from YOLO worker (LIVE GAME MODE)
+    // Binary frame = JPEG from detection worker (LIVE GAME MODE)
     if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
       const blob = event.data instanceof Blob
         ? event.data

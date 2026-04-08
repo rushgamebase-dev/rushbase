@@ -59,7 +59,7 @@ pip install -r requirements.txt
 Required:
 
 - Oracle wallet funded with ETH on Base (for gas)
-- GPU with CUDA for YOLOv8x inference
+- GPU with CUDA for AI inference
 - Stable internet for camera streams
 - Cloudflare tunnel for WebSocket access
 

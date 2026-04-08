@@ -214,7 +214,7 @@ export default function WelcomeOverlay() {
             letterSpacing: "0.05em",
           }}
         >
-          Powered by AI (YOLOv8) + Base Chain
+          Powered by AI + Base Chain
         </p>
       </div>
     </div>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SinalBet — ROI Calibrator</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0a;color:#fff;font-family:monospace}
+  .hdr{padding:12px 20px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .hdr h1{color:#00ff88;font-size:16px}
+  .tb{display:flex;gap:6px;flex-wrap:wrap}
+  .b{background:#00ff88;color:#000;border:none;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .b:hover{background:#00cc66}
+  .br{background:#ff4444;color:#fff;border:none;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .bo{background:transparent;color:#00ff88;border:1px solid #00ff88;padding:7px 14px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:bold;font-family:monospace}
+  .main{display:flex;height:calc(100vh - 48px)}
+  .cw{flex:1;position:relative;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+  .sd{width:280px;background:#111;border-left:1px solid #222;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+  .sd h3{color:#00ff88;font-size:11px;letter-spacing:2px}
+  .sd p{color:#666;font-size:11px;line-height:1.5}
+  canvas{display:block}
+  .out{background:#1a1a1a;padding:10px;border-radius:6px;font-size:10px;color:#0ff;word-break:break-all;max-height:150px;overflow-y:auto;border:1px solid #222}
+  .tg{display:flex;gap:4px;margin-top:6px}
+  .tg button{padding:5px 10px;border:1px solid #333;background:#1a1a1a;color:#888;font-size:11px;cursor:pointer;border-radius:4px;font-family:monospace}
+  .tg button.on{border-color:#00ff88;color:#00ff88;background:rgba(0,255,136,0.1)}
+  .sr{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .sr label{color:#888;font-size:11px;min-width:40px}
+  .sr input[type=range]{flex:1;accent-color:#00ff88}
+  .sr span{color:#00ff88;font-size:11px;min-width:28px;text-align:right}
+  input[type=text]{background:#1a1a1a;color:#fff;border:1px solid #333;padding:7px;font-size:12px;width:100%;border-radius:4px;font-family:monospace}
+  .inf{position:absolute;padding:4px 10px;background:rgba(0,0,0,.75);border-radius:4px;font-size:11px;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>ROI Calibrator</h1>
+  <div class="tb">
+    <button class="br" onclick="clearAll()">Clear</button>
+    <button class="b" onclick="exportROI()">Export ROI</button>
+  </div>
+</div>
+<div class="main">
+  <div class="cw" id="wrap">
+    <canvas id="c"></canvas>
+    <div class="inf" style="top:8px;left:8px;color:#00ff88" id="coords">—</div>
+    <div class="inf" style="bottom:8px;left:8px;color:#888" id="st">Load an image</div>
+  </div>
+  <div class="sd">
+    <div>
+      <h3>LOAD FRAME</h3>
+      <input id="url" type="text" placeholder="http://localhost:3003/frame.jpg">
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="b" onclick="loadUrl()">Load</button>
+        <button class="bo" onclick="document.getElementById('fi').click()">File</button>
+      </div>
+      <input type="file" id="fi" accept="image/*" style="display:none" onchange="loadFile(event)">
+    </div>
+    <div>
+      <h3>PAINT MODE</h3>
+      <p><b style="color:#00ff88">Green</b> = YOLO detects here<br><b style="color:#ff4444">Eraser</b> = remove paint</p>
+      <div class="tg">
+        <button class="on" id="m1" onclick="mode='paint';um()">Paint</button>
+        <button id="m2" onclick="mode='erase';um()">Erase</button>
+      </div>
+      <div class="sr">
+        <label>Size:</label>
+        <input type="range" id="bs" min="10" max="150" value="40" oninput="bs=+this.value;document.getElementById('bsl').textContent=bs">
+        <span id="bsl">40</span>
+      </div>
+    </div>
+    <div>
+      <h3>EXPORT</h3>
+      <div class="out" id="out">Paint first...</div>
+      <button class="b" style="margin-top:6px;width:100%" onclick="navigator.clipboard.writeText(document.getElementById('out').textContent).then(()=>document.getElementById('st').textContent='Copied!')">Copy</button>
+    </div>
+    <div>
+      <h3>HELP</h3>
+      <p>Paint the road green.<br>Everything NOT green will be ignored by YOLO.<br>Use eraser to fix mistakes.</p>
+    </div>
+  </div>
+</div>
+<script>
+const C = document.getElementById('c');
+const X = C.getContext('2d');
+const img = new Image();
+let W=0, H=0, S=1, mode='paint', bs=40, drawing=false;
+
+// Two layers: image + paint overlay
+const paintLayer = document.createElement('canvas');
+const PX = paintLayer.getContext('2d');
+
+function um(){
+  document.getElementById('m1').className = mode==='paint'?'on':'';
+  document.getElementById('m2').className = mode==='erase'?'on':'';
+}
+
+function loadUrl(){
+  const u=document.getElementById('url').value; if(!u) return;
+  img.crossOrigin='anonymous'; img.onload=init; img.src=u;
+}
+function loadFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{img.onload=init; img.src=ev.target.result};
+  r.readAsDataURL(f);
+}
+
+function init(){
+  W=img.width; H=img.height;
+  const wrap=document.getElementById('wrap');
+  S=Math.min((wrap.clientWidth-20)/W,(wrap.clientHeight-20)/H,1);
+  C.width=Math.round(W*S); C.height=Math.round(H*S);
+  paintLayer.width=C.width; paintLayer.height=C.height;
+  PX.clearRect(0,0,C.width,C.height);
+  render();
+  document.getElementById('st').textContent=W+'x'+H+' — paint the road green';
+}
+
+// ── Render: image + paint layer composited ──
+function render(){
+  X.clearRect(0,0,C.width,C.height);
+  X.drawImage(img,0,0,C.width,C.height);
+  X.drawImage(paintLayer,0,0);
+}
+
+// ── Paint directly on the visible paint layer ──
+function stamp(ex,ey){
+  const r=C.getBoundingClientRect();
+  const cx=ex-r.left, cy=ey-r.top;
+  const radius = (bs/2)*S;
+  PX.beginPath();
+  PX.arc(cx,cy,radius,0,Math.PI*2);
+  if(mode==='paint'){
+    PX.fillStyle='rgba(0,255,136,0.45)';
+    PX.fill();
+  } else {
+    PX.globalCompositeOperation='destination-out';
+    PX.fillStyle='rgba(0,0,0,1)';
+    PX.fill();
+    PX.globalCompositeOperation='source-over';
+  }
+}
+
+// ── Mouse ──
+C.addEventListener('mousedown',e=>{ if(!W)return; drawing=true; stamp(e.clientX,e.clientY); render(); });
+C.addEventListener('mousemove',e=>{
+  if(!W) return;
+  const r=C.getBoundingClientRect();
+  const ix=((e.clientX-r.left)/S), iy=((e.clientY-r.top)/S);
+  document.getElementById('coords').textContent=Math.round(ix)+','+Math.round(iy)+' ('+(ix/W).toFixed(3)+','+(iy/H).toFixed(3)+')';
+  if(drawing){ stamp(e.clientX,e.clientY); render(); }
+  // Show brush cursor
+  render();
+  const cx=e.clientX-r.left, cy=e.clientY-r.top, rad=(bs/2)*S;
+  X.beginPath(); X.arc(cx,cy,rad,0,Math.PI*2);
+  X.strokeStyle=mode==='paint'?'#00ff88':'#ff4444';
+  X.lineWidth=2; X.setLineDash([4,4]); X.stroke(); X.setLineDash([]);
+});
+C.addEventListener('mouseup',()=>drawing=false);
+C.addEventListener('mouseleave',()=>{drawing=false; if(W) render();});
+
+// Touch
+C.addEventListener('touchstart',e=>{e.preventDefault();if(!W)return;drawing=true;const t=e.touches[0];stamp(t.clientX,t.clientY);render();},{passive:false});
+C.addEventListener('touchmove',e=>{e.preventDefault();if(!W||!drawing)return;const t=e.touches[0];stamp(t.clientX,t.clientY);render();},{passive:false});
+C.addEventListener('touchend',e=>{e.preventDefault();drawing=false;},{passive:false});
+
+// ── Actions ──
+function clearAll(){ PX.clearRect(0,0,C.width,C.height); render(); }
+
+function exportROI(){
+  if(!W) return;
+  // Read paint layer pixels — green areas are the ROI
+  const id=PX.getImageData(0,0,C.width,C.height);
+  const step=Math.max(2,Math.round(Math.min(C.width,C.height)/150));
+  const left=[],right=[];
+
+  for(let y=0;y<C.height;y+=step){
+    let l=-1,r=-1;
+    for(let x=0;x<C.width;x+=step){
+      const a=id.data[((y*C.width+x)*4)+3]; // alpha
+      const g=id.data[((y*C.width+x)*4)+1]; // green channel
+      if(a>30 && g>100){
+        if(l<0) l=x;
+        r=x;
+      }
+    }
+    if(l>=0){
+      left.push([(l/(C.width)).toFixed(4),(y/(C.height)).toFixed(4)]);
+      right.push([(r/(C.width)).toFixed(4),(y/(C.height)).toFixed(4)]);
+    }
+  }
+  if(left.length<3){document.getElementById('out').textContent='Paint more area!';return;}
+
+  // Build polygon: left edge down + right edge up
+  const poly=[...left.map(p=>[+p[0],+p[1]]),...right.reverse().map(p=>[+p[0],+p[1]])];
+
+  // Simplify to max 40 points
+  let s=poly;
+  if(poly.length>40){const sk=Math.ceil(poly.length/40);s=poly.filter((_,i)=>i%sk===0);}
+
+  const json=JSON.stringify({roi:[s]},null,2);
+  document.getElementById('out').textContent=json;
+  document.getElementById('st').textContent='Exported '+s.length+' points';
+}
+</script>
+</body>
+</html>

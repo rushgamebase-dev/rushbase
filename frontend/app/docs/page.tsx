@@ -143,7 +143,7 @@ export default function DocsPage() {
             <strong style={{ color: "#e0e0e0" }}>2. Predict</strong> &mdash; Bet $RUSH on Over or Under the vehicle threshold
           </p>
           <p style={{ ...S.p, marginBottom: "0.5rem", color: "#bbb" }}>
-            <strong style={{ color: "#e0e0e0" }}>3. AI Counts</strong> &mdash; YOLOv8 detects and counts every vehicle crossing
+            <strong style={{ color: "#e0e0e0" }}>3. AI Counts</strong> &mdash; Proprietary vision system counts every vehicle crossing
           </p>
           <p style={{ ...S.p, marginBottom: 0, color: "#bbb" }}>
             <strong style={{ color: "#e0e0e0" }}>4. Win or Burn</strong> &mdash; 70% to winners, 30% burned forever

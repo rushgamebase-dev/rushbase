@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SinalBet — Line Calibrator</title>
+<style>
+body { background: #111; color: #fff; font-family: monospace; margin: 20px; }
+canvas { cursor: crosshair; border: 1px solid #333; display: block; margin: 10px 0; }
+.info { color: #00ff88; font-size: 18px; margin: 10px 0; }
+.cmd { background: #222; padding: 15px; border-radius: 8px; font-size: 14px; color: #0ff; word-break: break-all; margin: 10px 0; }
+button { background: #00ff88; color: #000; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 6px; font-weight: bold; margin: 5px; }
+button:hover { background: #00cc66; }
+input { background: #222; color: #fff; border: 1px solid #444; padding: 8px; font-size: 14px; width: 500px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1 style="color:#00ff88">SinalBet — Line Calibrator</h1>
+<p>1. Cole a URL da imagem da câmera abaixo (ou use o botão pra capturar do stream)</p>
+<input id="imgUrl" placeholder="URL da imagem" value="http://localhost:3003/cam_qew.jpg">
+<button onclick="loadImg()">Carregar</button>
+<button onclick="loadFromFile()">Escolher arquivo</button>
+<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)">
+
+<p>2. <strong>Clique dois pontos</strong> na imagem pra definir a linha</p>
+<canvas id="canvas"></canvas>
+
+<div class="info" id="points"></div>
+<div class="info" id="result"></div>
+<div class="cmd" id="command"></div>
+
+<button onclick="reset()">Limpar</button>
+<button onclick="copyCmd()">Copiar comando</button>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let img = new Image();
+let clicks = [];
+let imgW = 0, imgH = 0;
+
+function loadImg() {
+    const url = document.getElementById('imgUrl').value;
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+        imgW = img.width;
+        imgH = img.height;
+        canvas.width = imgW;
+        canvas.height = imgH;
+        ctx.drawImage(img, 0, 0);
+        clicks = [];
+        updateInfo();
+    };
+    img.src = url;
+}
+
+function loadFromFile() {
+    document.getElementById('fileInput').click();
+}
+
+function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        img.onload = () => {
+            imgW = img.width;
+            imgH = img.height;
+            canvas.width = imgW;
+            canvas.height = imgH;
+            ctx.drawImage(img, 0, 0);
+            clicks = [];
+            updateInfo();
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = imgW / rect.width;
+    const scaleY = imgH / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    if (clicks.length >= 2) {
+        clicks = [];
+        ctx.drawImage(img, 0, 0);
+    }
+
+    clicks.push({x, y});
+
+    // Draw point
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ff88';
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px monospace';
+    ctx.fillText(`P${clicks.length}`, x + 12, y + 5);
+
+    // Draw line if 2 points
+    if (clicks.length === 2) {
+        ctx.beginPath();
+        ctx.moveTo(clicks[0].x, clicks[0].y);
+        ctx.lineTo(clicks[1].x, clicks[1].y);
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+
+    updateInfo();
+});
+
+function updateInfo() {
+    const pDiv = document.getElementById('points');
+    const rDiv = document.getElementById('result');
+    const cDiv = document.getElementById('command');
+
+    if (clicks.length === 0) {
+        pDiv.textContent = 'Clique o primeiro ponto na imagem';
+        rDiv.textContent = '';
+        cDiv.textContent = '';
+    } else if (clicks.length === 1) {
+        pDiv.textContent = `P1: (${Math.round(clicks[0].x)}, ${Math.round(clicks[0].y)}) — agora clique o segundo ponto`;
+        rDiv.textContent = '';
+        cDiv.textContent = '';
+    } else {
+        const x1 = (clicks[0].x / imgW).toFixed(3);
+        const y1 = (clicks[0].y / imgH).toFixed(3);
+        const x2 = (clicks[1].x / imgW).toFixed(3);
+        const y2 = (clicks[1].y / imgH).toFixed(3);
+
+        pDiv.textContent = `P1: (${Math.round(clicks[0].x)}, ${Math.round(clicks[0].y)})  P2: (${Math.round(clicks[1].x)}, ${Math.round(clicks[1].y)})`;
+        rDiv.textContent = `--line-points "${x1},${y1},${x2},${y2}"`;
+        cDiv.textContent = `python3 stream_server.py --stream "URL" --model yolov8s.pt --confidence 0.10 --mode line --line-points "${x1},${y1},${x2},${y2}" --fps 30`;
+    }
+}
+
+function reset() {
+    clicks = [];
+    ctx.drawImage(img, 0, 0);
+    updateInfo();
+}
+
+function copyCmd() {
+    const cmd = document.getElementById('command').textContent;
+    navigator.clipboard.writeText(cmd);
+    alert('Comando copiado!');
+}
+
+// Auto-load if image exists
+window.onload = () => loadImg();
+</script>
+</body>
+</html>

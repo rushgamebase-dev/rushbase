@@ -85,7 +85,7 @@ export default function StatsPage() {
     { label: "Avg Bettors / Round", value: PLATFORM_STATS.avgBettorsPerRound },
     { label: "Protocol Fee", value: "5% flat" },
     { label: "Chain", value: "Base (8453)" },
-    { label: "Settlement", value: "AI Oracle (YOLOv8)" },
+    { label: "Settlement", value: "AI Oracle" },
     { label: "Round Duration", value: "5 minutes" },
     { label: "Min Bet", value: "0.001 ETH" },
     { label: "Tile Count", value: "100 seats" },

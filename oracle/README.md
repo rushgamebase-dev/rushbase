@@ -6,7 +6,7 @@ The oracle observes live traffic cameras using computer vision, counts vehicles 
 
 ## Components
 
-- **Detection Engine** -- YOLOv8x + BoT-SORT for real-time vehicle detection and tracking
+- **Detection Engine** -- Proprietary AI pipeline for real-time vehicle detection and tracking
 - **Market Manager** -- Creates, monitors, and resolves markets on-chain
 - **Process Supervisor** -- Keeps the system running with automatic recovery
 
@@ -22,7 +22,7 @@ The oracle observes live traffic cameras using computer vision, counts vehicles 
 ## Requirements
 
 - Python 3.10+
-- CUDA-capable GPU (for YOLOv8x inference)
+- CUDA-capable GPU (for AI inference)
 - ffmpeg
 - yt-dlp (for YouTube camera sources)
 

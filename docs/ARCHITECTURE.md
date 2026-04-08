@@ -69,7 +69,7 @@ All contracts are verified on Basescan. See [CONTRACTS.md](CONTRACTS.md) for add
 The oracle is the bridge between the physical world and the blockchain:
 
 - Connects to live traffic cameras worldwide
-- YOLOv8x for vehicle detection, BoT-SORT for multi-object tracking
+- Proprietary AI pipeline for vehicle detection and multi-object tracking
 - Counts vehicles crossing a defined line, captures evidence frames with SHA-256 hashes
 - Creates markets on-chain, resolves them with the actual count, and auto-distributes winnings
 - Currently operates as a single oracle operator; multi-oracle infrastructure is deployed and ready
@@ -122,5 +122,5 @@ Two independent channels serve different purposes:
 | Contracts | Solidity 0.8.24, Foundry, OpenZeppelin |
 | Frontend | Next.js 14, TypeScript, wagmi v2, viem, Tailwind CSS, Framer Motion |
 | Real-time | Ably (market events), WebSocket (detection) |
-| Oracle | Python, YOLOv8x, BoT-SORT, OpenCV |
+| Oracle | Python, Computer Vision |
 | Hosting | Vercel (frontend), Cloudflare (tunnel) |
