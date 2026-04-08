@@ -5,90 +5,84 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { useStats } from "@/hooks/useStats";
-
-// ─── Contract addresses ───────────────────────────────────────────────────────
+import {
+  FACTORY_ADDRESS,
+  RUSH_TILES_ADDRESS,
+  RUSH_TILES_V2_ADDRESS,
+  RUSH_TOKEN_ADDRESS,
+} from "@/lib/contracts";
 
 const BASESCAN = "https://basescan.org";
 
 const CONTRACTS = [
   {
-    name: "MarketFactory",
-    address: "0x7b51C8C92f24Ef705E9C5c6f77ffA819b9733f4c",
-    desc: "Creates and tracks prediction markets",
+    name: "$RUSH Token",
+    address: RUSH_TOKEN_ADDRESS,
+    desc: "Deflationary ERC-20 — betting currency",
+    highlight: true,
   },
   {
-    name: "RushTiles",
-    address: "0xaCa403BbDE42836146b681AC7B26CE44E875c651",
-    desc: "Harberger-taxed revenue-sharing tile system",
+    name: "BurnMarketFactory",
+    address: FACTORY_ADDRESS,
+    desc: "Creates $RUSH prediction markets (30% burn)",
+    tag: "production",
+  },
+  {
+    name: "RushTiles Series 1",
+    address: RUSH_TILES_ADDRESS,
+    desc: "100 revenue-sharing tiles (Harberger tax)",
+  },
+  {
+    name: "RushTiles Series 2",
+    address: RUSH_TILES_V2_ADDRESS,
+    desc: "100 tiles — Founder (5 shares) + Normal (1 share)",
   },
   {
     name: "Oracle",
     address: "0x4c385830c2E241EfeEd070Eb92606B6AedeDA277",
-    desc: "AI vehicle count settlement oracle",
-  },
-  {
-    name: "Fee Recipient",
-    address: "0xdd12D83786C2BAc7be3D59869834C23E91449A2D",
-    desc: "Protocol fee collection address",
+    desc: "AI vehicle count settlement",
   },
 ];
-
-const FEE_STRUCTURE = [
-  { source: "Prediction pool", rate: "5%", recipient: "Protocol" },
-  { source: "Harberger tax (5%/week on tiles)", rate: "5%/wk", recipient: "Tile holders" },
-  { source: "Buyout fee", rate: "10%", recipient: "Tile holders" },
-  { source: "Appreciation tax", rate: "30%", recipient: "Protocol" },
-  { source: "Token creator fees", rate: "Variable", recipient: "Tile holders" },
-];
-
-// ─── Stats page ───────────────────────────────────────────────────────────────
 
 export default function StatsPage() {
-  const { stats: PLATFORM_STATS } = useStats();
+  const { stats: S } = useStats();
+
   const overview = [
     {
-      label: "Total Volume Wagered",
-      value: `${PLATFORM_STATS.totalVolume.toFixed(1)} ETH`,
+      label: "Markets Resolved",
+      value: S.marketsResolved.toLocaleString(),
       sub: "All time",
-      color: "#00ff88",
-    },
-    {
-      label: "Markets Created",
-      value: PLATFORM_STATS.marketsResolved.toLocaleString(),
-      sub: `${PLATFORM_STATS.marketsResolved.toLocaleString()} resolved`,
       color: "#ffd700",
     },
     {
       label: "Unique Wallets",
-      value: PLATFORM_STATS.uniqueBettors.toLocaleString(),
-      sub: `Avg ${PLATFORM_STATS.avgBettorsPerRound} per round`,
+      value: S.uniqueBettors.toLocaleString(),
+      sub: `Avg ${S.avgBettorsPerRound} per round`,
       color: "#00aaff",
     },
     {
-      label: "Total Fees Collected",
-      value: `${(PLATFORM_STATS.totalVolume * 0.05).toFixed(2)} ETH`,
-      sub: "At 5% flat rate",
-      color: "#ff8844",
+      label: "Distributed to Holders",
+      value: `${S.feesDistributed.toFixed(2)} ETH`,
+      sub: "Series 1 tile rewards",
+      color: "#aa88ff",
     },
     {
-      label: "Distributed to Tile Holders",
-      value: `${PLATFORM_STATS.feesDistributed.toFixed(2)} ETH`,
-      sub: "All time rewards",
-      color: "#aa88ff",
+      label: "Biggest Round",
+      value: `${S.biggestRound.toFixed(1)} ETH`,
+      sub: "Single pool record",
+      color: "#ff8844",
     },
   ];
 
-  const protocolDetails = [
-    { label: "24H Volume", value: `${PLATFORM_STATS.volume24h.toFixed(1)} ETH` },
-    { label: "Biggest Round Pool", value: `${PLATFORM_STATS.biggestRound.toFixed(1)} ETH` },
-    { label: "Avg Pool Size", value: `${PLATFORM_STATS.avgPoolSize.toFixed(2)} ETH` },
-    { label: "Avg Bettors / Round", value: PLATFORM_STATS.avgBettorsPerRound },
-    { label: "Protocol Fee", value: "5% flat" },
+  const details = [
     { label: "Chain", value: "Base (8453)" },
     { label: "Settlement", value: "AI Oracle" },
     { label: "Round Duration", value: "5 minutes" },
-    { label: "Min Bet", value: "0.001 ETH" },
-    { label: "Tile Count", value: "100 seats" },
+    { label: "Betting Window", value: "2:30" },
+    { label: "Burn Rate ($RUSH)", value: "30% per pool" },
+    { label: "Protocol Fee ($RUSH)", value: "0%" },
+    { label: "Total Tiles", value: "200 (Series 1 + 2)" },
+    { label: "Founder Shares", value: "5x per tile" },
   ];
 
   return (
@@ -118,9 +112,9 @@ export default function StatsPage() {
         {/* Platform Overview */}
         <section aria-label="Platform overview" className="mb-10">
           <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
-            PLATFORM OVERVIEW
+            OVERVIEW
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {overview.map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -147,10 +141,31 @@ export default function StatsPage() {
           </div>
         </section>
 
+        {/* Burn Mechanic Highlight */}
+        <section aria-label="Burn mechanics" className="mb-10">
+          <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
+            $RUSH BURN MODEL
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg p-4 text-center" style={{ background: "#0a150a", border: "1px solid #00ff8822" }}>
+              <div className="text-2xl font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>70%</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>TO WINNERS</div>
+            </div>
+            <div className="rounded-lg p-4 text-center" style={{ background: "#1a0a0a", border: "1px solid #ff444422" }}>
+              <div className="text-2xl font-black" style={{ color: "#ff6666", fontFamily: "monospace" }}>30%</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>BURNED</div>
+            </div>
+            <div className="rounded-lg p-4 text-center" style={{ background: "#0d0d0d", border: "1px solid #ffd70022" }}>
+              <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>0%</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>FEES</div>
+            </div>
+          </div>
+        </section>
+
         {/* Smart Contracts */}
         <section aria-label="Smart contracts" className="mb-10">
           <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
-            SMART CONTRACTS — VERIFIED ON BASESCAN
+            CONTRACTS — VERIFIED ON BASESCAN
           </div>
           <div className="flex flex-col gap-2">
             {CONTRACTS.map((contract, i) => (
@@ -160,25 +175,41 @@ export default function StatsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.07 }}
                 className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-5 py-4 rounded-lg"
-                style={{ background: "#111", border: "1px solid #1a1a1a" }}
+                style={{
+                  background: "highlight" in contract && contract.highlight ? "#111a00" : "#111",
+                  border: `1px solid ${"highlight" in contract && contract.highlight ? "#ffd70033" : "#1a1a1a"}`,
+                }}
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-bold" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-                    {contract.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-sm font-bold"
+                      style={{
+                        color: "highlight" in contract && contract.highlight ? "#ffd700" : "#e0e0e0",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {contract.name}
+                    </span>
+                    {"tag" in contract && contract.tag && (
+                      <span
+                        className="text-xs px-1.5 py-0.5 rounded"
+                        style={{ background: "#0a2a0a", color: "#00ff88", border: "1px solid #00ff8833", fontSize: "0.65rem", fontWeight: 700 }}
+                      >
+                        {contract.tag}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs" style={{ color: "#555", fontFamily: "monospace" }}>
                     {contract.desc}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs tabular"
-                    style={{ color: "#888", fontFamily: "monospace" }}
-                  >
+                  <span className="text-xs tabular" style={{ color: "#888", fontFamily: "monospace" }}>
                     {contract.address.slice(0, 10)}...{contract.address.slice(-6)}
                   </span>
                   <a
-                    href={`${BASESCAN}/address/${contract.address}`}
+                    href={`${BASESCAN}/${"highlight" in contract && contract.highlight ? "token" : "address"}/${contract.address}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all"
@@ -191,41 +222,11 @@ export default function StatsPage() {
                     }}
                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,170,255,0.18)")}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,170,255,0.1)")}
-                    aria-label={`View ${contract.name} on Basescan`}
                   >
-                    Basescan
-                    <ExternalLink size={10} />
+                    Basescan <ExternalLink size={10} />
                   </a>
                 </div>
               </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* Fee Structure */}
-        <section aria-label="Fee structure" className="mb-10">
-          <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
-            FEE STRUCTURE
-          </div>
-          <div className="rounded-lg overflow-hidden" style={{ border: "1px solid #1a1a1a" }}>
-            <div className="grid grid-cols-3 px-5 py-2.5" style={{ background: "#0d0d0d", borderBottom: "1px solid #1a1a1a" }}>
-              {["SOURCE", "RATE", "RECIPIENT"].map((h) => (
-                <span key={h} className="text-xs font-bold" style={{ color: "#444", fontFamily: "monospace" }}>{h}</span>
-              ))}
-            </div>
-            {FEE_STRUCTURE.map((row, i) => (
-              <div
-                key={row.source}
-                className="grid grid-cols-3 items-center px-5 py-3"
-                style={{
-                  background: i % 2 === 0 ? "#111" : "#0e0e0e",
-                  borderBottom: i < FEE_STRUCTURE.length - 1 ? "1px solid #1a1a1a" : "none",
-                }}
-              >
-                <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>{row.source}</span>
-                <span className="text-xs font-bold tabular" style={{ color: "#ffd700", fontFamily: "monospace" }}>{row.rate}</span>
-                <span className="text-xs" style={{ color: "#00ff88", fontFamily: "monospace" }}>{row.recipient}</span>
-              </div>
             ))}
           </div>
         </section>
@@ -238,13 +239,13 @@ export default function StatsPage() {
                 PROTOCOL DETAILS
               </span>
             </div>
-            {protocolDetails.map((row, i) => (
+            {details.map((row, i) => (
               <div
                 key={row.label}
                 className="flex items-center justify-between px-5 py-3"
                 style={{
                   background: i % 2 === 0 ? "#111" : "#0e0e0e",
-                  borderBottom: i < protocolDetails.length - 1 ? "1px solid #1a1a1a" : "none",
+                  borderBottom: i < details.length - 1 ? "1px solid #1a1a1a" : "none",
                 }}
               >
                 <span className="text-xs" style={{ color: "#666", fontFamily: "monospace" }}>{row.label}</span>
@@ -254,7 +255,7 @@ export default function StatsPage() {
           </div>
         </section>
 
-        {/* CTA */}
+        {/* CTAs */}
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
             href="/"
@@ -269,10 +270,10 @@ export default function StatsPage() {
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.1)")}
           >
             <span className="live-dot" style={{ width: 6, height: 6 }} aria-hidden="true" />
-            WATCH LIVE MARKET
+            WATCH LIVE
           </Link>
           <Link
-            href="/tiles"
+            href="/series2"
             className="inline-flex items-center gap-2 px-6 py-3 rounded font-bold text-sm transition-all"
             style={{
               background: "rgba(255,215,0,0.1)",
@@ -283,8 +284,25 @@ export default function StatsPage() {
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.18)")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.1)")}
           >
-            EXPLORE TILES
+            FOUNDER TILES
           </Link>
+          <a
+            href={`https://flaunch.gg/base/coins/${RUSH_TOKEN_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded font-bold text-sm transition-all"
+            style={{
+              background: "rgba(136,170,255,0.1)",
+              border: "1px solid rgba(136,170,255,0.3)",
+              color: "#88aaff",
+              fontFamily: "monospace",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(136,170,255,0.18)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(136,170,255,0.1)")}
+          >
+            BUY $RUSH
+          </a>
         </div>
       </main>
     </div>
