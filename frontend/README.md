@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rush Frontend — On-Chain Prediction Market UI
+
+Next.js 14 frontend for the Rush prediction market protocol on Base. Real-time vehicle detection, wallet-connected betting, and tile management.
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Main game — live camera, betting panel, round status |
+| `/tiles` | Series 1 tile grid — claim, manage, view holders |
+| `/series2` | Series 2 tile grid — Founder and Normal tiers |
+| `/stats` | Platform analytics — volume, rounds, bettors |
+| `/profile/[address]` | User profile — bet history, P&L, tiles |
+| `/docs` | Protocol documentation |
+| `/admin` | Admin panel |
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS, Framer Motion
+- **Web3**: wagmi v2, viem, RainbowKit
+- **Real-time**: Ably (market events), WebSocket (live detection)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEXT_PUBLIC_CONTRACT_ADDRESS=<factory address>
+```
 
-## Learn More
+Additional server-side variables needed for API routes (see team for values).
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+frontend/
+├── app/              # Next.js App Router pages + API routes
+│   ├── api/          # 13 REST API endpoints
+│   ├── docs/         # Documentation page
+│   ├── tiles/        # Series 1 tiles
+│   ├── series2/      # Series 2 tiles
+│   ├── stats/        # Analytics
+│   └── profile/      # User profiles
+├── components/       # React components
+├── hooks/            # Custom hooks (wagmi, WebSocket, Ably)
+├── lib/              # Utilities, contract ABIs, addresses
+└── public/           # Static assets
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Key Libraries
 
-## Deploy on Vercel
+- `wagmi` v2 + `viem` — Contract reads/writes, wallet connection
+- `@rainbow-me/rainbowkit` — Wallet modal
+- `ably` — Real-time event subscription
+- `framer-motion` — Animations
+- `tailwindcss` — Styling
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deployed on Vercel. Push to main triggers auto-deploy.
+
+## Links
+
+- Live: [rushgame.vip](https://rushgame.vip)
+- Contracts: See [docs/CONTRACTS.md](../docs/CONTRACTS.md)
+- API Reference: See [docs/API.md](../docs/API.md)

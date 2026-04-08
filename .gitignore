@@ -1,18 +1,45 @@
+# Environment
 .env
 .env.local
+.env*.local
+
+# Dependencies
 node_modules/
+
+# Build artifacts
 .next/
 out/
 contracts/out/
 contracts/cache/
 contracts/broadcast/
+
+# YOLO models
 *.pt
 botsort_custom.yaml
+
+# Python
 __pycache__/
 *.pyc
-.vercel
-.env*.local
 
-# Oracle artifacts
+# Vercel
+.vercel
+
+# Oracle runtime artifacts
 oracle/evidence/
 oracle/.url_cache.json
+oracle/result.json
+oracle/cameras.json
+oracle/*.jpg
+oracle/*.service
+oracle/*.timer
+
+# Internal docs (not public)
+AUDIT.md
+
+# Separate projects
+profilesota/
+Mercadospreditivosbase/
+
+# OS files
+.DS_Store
+Thumbs.db

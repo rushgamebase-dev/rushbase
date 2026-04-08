@@ -1,9 +1,0 @@
-[Unit]
-Description=Rush Oracle Health Check
-
-[Timer]
-OnBootSec=120
-OnUnitActiveSec=60
-
-[Install]
-WantedBy=timers.target
