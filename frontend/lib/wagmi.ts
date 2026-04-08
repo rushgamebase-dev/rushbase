@@ -14,7 +14,7 @@ const transport = http(RPC_URL, {
 
 // WalletConnect Cloud projectId — get yours free at https://cloud.walletconnect.com
 const WC_PROJECT_ID =
-  process.env.NEXT_PUBLIC_WC_PROJECT_ID || "e9e1e5e2c6f7d4a3b8c9d0e1f2a3b4c5";
+  process.env.NEXT_PUBLIC_WC_PROJECT_ID || "83b7531d45db48105b33da04366b9455";
 
 export const wagmiConfig = createConfig({
   chains: [base],
