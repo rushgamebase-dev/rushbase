@@ -44,6 +44,28 @@ function CoinbaseIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function RainbowIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="120" height="120" rx="24" fill="#001E59"/>
+      <path d="M20 38h6c26.51 0 48 21.49 48 48v6h8v-6c0-30.928-25.072-56-56-56h-6v8z" fill="#FF4000"/>
+      <path d="M20 54h6c17.673 0 32 14.327 32 32v6h8v-6c0-22.091-17.909-40-40-40h-6v8z" fill="#FF8000"/>
+      <path d="M20 70h6c8.837 0 16 7.163 16 16v6h8v-6c0-13.255-10.745-24-24-24h-6v8z" fill="#FFC800"/>
+      <path d="M20 86h6a0 0 0 0 1 0 0v6h8v-6c0-4.418-3.582-8-8-8h-6v8z" fill="#0AF"/>
+      <path d="M20 86h6v6h-6z" fill="#2CFF00"/>
+    </svg>
+  );
+}
+
+function WalletConnectIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="128" height="128" rx="26" fill="#3B99FC"/>
+      <path d="M40.2 50.2c13.1-12.8 34.3-12.8 47.4 0l1.6 1.5c.7.6.7 1.7 0 2.4l-5.3 5.2c-.3.3-.9.3-1.2 0l-2.2-2.1c-9.1-8.9-23.9-8.9-33.1 0l-2.3 2.3c-.3.3-.9.3-1.2 0l-5.3-5.2c-.7-.6-.7-1.7 0-2.4l1.6-1.7zm58.6 10.9l4.7 4.6c.7.6.7 1.7 0 2.4l-21.3 20.8c-.7.6-1.7.6-2.4 0L67.5 77c-.2-.2-.4-.2-.6 0L54.6 88.9c-.7.6-1.7.6-2.4 0L31 68.1c-.7-.6-.7-1.7 0-2.4l4.7-4.6c.7-.6 1.7-.6 2.4 0L50.4 73c.2.2.4.2.6 0l12.3-11.9c.7-.6 1.7-.6 2.4 0L78 73c.2.2.4.2.6 0l12.3-11.9c.6-.7 1.7-.7 2.3 0z" fill="#fff"/>
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Wallet Modal
 // ---------------------------------------------------------------------------
@@ -65,26 +87,70 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const walletOptions: WalletOption[] = [
-    {
-      id: "injected-metamask",
-      name: "MetaMask",
-      icon: <MetaMaskIcon size={32} />,
-      description: "Connect using MetaMask browser extension",
-    },
-    {
-      id: "injected-phantom",
-      name: "Phantom",
-      icon: <PhantomIcon size={32} />,
-      description: "Connect using Phantom wallet",
-    },
-    {
-      id: "coinbaseWallet",
-      name: "Coinbase Wallet",
-      icon: <CoinbaseIcon size={32} />,
-      description: "Connect using Coinbase Wallet",
-    },
-  ];
+  // Detect mobile
+  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // On mobile: prioritize wallets with deep-link / WalletConnect support
+  // On desktop: show all options
+  const walletOptions: WalletOption[] = isMobile
+    ? [
+        {
+          id: "rainbow",
+          name: "Rainbow",
+          icon: <RainbowIcon size={32} />,
+          description: "Open in Rainbow app",
+        },
+        {
+          id: "walletConnect",
+          name: "WalletConnect",
+          icon: <WalletConnectIcon size={32} />,
+          description: "Rainbow, Trust, and 300+ wallets",
+        },
+        {
+          id: "coinbaseWallet",
+          name: "Coinbase Wallet",
+          icon: <CoinbaseIcon size={32} />,
+          description: "Open in Coinbase Wallet app",
+        },
+        {
+          id: "injected-metamask",
+          name: "MetaMask",
+          icon: <MetaMaskIcon size={32} />,
+          description: "Open in MetaMask app",
+        },
+      ]
+    : [
+        {
+          id: "injected-metamask",
+          name: "MetaMask",
+          icon: <MetaMaskIcon size={32} />,
+          description: "Browser extension",
+        },
+        {
+          id: "rainbow",
+          name: "Rainbow",
+          icon: <RainbowIcon size={32} />,
+          description: "Via WalletConnect QR code",
+        },
+        {
+          id: "injected-phantom",
+          name: "Phantom",
+          icon: <PhantomIcon size={32} />,
+          description: "Browser extension",
+        },
+        {
+          id: "coinbaseWallet",
+          name: "Coinbase Wallet",
+          icon: <CoinbaseIcon size={32} />,
+          description: "Browser extension or app",
+        },
+        {
+          id: "walletConnect",
+          name: "Other Wallets",
+          icon: <WalletConnectIcon size={32} />,
+          description: "Trust, Zerion, Safe, and 300+ more",
+        },
+      ];
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -103,21 +169,40 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
   async function handleConnect(optionId: string) {
     setConnectingId(optionId);
 
-    // Detect available wallets
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w: any = typeof window !== "undefined" ? window : {};
     const hasPhantom = !!w.phantom?.ethereum;
     const hasMetaMask = !!w.ethereum?.isMetaMask;
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     let connector = connectors[0]; // fallback
 
-    if (optionId === "coinbaseWallet") {
+    if (optionId === "rainbow") {
+      if (mobile) {
+        // Deep-link into Rainbow app via WalletConnect
+        const wcConnector = connectors.find((c) => c.id === "walletConnect");
+        if (wcConnector) {
+          connector = wcConnector;
+        } else {
+          // Fallback: open Rainbow download
+          window.open("https://rainbow.me", "_blank");
+          setConnectingId(null);
+          return;
+        }
+      } else {
+        // Desktop: WalletConnect QR — user scans with Rainbow mobile
+        const wcConnector = connectors.find((c) => c.id === "walletConnect");
+        if (wcConnector) {
+          connector = wcConnector;
+        }
+      }
+    } else if (optionId === "walletConnect") {
+      connector = connectors.find((c) => c.id === "walletConnect") || connector;
+    } else if (optionId === "coinbaseWallet") {
       connector = connectors.find((c) => c.id === "coinbaseWallet") || connector;
     } else if (optionId === "injected-phantom") {
       if (hasPhantom) {
-        // Phantom has its own ethereum provider
         connector = connectors.find((c) => c.id === "injected") || connector;
-        // Switch to Phantom's provider
         try {
           if (w.phantom?.ethereum) {
             await w.phantom.ethereum.request({ method: "eth_requestAccounts" });
@@ -128,10 +213,15 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
         setConnectingId(null);
         return;
       }
-      connector = connectors.find((c) => c.id === "injected") || connector;
     } else {
       // MetaMask
-      if (!hasMetaMask) {
+      if (mobile && !hasMetaMask) {
+        // On mobile without MetaMask: deep-link to MetaMask app
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        setConnectingId(null);
+        return;
+      }
+      if (!mobile && !hasMetaMask) {
         window.open("https://metamask.io/download/", "_blank");
         setConnectingId(null);
         return;
@@ -169,7 +259,7 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
             aria-modal="true"
             aria-label="Connect Wallet"
           >
-            {/* Modal panel */}
+            {/* Modal panel — bottom-sheet on mobile, centered on desktop */}
             <motion.div
               initial={{ opacity: 0, y: 16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -182,6 +272,8 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 boxShadow: "0 0 40px rgba(0,255,136,0.08), 0 24px 48px rgba(0,0,0,0.6)",
                 margin: "auto",
                 position: "relative",
+                maxHeight: "85vh",
+                overflowY: "auto",
               }}
             >
               {/* Header */}
@@ -221,7 +313,7 @@ function WalletModal({ isOpen, onClose }: WalletModalProps) {
                       key={option.id}
                       onClick={() => handleConnect(option.id)}
                       disabled={isPending}
-                      className="flex items-center gap-4 px-4 py-3.5 rounded-lg text-left transition-all group"
+                      className="flex items-center gap-4 px-4 py-4 rounded-lg text-left transition-all group"
                       style={{
                         background: "#0d0d0d",
                         border: "1px solid #1a1a1a",
