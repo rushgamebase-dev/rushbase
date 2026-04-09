@@ -67,7 +67,7 @@ const MAX_RETRIES = 10;
  */
 export function useOracleState(
   currentMarketAddress: string | null | undefined,
-): OracleState & { beepCount: number; frameUrl: string } {
+): OracleState & { beepCount: number; frameUrl: string; frameRef: React.RefObject<HTMLImageElement> } {
   // ── State ───────────────────────────────────────────────────────────────
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<OraclePhase>("idle");
@@ -82,8 +82,9 @@ export function useOracleState(
   const [videoUid, setVideoUid] = useState("");
   const [countSource, setCountSource] = useState<OracleState["countSource"]>("none");
   const [beepCount, setBeepCount] = useState(0);
-  const [frameUrl, setFrameUrl] = useState("");
+  const [frameUrl] = useState("");  // kept for type compat, always ""
   const prevFrameUrlRef = useRef("");
+  const frameRef = useRef<HTMLImageElement>(null!);  // never null in practice — assigned by VideoPlayer
 
   // ── Refs (mutable, not in render) ───────────────────────────────────────
   const wsRef = useRef<WebSocket | null>(null);
@@ -138,16 +139,18 @@ export function useOracleState(
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Binary frame = JPEG from detection worker (LIVE GAME MODE)
+    // Write directly to img ref via rAF — bypasses React re-render entirely
     if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
       const blob = event.data instanceof Blob
         ? event.data
         : new Blob([event.data], { type: "image/jpeg" });
       const url = URL.createObjectURL(blob);
-      // Revoke previous URL with delay so the browser has time to render it
-      const old = prevFrameUrlRef.current;
-      if (old) setTimeout(() => URL.revokeObjectURL(old), 200);
-      prevFrameUrlRef.current = url;
-      setFrameUrl(url);
+      requestAnimationFrame(() => {
+        if (frameRef.current) frameRef.current.src = url;
+        const old = prevFrameUrlRef.current;
+        if (old) URL.revokeObjectURL(old);
+        prevFrameUrlRef.current = url;
+      });
       return;
     }
     if (typeof event.data !== "string") return;
@@ -344,5 +347,6 @@ export function useOracleState(
     countSource,
     beepCount,
     frameUrl,
+    frameRef,
   };
 }

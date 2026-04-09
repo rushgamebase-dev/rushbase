@@ -9,6 +9,7 @@ interface VideoPlayerProps {
   cameraName?: string;
   cameraId?: string;
   frameUrl?: string;
+  frameRef?: React.RefObject<HTMLImageElement>;
 }
 
 const CF_SUBDOMAIN = "customer-vn9syvcedwumw0ut.cloudflarestream.com";
@@ -44,12 +45,25 @@ export default function VideoPlayer({
   videoUid,
   cameraName = "LIVE CAMERA",
   cameraId,
-  frameUrl,
+  frameRef,
 }: VideoPlayerProps) {
   const [audioOn, setAudioOn] = useState(false);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isLiveMode = !!frameUrl;
+  const [isLive, setIsLive] = useState(false);
+
+  // Detect when frameRef starts receiving frames (no React re-render per frame)
+  useEffect(() => {
+    if (!frameRef?.current) return;
+    const img = frameRef.current;
+    const observer = new MutationObserver(() => {
+      if (img.src && !isLive) setIsLive(true);
+    });
+    observer.observe(img, { attributes: true, attributeFilter: ["src"] });
+    return () => observer.disconnect();
+  }, [frameRef, isLive]);
+
+  const isLiveMode = isLive;
   const youtubeId = cameraId ? YOUTUBE_AUDIO[cameraId] : null;
 
   const toggleAudio = useCallback(async () => {
@@ -115,14 +129,17 @@ export default function VideoPlayer({
         border: "1px solid #1a1a1a",
       }}
     >
-      {isLiveMode ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={frameUrl}
-          alt="Live"
-          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-        />
-      ) : iframeSrc ? (
+      {/* Live JPEG frame — written directly by useOracleState via ref, no React re-render */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={frameRef}
+        alt="Live"
+        style={{
+          width: "100%", height: "100%", objectFit: "contain",
+          display: isLiveMode ? "block" : "none",
+        }}
+      />
+      {!isLiveMode && iframeSrc ? (
         <iframe
           src={iframeSrc}
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}

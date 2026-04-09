@@ -377,7 +377,7 @@ export default function Home() {
               videoUid={oracle.videoUid}
               cameraName={cameraName}
               cameraId={oracle.cameraId ?? undefined}
-              frameUrl={oracle.frameUrl}
+              frameRef={oracle.frameRef}
             />
 
             <BetToast bets={market.recentBets} />
