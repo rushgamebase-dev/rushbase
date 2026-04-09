@@ -128,14 +128,15 @@ export default function VideoPlayer({
           display: isLiveMode ? "block" : "none",
         }}
       />
-      {!isLiveMode && iframeSrc ? (
+      {!isLiveMode && iframeSrc && (
         <iframe
           src={iframeSrc}
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
-      ) : (
+      )}
+      {!isLiveMode && !iframeSrc && (
         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "#0a0a0a" }}>
           <div className="w-6 h-6 rounded-full border-2 border-t-transparent mb-3"
             style={{ borderColor: "#00ff8855", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
