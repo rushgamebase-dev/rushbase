@@ -50,20 +50,9 @@ export default function VideoPlayer({
   const [audioOn, setAudioOn] = useState(false);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isLive, setIsLive] = useState(false);
 
-  // Detect when frameRef starts receiving frames (no React re-render per frame)
-  useEffect(() => {
-    if (!frameRef?.current) return;
-    const img = frameRef.current;
-    const observer = new MutationObserver(() => {
-      if (img.src && !isLive) setIsLive(true);
-    });
-    observer.observe(img, { attributes: true, attributeFilter: ["src"] });
-    return () => observer.disconnect();
-  }, [frameRef, isLive]);
-
-  const isLiveMode = isLive;
+  // Live mode = connected + frameRef provided (frames written directly by hook)
+  const isLiveMode = connected && !!frameRef;
   const youtubeId = cameraId ? YOUTUBE_AUDIO[cameraId] : null;
 
   const toggleAudio = useCallback(async () => {
