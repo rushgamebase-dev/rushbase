@@ -42,6 +42,10 @@ interface OracleMsg {
   classId?: number;
   direction?: string;
   ts?: number;
+  // WebRTC signaling
+  sdp?: string;
+  candidate?: RTCIceCandidateInit;
+  error?: string;
 }
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -67,7 +71,13 @@ const MAX_RETRIES = 10;
  */
 export function useOracleState(
   currentMarketAddress: string | null | undefined,
-): OracleState & { beepCount: number; frameUrl: string; frameRef: React.RefObject<HTMLImageElement> } {
+): OracleState & {
+  beepCount: number;
+  frameUrl: string;
+  frameRef: React.RefObject<HTMLImageElement>;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  webrtcActive: boolean;
+} {
   // ── State ───────────────────────────────────────────────────────────────
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<OraclePhase>("idle");
@@ -84,7 +94,12 @@ export function useOracleState(
   const [beepCount, setBeepCount] = useState(0);
   const [frameUrl] = useState("");  // kept for type compat, always ""
   const prevFrameUrlRef = useRef("");
-  const frameRef = useRef<HTMLImageElement>(null!);  // never null in practice — assigned by VideoPlayer
+  const frameRef = useRef<HTMLImageElement>(null!);  // JPEG fallback — assigned by VideoPlayer
+
+  // WebRTC state
+  const videoRef = useRef<HTMLVideoElement>(null!);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const [webrtcActive, setWebrtcActive] = useState(false);
 
   // ── Refs (mutable, not in render) ───────────────────────────────────────
   const wsRef = useRef<WebSocket | null>(null);
@@ -138,9 +153,9 @@ export function useOracleState(
   // ── Message handler ─────────────────────────────────────────────────────
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    // Binary frame = JPEG from detection worker (LIVE GAME MODE)
-    // Write directly to img ref via rAF — bypasses React re-render entirely
+    // Binary frame = JPEG fallback (only used when WebRTC is not active)
     if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
+      if (webrtcActive) return; // WebRTC handles video — skip JPEG
       const blob = event.data instanceof Blob
         ? event.data
         : new Blob([event.data], { type: "image/jpeg" });
@@ -181,6 +196,29 @@ export function useOracleState(
     }
 
     // ── Handle by type ──────────────────────────────────────────────────
+
+    // ── WebRTC signaling ────────────────────────────────────────────────
+    if (msg.type === "webrtc_answer") {
+      const pc = pcRef.current;
+      if (pc && msg.sdp) {
+        pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: msg.sdp as string }))
+          .then(() => console.log("[WebRTC] Answer set"))
+          .catch((e) => console.error("[WebRTC] Answer error:", e));
+      }
+      return;
+    }
+    if (msg.type === "webrtc_ice") {
+      const pc = pcRef.current;
+      if (pc && msg.candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(msg.candidate))
+          .catch((e) => console.error("[WebRTC] ICE error:", e));
+      }
+      return;
+    }
+    if (msg.type === "webrtc_error") {
+      console.warn("[WebRTC] Server error:", msg.error);
+      return;
+    }
 
     if (msg.type === "init") {
       // First message on connect — set state immediately (no jump from 0)
@@ -302,6 +340,56 @@ export function useOracleState(
     ws.onopen = () => {
       setConnected(true);
       retryCountRef.current = 0;
+
+      // ── Negotiate WebRTC video ──────────────────────────────────
+      if (typeof RTCPeerConnection !== "undefined") {
+        const pc = new RTCPeerConnection({
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+          ],
+        });
+        pcRef.current = pc;
+
+        pc.ontrack = (event) => {
+          console.log("[WebRTC] Track received:", event.track.kind);
+          if (videoRef.current && event.streams[0]) {
+            videoRef.current.srcObject = event.streams[0];
+            setWebrtcActive(true);
+          }
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: "webrtc_ice",
+              candidate: event.candidate.toJSON(),
+            }));
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+            console.warn("[WebRTC] Connection lost — falling back to WS JPEG");
+            setWebrtcActive(false);
+          }
+        };
+
+        // Add recv-only transceiver then create offer
+        pc.addTransceiver("video", { direction: "recvonly" });
+        pc.createOffer()
+          .then((offer) => pc.setLocalDescription(offer))
+          .then(() => {
+            if (ws.readyState === WebSocket.OPEN && pc.localDescription) {
+              ws.send(JSON.stringify({
+                type: "webrtc_offer",
+                sdp: pc.localDescription.sdp,
+              }));
+              console.log("[WebRTC] Offer sent");
+            }
+          })
+          .catch((e) => console.error("[WebRTC] Offer error:", e));
+      }
     };
 
     ws.onmessage = handleMessage;
@@ -309,7 +397,13 @@ export function useOracleState(
     ws.onerror = () => {};
     ws.onclose = () => {
       setConnected(false);
+      setWebrtcActive(false);
       wsRef.current = null;
+      // Cleanup WebRTC
+      if (pcRef.current) {
+        pcRef.current.close();
+        pcRef.current = null;
+      }
       if (disposedRef.current) return;
       if (retryCountRef.current < MAX_RETRIES) {
         const delay = Math.min(3000 * Math.pow(2, retryCountRef.current++), 30_000);
@@ -348,5 +442,7 @@ export function useOracleState(
     beepCount,
     frameUrl,
     frameRef,
+    videoRef,
+    webrtcActive,
   };
 }

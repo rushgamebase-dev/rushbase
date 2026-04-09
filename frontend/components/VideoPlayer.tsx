@@ -8,8 +8,9 @@ interface VideoPlayerProps {
   videoUid: string;
   cameraName?: string;
   cameraId?: string;
-  frameUrl?: string;
   frameRef?: React.RefObject<HTMLImageElement>;
+  videoRef?: React.RefObject<HTMLVideoElement>;
+  webrtcActive?: boolean;
 }
 
 const CF_SUBDOMAIN = "customer-vn9syvcedwumw0ut.cloudflarestream.com";
@@ -46,13 +47,15 @@ export default function VideoPlayer({
   cameraName = "LIVE CAMERA",
   cameraId,
   frameRef,
+  videoRef,
+  webrtcActive = false,
 }: VideoPlayerProps) {
   const [audioOn, setAudioOn] = useState(false);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Live mode = connected + frameRef provided (frames written directly by hook)
-  const isLiveMode = connected && !!frameRef;
+  // Live mode: WebRTC video OR JPEG fallback via frameRef
+  const isLiveMode = connected && (webrtcActive || !!frameRef);
   const youtubeId = cameraId ? YOUTUBE_AUDIO[cameraId] : null;
 
   const toggleAudio = useCallback(async () => {
@@ -118,14 +121,25 @@ export default function VideoPlayer({
         border: "1px solid #1a1a1a",
       }}
     >
-      {/* Live JPEG frame — written directly by useOracleState via ref, no React re-render */}
+      {/* WebRTC video — hardware decoded, UDP, smooth */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          width: "100%", height: "100%", objectFit: "contain",
+          display: webrtcActive ? "block" : "none",
+        }}
+      />
+      {/* JPEG fallback — used when WebRTC is not available */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={frameRef}
         alt="Live"
         style={{
           width: "100%", height: "100%", objectFit: "contain",
-          display: isLiveMode ? "block" : "none",
+          display: isLiveMode && !webrtcActive ? "block" : "none",
         }}
       />
       {!isLiveMode && iframeSrc && (
