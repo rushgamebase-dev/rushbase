@@ -8,9 +8,7 @@ interface VideoPlayerProps {
   videoUid: string;
   cameraName?: string;
   cameraId?: string;
-  frameRef?: React.RefObject<HTMLImageElement>;
-  videoRef?: React.RefObject<HTMLVideoElement>;
-  webrtcActive?: boolean;
+  frameUrl?: string;
 }
 
 const CF_SUBDOMAIN = "customer-vn9syvcedwumw0ut.cloudflarestream.com";
@@ -46,16 +44,12 @@ export default function VideoPlayer({
   videoUid,
   cameraName = "LIVE CAMERA",
   cameraId,
-  frameRef,
-  videoRef,
-  webrtcActive = false,
+  frameUrl,
 }: VideoPlayerProps) {
   const [audioOn, setAudioOn] = useState(false);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Live mode: WebRTC video OR JPEG fallback via frameRef
-  const isLiveMode = connected && (webrtcActive || !!frameRef);
+  const isLiveMode = !!frameUrl;
   const youtubeId = cameraId ? YOUTUBE_AUDIO[cameraId] : null;
 
   const toggleAudio = useCallback(async () => {
@@ -121,36 +115,21 @@ export default function VideoPlayer({
         border: "1px solid #1a1a1a",
       }}
     >
-      {/* WebRTC video — hardware decoded, UDP, smooth */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          width: "100%", height: "100%", objectFit: "contain",
-          display: webrtcActive ? "block" : "none",
-        }}
-      />
-      {/* JPEG fallback — used when WebRTC is not available */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        ref={frameRef}
-        alt="Live"
-        style={{
-          width: "100%", height: "100%", objectFit: "contain",
-          display: isLiveMode && !webrtcActive ? "block" : "none",
-        }}
-      />
-      {!isLiveMode && iframeSrc && (
+      {isLiveMode ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={frameUrl}
+          alt="Live"
+          style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+        />
+      ) : iframeSrc ? (
         <iframe
           src={iframeSrc}
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
-      )}
-      {!isLiveMode && !iframeSrc && (
+      ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: "#0a0a0a" }}>
           <div className="w-6 h-6 rounded-full border-2 border-t-transparent mb-3"
             style={{ borderColor: "#00ff8855", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
