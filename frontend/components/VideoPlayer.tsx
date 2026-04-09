@@ -100,7 +100,7 @@ export default function VideoPlayer({
   }, []);
 
   const iframeSrc = !isLiveMode && videoUid
-    ? `https://${CF_SUBDOMAIN}/${videoUid}/iframe?autoplay=true&muted=true&loop=true`
+    ? `https://${CF_SUBDOMAIN}/${videoUid}/iframe?autoplay=true&muted=true&preload=true&lowLatency=true`
     : "";
 
   return (
