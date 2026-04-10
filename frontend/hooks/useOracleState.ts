@@ -93,6 +93,10 @@ export function useOracleState(
   const lastBeepCountRef = useRef(0);
   const lastKnownRoundIdRef = useRef<number | null>(null);
   const currentMarketRef = useRef(currentMarketAddress);
+  // rAF single-flight for binary frame delivery — coalesces multiple frames
+  // per vsync and prevents React rerender cascade on burst arrivals
+  const pendingUrlRef = useRef<string>("");
+  const rafPendingRef = useRef(false);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -142,12 +146,25 @@ export function useOracleState(
       const blob = event.data instanceof Blob
         ? event.data
         : new Blob([event.data], { type: "image/jpeg" });
-      const url = URL.createObjectURL(blob);
-      // Revoke previous URL with delay so the browser has time to render it
-      const old = prevFrameUrlRef.current;
-      if (old) setTimeout(() => URL.revokeObjectURL(old), 200);
-      prevFrameUrlRef.current = url;
-      setFrameUrl(url);
+      // Revoke pending (not-yet-consumed) URL to avoid leak when frames burst
+      if (pendingUrlRef.current) {
+        URL.revokeObjectURL(pendingUrlRef.current);
+      }
+      pendingUrlRef.current = URL.createObjectURL(blob);
+      // rAF single-flight: coalesce multiple frames per vsync
+      if (!rafPendingRef.current) {
+        rafPendingRef.current = true;
+        requestAnimationFrame(() => {
+          rafPendingRef.current = false;
+          const url = pendingUrlRef.current;
+          pendingUrlRef.current = "";
+          if (!url) return;
+          const old = prevFrameUrlRef.current;
+          if (old) setTimeout(() => URL.revokeObjectURL(old), 200);
+          prevFrameUrlRef.current = url;
+          setFrameUrl(url);
+        });
+      }
       return;
     }
     if (typeof event.data !== "string") return;

@@ -32,7 +32,6 @@ oracle/cameras.json
 oracle/*.jpg
 oracle/*.service
 oracle/*.timer
-oracle/stream_server.py
 oracle/counter.py
 oracle/round_manager.py
 oracle/publisher_v2.js
