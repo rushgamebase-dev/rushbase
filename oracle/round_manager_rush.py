@@ -288,11 +288,8 @@ class Config:
 # ── Camera loader ─────────────────────────────────────────────────────────────
 
 def load_cameras() -> list[dict]:
-    """Load cameras from Nova Engine config (single source of truth)."""
-    # Primary: Nova Engine cameras.json (unified config)
-    nova_path = Path(__file__).parent.parent.parent / "solana_prediction_market" / "novaenginedestream" / "src" / "config" / "cameras.json"
-    # Fallback: local cameras.json
-    cameras_path = nova_path if nova_path.exists() else _HERE / "cameras.json"
+    """Load cameras from local oracle/cameras.json (single source of truth)."""
+    cameras_path = _HERE / "cameras.json"
     with open(cameras_path) as f:
         data = json.load(f)
     log.info("Loaded %d cameras from %s", len(data["cameras"]), cameras_path)
@@ -300,8 +297,12 @@ def load_cameras() -> list[dict]:
 
 
 def pick_round_cameras(cameras: list[dict]) -> list[dict]:
-    """Return enabled cameras for round rotation."""
-    enabled = [c for c in cameras if c.get("enabled", True)]
+    """Return enabled cameras for round rotation.
+
+    Default is False (opt-in): only cameras with explicit `"enabled": true`
+    rotate. Prevents broadcasting dozens of cameras accidentally.
+    """
+    enabled = [c for c in cameras if c.get("enabled", False) is True]
     if not enabled:
         log.warning("No enabled cameras — using first available")
         return cameras[:1]

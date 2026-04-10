@@ -46,9 +46,11 @@ interface OracleMsg {
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
+// Strip accidental whitespace/newlines from env var (Vercel env vars have had
+// trailing \n bugs in the past)
 const STATIC_ORACLE_WS_URL =
   typeof window !== "undefined"
-    ? process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? ""
+    ? (process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? "").trim()
     : "";
 
 const MAX_RETRIES = 10;
@@ -117,9 +119,14 @@ export function useOracleState(
   }, [currentMarketAddress]);
 
   // ── Oracle WS URL resolution ────────────────────────────────────────────
+  // Priority: NEXT_PUBLIC_ORACLE_WS_URL env var (hardcoded at build time).
+  // Fallback: fetch /api/oracle-url (KV). In production the KV is not
+  // configured (memStore is volatile per instance), so the env var is the
+  // reliable source. The fetch is ONLY used when the env var is empty (dev).
   const [oracleWsUrl, setOracleWsUrl] = useState(STATIC_ORACLE_WS_URL);
 
   useEffect(() => {
+    if (STATIC_ORACLE_WS_URL) return; // env var wins — don't hit KV
     let cancelled = false;
     let retries = 0;
     async function fetchUrl() {
@@ -127,7 +134,7 @@ export function useOracleState(
         const res = await fetch("/api/oracle-url");
         if (!res.ok) throw new Error(`${res.status}`);
         const data = await res.json();
-        if (data.url && !cancelled) setOracleWsUrl(data.url);
+        if (data.url && !cancelled) setOracleWsUrl(data.url.trim());
       } catch {
         if (!cancelled) {
           setTimeout(fetchUrl, Math.min(3000 * Math.pow(2, retries++), 30000));

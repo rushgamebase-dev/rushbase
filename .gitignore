@@ -28,7 +28,6 @@ __pycache__/
 oracle/evidence/
 oracle/.url_cache.json
 oracle/result.json
-oracle/cameras.json
 oracle/*.jpg
 oracle/*.service
 oracle/*.timer
