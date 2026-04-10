@@ -36,7 +36,6 @@ oracle/round_manager.py
 oracle/publisher_v2.js
 oracle/signer.py
 oracle/package.json
-oracle/start.sh
 oracle/ui_preview.html
 oracle/tunnel_watchdog.sh
 oracle/prove_round.py

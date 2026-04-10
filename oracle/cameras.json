@@ -35,7 +35,6 @@
       "type": "youtube",
       "resolution": "1280x720",
       "primary": true,
-      "enabled": true,
       "linePoints": "0.15,0.75,0.85,0.75",
       "linePoints2": "0.330,0.451,0.646,0.448",
       "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) — catches both directions"
@@ -152,6 +151,32 @@
       "imageUrl": "https://www.der.sp.gov.br/Upload/Cameras/CamSP324km081S1.jpg",
       "type": "jpeg",
       "refreshInterval": 20
+    },
+    {
+      "id": "levi-ski-finland",
+      "name": "Levi Ski Resort — Finland",
+      "region": "Levi, Finland",
+      "source": "Levi Ski Resort Live Cam",
+      "streamUrl": "https://www.youtube.com/watch?v=Wr9b5aYA4mI",
+      "type": "youtube",
+      "resolution": "1280x720",
+      "classes": [0],
+      "linePoints": "0.996,0.471,0.068,0.804",
+      "linePoints2": "0.257,0.440,0.822,0.340",
+      "notes": "Ski slope descent. Detects class 0 (person) — skiers crossing the calibrated lines."
+    },
+    {
+      "id": "bird-feeder-live",
+      "name": "Bird Feeder — Snow Birds 24/7",
+      "region": "Live cam",
+      "source": "YouTube Live",
+      "streamUrl": "https://www.youtube.com/watch?v=QaGCkKIPAZU",
+      "type": "youtube",
+      "enabled": true,
+      "classes": [14],
+      "linePoints": "0.296,0.553,0.393,0.429",
+      "linePoints2": "0.444,0.433,0.563,0.536",
+      "notes": "Bird feeder. COCO class 14 (bird). Lines from nova config (subset of 5 — using opposite diagonals)."
     },
     {
       "id": "konya-turkey-19",

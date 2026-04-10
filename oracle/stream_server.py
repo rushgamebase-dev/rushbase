@@ -39,9 +39,14 @@ except ImportError as e:
     sys.exit(1)
 
 
-# Vehicle classes in COCO dataset
+# Default COCO classes (vehicles). Per-camera override via cameras.json `classes`.
 VEHICLE_CLASSES = [2, 3, 5, 7]  # car, motorcycle, bus, truck
 VEHICLE_NAMES = {2: 'car', 3: 'moto', 5: 'bus', 7: 'truck'}
+# Full COCO labels for non-vehicle cameras (skiers, pedestrians, etc.)
+COCO_NAMES = {
+    0: 'person', 1: 'bicycle', 2: 'car', 3: 'moto', 4: 'airplane',
+    5: 'bus', 6: 'train', 7: 'truck', 8: 'boat',
+}
 
 # Colors
 NEON_GREEN = (136, 255, 0)
@@ -63,7 +68,8 @@ class VehicleCounter:
 
     def __init__(self, model_name='yolov8x.pt', confidence=0.20,
                  line_position=0.45, line_angle=10, line_points=None,
-                 count_mode='line', min_frames=5, lanes=None, **_kwargs):
+                 count_mode='line', min_frames=5, lanes=None,
+                 classes=None, **_kwargs):
         self.count_mode = count_mode
         self.min_frames = min_frames
         self.seen_frames = {}
@@ -72,6 +78,9 @@ class VehicleCounter:
         self.lanes_ready = False
         self.model = YOLO(model_name)
         self.confidence = confidence
+        # COCO classes to detect. Default = vehicles. Override via cameras.json
+        # for person-based cameras (ski slopes, crosswalks, etc.)
+        self.classes = list(classes) if classes else list(VEHICLE_CLASSES)
         self.line_position = line_position  # 0-1, where on x-axis the line center is
         self.line_angle = line_angle
         self.custom_line_points = line_points    # "x1,y1,x2,y2" for line 1
@@ -97,8 +106,8 @@ class VehicleCounter:
         self.DEDUP_RADIUS = 60     # pixels — must be far enough from recent crossing
         self.DEDUP_WINDOW = 3.0    # seconds — how long to remember a crossing
 
-        # Per-class counts
-        self.class_counts = {2: 0, 3: 0, 5: 0, 7: 0}
+        # Per-class counts — dynamic based on configured classes
+        self.class_counts = {c: 0 for c in self.classes}
 
         # Line endpoints (set on first frame)
         self.line_start = None    # (x, y) top point
@@ -269,14 +278,14 @@ class VehicleCounter:
         # Detect + track with BoT-SORT on GPU
         results = self.model.track(
             frame, verbose=False, conf=self.confidence,
-            classes=VEHICLE_CLASSES, persist=True,
+            classes=self.classes, persist=True,
             tracker="botsort_custom.yaml", imgsz=1280, device=0
         )[0]
 
         detections = sv.Detections.from_ultralytics(results)
 
         if detections.class_id is not None and len(detections) > 0:
-            mask = np.isin(detections.class_id, VEHICLE_CLASSES)
+            mask = np.isin(detections.class_id, self.classes)
             detections = detections[mask]
 
         has_tracker = (detections.tracker_id is not None and
@@ -560,7 +569,7 @@ class StreamServer:
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
                  count_mode='uid', lanes=None, target_fps=8, camera_id='',
-                 referer=None, **kwargs):
+                 referer=None, classes=None, **kwargs):
         self.stream_url = stream_url
         self._referer = referer
         self.host = host
@@ -577,6 +586,7 @@ class StreamServer:
         self._line_points2 = line_points2
         self._count_mode = count_mode
         self._lanes = lanes
+        self._classes = classes
 
         # Create initial counter (for YOLO model loading + visual annotations in IDLE)
         self.counter = VehicleCounter(model_name=model, confidence=confidence,
@@ -584,7 +594,7 @@ class StreamServer:
                                        line_points=line_points,
                                        line_points2=line_points2,
                                        count_mode=count_mode, lanes=lanes,
-                                       min_frames=3)
+                                       classes=classes, min_frames=3)
         self.clients = set()
         self.running = False
 
@@ -608,7 +618,8 @@ class StreamServer:
         c = VehicleCounter(model_name=self._model_name, confidence=self._confidence,
                            line_position=self._line_pos, line_angle=self._line_angle,
                            line_points=self._line_points, line_points2=self._line_points2,
-                           count_mode=self._count_mode, lanes=self._lanes, min_frames=3)
+                           count_mode=self._count_mode, lanes=self._lanes,
+                           classes=self._classes, min_frames=3)
         c.model = self.counter.model  # reuse loaded model — no GPU reload
         return c
 
@@ -637,8 +648,8 @@ class StreamServer:
         count = self.counter.total_count
         result = {
             "count": count,
-            "in_count": self.counter.class_counts.get(2, 0),
-            "out_count": self.counter.class_counts.get(7, 0),
+            "in_count": self.counter.count_in,
+            "out_count": self.counter.count_out,
             "duration": self._round_duration,
             "stream": self.stream_url,
             "timestamp": int(time.time()),
@@ -1144,11 +1155,13 @@ def main():
     stream_url = args.stream
     cam_lanes = None
     cam_id = ''
+    cam_classes = None
     if args.camera:
         cam = load_camera(args.camera)
         stream_url = cam.get("streamUrl", cam.get("imageUrl"))
         cam_id = cam["id"]
         cam_lanes = cam.get("lanes")
+        cam_classes = cam.get("classes")
         if not args.line_points and cam.get("linePoints"):
             args.line_points = cam["linePoints"]
             args.mode = "line"
@@ -1159,6 +1172,9 @@ def main():
         print(f"[Camera] {cam['name']} ({cam.get('source','')}) — {cam['type'].upper()}")
         if cam_lanes:
             print(f"[Camera] {len(cam_lanes)} lanes configured")
+        if cam_classes:
+            label = ','.join(COCO_NAMES.get(c, str(c)) for c in cam_classes)
+            print(f"[Camera] Classes override: {cam_classes} ({label})")
 
     _kill_port(args.port)
 
@@ -1177,6 +1193,7 @@ def main():
         target_fps=args.fps,
         camera_id=cam_id,
         referer=cam_referer,
+        classes=cam_classes,
     )
 
     try:
