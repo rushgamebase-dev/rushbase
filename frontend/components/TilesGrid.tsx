@@ -9,6 +9,20 @@ interface TilesGridProps {
   onTileClick: (tile: Tile) => void;
 }
 
+/**
+ * Tile IDs permanently blocked from purchase via UI.
+ * These are tiles whose owners abandoned them (tax debt > deposit)
+ * and are no longer available for sale.
+ */
+export const CLOSED_TILE_IDS = new Set<number>([
+  0, 1, 6, 7, 8, 11, 12, 13, 14, 15,
+  16, 17, 24, 28, 29, 35, 37, 39, 40, 41,
+  42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+  52, 53, 54, 65, 66, 67, 70, 71, 74, 76,
+  77, 78, 81, 82, 83, 84, 87, 88, 90, 93,
+  94, 98, 99,
+]);
+
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
 
@@ -77,6 +91,17 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           0%, 100% { box-shadow: 0 0 6px rgba(255,215,0,0.3), inset 0 0 6px rgba(255,215,0,0.05); border-color: rgba(255,215,0,0.4); }
           50% { box-shadow: 0 0 18px rgba(255,215,0,0.6), inset 0 0 10px rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.8); }
         }
+        .closed-tile {
+          background-image:
+            repeating-linear-gradient(
+              45deg,
+              rgba(255,60,60,0.10) 0px,
+              rgba(255,60,60,0.10) 2px,
+              transparent 2px,
+              transparent 6px
+            ) !important;
+          filter: grayscale(0.9) brightness(0.45);
+        }
       `}</style>
       <div
         className="grid gap-[3px] rounded-lg p-1"
@@ -85,7 +110,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         aria-label="Tiles grid 10 by 10"
       >
       {(() => {
-        const ownedPrices = tiles.filter(t => t.isActive && !t.isMine).map(t => t.price);
+        const ownedPrices = tiles.filter(t => t.isActive && !t.isMine && !CLOSED_TILE_IDS.has(t.id)).map(t => t.price);
         const floorPrice = ownedPrices.length > 0 ? Math.min(...ownedPrices) : 0;
         return tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
@@ -93,13 +118,17 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         const row = Math.floor(tile.id / 10);
         const col = tile.id % 10;
         const sweepDelay = ((row + col) / 18) * 5;
-        const isCheapest = tile.isActive && !tile.isMine && tile.price === floorPrice && floorPrice > 0;
+        const isClosed = CLOSED_TILE_IDS.has(tile.id);
+        const isCheapest = !isClosed && tile.isActive && !tile.isMine && tile.price === floorPrice && floorPrice > 0;
 
         let borderColor = "#222";
         let shadow = "none";
         let animStyle = "";
 
-        if (isCheapest) {
+        if (isClosed) {
+          borderColor = "rgba(180,40,40,0.55)";
+          shadow = "inset 0 0 8px rgba(0,0,0,0.6)";
+        } else if (isCheapest) {
           borderColor = "rgba(255,215,0,0.5)";
           shadow = "0 0 10px rgba(255,215,0,0.3)";
           animStyle = "dealPulse 1.8s ease-in-out infinite";
@@ -112,7 +141,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           borderColor = `hsla(${hue}, 60%, 50%, 0.3)`;
         }
 
-        if (isHovered) {
+        if (isHovered && !isClosed) {
           borderColor = tile.isMine ? "rgba(0,255,136,1)" : "#666";
           shadow = "0 0 12px rgba(255,255,255,0.15)";
         }
@@ -120,26 +149,32 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         return (
           <button
             key={tile.id}
-            className="relative flex flex-col items-start justify-between rounded-sm overflow-hidden"
+            className={`relative flex flex-col items-start justify-between rounded-sm overflow-hidden${isClosed ? " closed-tile" : ""}`}
             style={{
-              background: hasImage ? `url(${getTileImage(tile.owner!)}) center/cover` : "#141414",
+              background: hasImage && !isClosed ? `url(${getTileImage(tile.owner!)}) center/cover` : "#141414",
               border: `2px solid ${borderColor}`,
               boxShadow: shadow,
               transition: "transform 0.15s, border-color 0.2s",
-              cursor: "pointer",
-              transform: isHovered ? "scale(1.18)" : "scale(1)",
+              cursor: isClosed ? "not-allowed" : "pointer",
+              transform: isHovered && !isClosed ? "scale(1.18)" : "scale(1)",
               zIndex: isHovered ? 10 : 1,
               aspectRatio: "1",
               animation: animStyle,
+              opacity: isClosed ? 0.85 : 1,
             }}
             onMouseEnter={() => setHoveredId(tile.id)}
             onMouseLeave={() => setHoveredId(null)}
-            onClick={() => onTileClick(tile)}
-            aria-label={`Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}, ${tile.price.toFixed(4)} ETH`}
+            onClick={() => { if (!isClosed) onTileClick(tile); }}
+            disabled={isClosed}
+            aria-label={
+              isClosed
+                ? `Tile ${tile.id + 1} — not for sale`
+                : `Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}, ${tile.price.toFixed(4)} ETH`
+            }
             role="gridcell"
           >
             {/* Dark overlay for text readability */}
-            {hasImage && (
+            {hasImage && !isClosed && (
               <div
                 className="absolute inset-0"
                 style={{
@@ -149,6 +184,36 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               />
             )}
 
+            {/* Closed tile X marker */}
+            {isClosed && (
+              <>
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, transparent 46%, rgba(255,80,80,0.55) 48%, rgba(255,80,80,0.55) 52%, transparent 54%), linear-gradient(45deg, transparent 46%, rgba(255,80,80,0.55) 48%, rgba(255,80,80,0.55) 52%, transparent 54%)",
+                    zIndex: 2,
+                  }}
+                />
+                <span
+                  className="absolute bottom-0 left-0 right-0 text-center"
+                  style={{
+                    background: "rgba(120,20,20,0.85)",
+                    color: "#ffb4b4",
+                    fontFamily: "monospace",
+                    fontSize: 6,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    padding: "1px 0",
+                    zIndex: 3,
+                    borderTop: "1px solid rgba(255,80,80,0.4)",
+                  }}
+                >
+                  CLOSED
+                </span>
+              </>
+            )}
+
             {/* Number top-left */}
             <span
               style={{
@@ -156,47 +221,51 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 lineHeight: 1,
                 fontFamily: "monospace",
                 fontWeight: 800,
-                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
+                color: isClosed ? "#ff8080" : tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
                 userSelect: "none",
-                textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none",
+                textShadow: tile.isActive || isClosed ? "0 1px 4px rgba(0,0,0,1)" : "none",
                 position: "relative",
-                zIndex: 2,
+                zIndex: 3,
                 padding: "2px",
               }}
             >
               {tile.id + 1}
             </span>
 
-            {/* Price bottom-right */}
-            <span
-              style={{
-                fontSize: 9,
-                lineHeight: 1,
-                fontFamily: "monospace",
-                fontWeight: 700,
-                color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
-                userSelect: "none",
-                alignSelf: "flex-end",
-                textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none",
-                position: "relative",
-                zIndex: 2,
-                padding: "2px",
-              }}
-            >
-              {tile.price.toFixed(3)}
-            </span>
+            {/* Price bottom-right — hidden for closed tiles */}
+            {!isClosed && (
+              <span
+                style={{
+                  fontSize: 9,
+                  lineHeight: 1,
+                  fontFamily: "monospace",
+                  fontWeight: 700,
+                  color: tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
+                  userSelect: "none",
+                  alignSelf: "flex-end",
+                  textShadow: tile.isActive ? "0 1px 4px rgba(0,0,0,1)" : "none",
+                  position: "relative",
+                  zIndex: 2,
+                  padding: "2px",
+                }}
+              >
+                {tile.price.toFixed(3)}
+              </span>
+            )}
 
             {/* Diagonal neon sweep */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: "linear-gradient(135deg, transparent 20%, rgba(0,255,200,0.28) 48%, rgba(0,180,255,0.18) 52%, transparent 80%)",
-                opacity: 0,
-                animation: `diagonalSweep 5s ${sweepDelay.toFixed(2)}s ease-in-out infinite`,
-                zIndex: 2,
-                borderRadius: "inherit",
-              }}
-            />
+            {!isClosed && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "linear-gradient(135deg, transparent 20%, rgba(0,255,200,0.28) 48%, rgba(0,180,255,0.18) 52%, transparent 80%)",
+                  opacity: 0,
+                  animation: `diagonalSweep 5s ${sweepDelay.toFixed(2)}s ease-in-out infinite`,
+                  zIndex: 2,
+                  borderRadius: "inherit",
+                }}
+              />
+            )}
 
             {/* Best deal badge */}
             {isCheapest && (
@@ -252,7 +321,9 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                   }}
                 >
                   <div className="font-bold mb-0.5">
-                    {tile.isMine ? (
+                    {isClosed ? (
+                      <span style={{ color: "#ff6464" }}>NOT FOR SALE</span>
+                    ) : tile.isMine ? (
                       <span style={{ color: "#00ff88" }}>YOUR TILE</span>
                     ) : tile.isActive ? (
                       <span style={{ color: "#ffd700" }}>{tile.owner ? getRaccoonName(tile.owner) : "OWNED"}</span>
@@ -261,12 +332,18 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                     )}
                     <span style={{ color: "#444" }}> #{tile.id + 1}</span>
                   </div>
-                  {tile.owner && (
-                    <div style={{ color: "#666", fontSize: 10 }}>
-                      {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
-                    </div>
+                  {isClosed ? (
+                    <div style={{ color: "#888", fontSize: 10 }}>abandoned · closed</div>
+                  ) : (
+                    <>
+                      {tile.owner && (
+                        <div style={{ color: "#666", fontSize: 10 }}>
+                          {tile.owner.slice(0, 6)}...{tile.owner.slice(-4)}
+                        </div>
+                      )}
+                      <div style={{ color: "#00aaff", fontWeight: 700 }}>{tile.price.toFixed(4)} ETH</div>
+                    </>
                   )}
-                  <div style={{ color: "#00aaff", fontWeight: 700 }}>{tile.price.toFixed(4)} ETH</div>
                 </div>
               </div>
             )}
