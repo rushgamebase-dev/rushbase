@@ -69,13 +69,19 @@ class VehicleCounter:
     def __init__(self, model_name='yolov8x.pt', confidence=0.20,
                  line_position=0.45, line_angle=10, line_points=None,
                  count_mode='line', min_frames=5, lanes=None,
-                 classes=None, **_kwargs):
+                 classes=None, roi=None, **_kwargs):
         self.count_mode = count_mode
         self.min_frames = min_frames
         self.seen_frames = {}
         self.lanes_config = lanes  # list of lane dicts from cameras.json
         self.lanes = []            # processed lanes (set on first frame)
         self.lanes_ready = False
+        # ROI mask — list of polygons (in fractions) that define where YOLO counts
+        # Detections whose bottom-center falls OUTSIDE all polygons are ignored.
+        # Supports: None | [[x1,y1],...] (single polygon) | [[[x1,y1],...],...] (multi)
+        self.roi_config = roi
+        self.roi = []            # list of np.array polygons (absolute coords)
+        self.roi_ready = False
         self.model = YOLO(model_name)
         self.confidence = confidence
         # COCO classes to detect. Default = vehicles. Override via cameras.json
@@ -219,6 +225,32 @@ class VehicleCounter:
             print(f"[Lane] {lc['name']}: zone={polygon.tolist()}, line={line_start}->{line_end}")
         self.lanes_ready = True
 
+    def _setup_roi(self, w, h):
+        """Convert ROI config (fractions) to absolute polygons."""
+        if not self.roi_config:
+            return
+        # Detect format: single polygon [[x,y],...] vs multi [[[x,y],...],...]
+        cfg = self.roi_config
+        if cfg and isinstance(cfg[0], (list, tuple)) and len(cfg[0]) > 0 and isinstance(cfg[0][0], (list, tuple)):
+            polys = cfg  # already multi-polygon
+        else:
+            polys = [cfg]  # wrap single polygon
+        for poly_frac in polys:
+            poly_abs = np.array([[int(p[0] * w), int(p[1] * h)] for p in poly_frac])
+            self.roi.append(poly_abs)
+        self.roi_ready = True
+        total_v = sum(len(p) for p in self.roi)
+        print(f"[ROI] {len(self.roi)} polygon(s) loaded, {total_v} total vertices")
+
+    def _in_any_roi(self, px, py):
+        """True if point is inside any ROI polygon. If no ROI set, always True."""
+        if not self.roi_ready:
+            return True
+        for poly in self.roi:
+            if self._point_in_polygon(px, py, poly):
+                return True
+        return False
+
     def _point_in_polygon(self, px, py, polygon):
         """Ray-casting point-in-polygon test."""
         n = len(polygon)
@@ -245,6 +277,10 @@ class VehicleCounter:
         # Setup lanes on first frame
         if not self.lanes_ready and self.lanes_config:
             self._setup_lanes(w, h)
+
+        # Setup ROI mask on first frame
+        if not self.roi_ready and self.roi_config:
+            self._setup_roi(w, h)
 
         # Set line endpoints on first frame
         if self.line_start is None:
@@ -370,6 +406,10 @@ class VehicleCounter:
                     anchor_y = int(y2)
                     cls = detections.class_id[i] if detections.class_id is not None else 2
 
+                    # ROI filter: skip detections outside the painted mask
+                    if self.roi_ready and not self._in_any_roi(anchor_x, anchor_y):
+                        continue
+
                     self.seen_frames[tid] = self.seen_frames.get(tid, 0) + 1
 
                     # Track position history for direction validation
@@ -454,6 +494,12 @@ class VehicleCounter:
                 # Count numbers removed — frontend handles display
 
         # ─── Draw counting line (only in line mode) ──────────
+
+        # Draw ROI outline (subtle green) so users can see the active zone
+        if self.roi_ready and self.roi:
+            for poly in self.roi:
+                pts = poly.reshape((-1, 1, 2))
+                cv2.polylines(frame, [pts], True, (0, 200, 100), 1, cv2.LINE_AA)
 
         # Draw lanes
         if self.lanes_ready and self.lanes:
@@ -569,7 +615,7 @@ class StreamServer:
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
                  count_mode='uid', lanes=None, target_fps=8, camera_id='',
-                 referer=None, classes=None, **kwargs):
+                 referer=None, classes=None, roi=None, **kwargs):
         self.stream_url = stream_url
         self._referer = referer
         self.host = host
@@ -587,6 +633,7 @@ class StreamServer:
         self._count_mode = count_mode
         self._lanes = lanes
         self._classes = classes
+        self._roi = roi
 
         # Create initial counter (for YOLO model loading + visual annotations in IDLE)
         self.counter = VehicleCounter(model_name=model, confidence=confidence,
@@ -594,7 +641,7 @@ class StreamServer:
                                        line_points=line_points,
                                        line_points2=line_points2,
                                        count_mode=count_mode, lanes=lanes,
-                                       classes=classes, min_frames=3)
+                                       classes=classes, roi=roi, min_frames=3)
         self.clients = set()
         self.running = False
 
@@ -619,7 +666,7 @@ class StreamServer:
                            line_position=self._line_pos, line_angle=self._line_angle,
                            line_points=self._line_points, line_points2=self._line_points2,
                            count_mode=self._count_mode, lanes=self._lanes,
-                           classes=self._classes, min_frames=3)
+                           classes=self._classes, roi=self._roi, min_frames=3)
         c.model = self.counter.model  # reuse loaded model — no GPU reload
         return c
 
@@ -703,17 +750,34 @@ class StreamServer:
         print(f"[WS] Client disconnected ({len(self.clients)} total)")
 
     async def _broadcast(self, json_msg, jpeg_bytes):
-        """Send JSON + binary frame to all connected clients. Timeout per client."""
+        """Send JSON + binary frame to all connected clients.
+
+        Per-client AND global timeout: prevents a zombie socket from hanging
+        the whole main loop (seen in production after hours of runtime — the
+        gather would stall forever because wait_for cancel didn't interrupt
+        the underlying send()). Global cap = 1.5s regardless of client count.
+        """
         if not self.clients:
             return
         dead = set()
         async def send_to(ws):
             try:
-                await asyncio.wait_for(ws.send(json_msg), timeout=2)
-                await asyncio.wait_for(ws.send(jpeg_bytes), timeout=2)
-            except (websockets.exceptions.ConnectionClosed, asyncio.TimeoutError):
+                await asyncio.wait_for(ws.send(json_msg), timeout=1)
+                await asyncio.wait_for(ws.send(jpeg_bytes), timeout=1)
+            except BaseException:
                 dead.add(ws)
-        await asyncio.gather(*(send_to(ws) for ws in self.clients))
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(
+                    *(send_to(ws) for ws in list(self.clients)),
+                    return_exceptions=True,
+                ),
+                timeout=1.5,
+            )
+        except asyncio.TimeoutError:
+            # Any client that didn't finish in 1.5s is zombie — mark all as dead
+            # on next iteration they get re-reaped by their own send_to
+            pass
         self.clients -= dead
 
     async def _broadcast_json(self, msg):
@@ -820,7 +884,7 @@ class StreamServer:
                 *probe_headers,
                 direct_url,
             ]
-            probe_out = subprocess.check_output(probe_cmd, timeout=30).decode().strip()
+            probe_out = subprocess.check_output(probe_cmd, timeout=60).decode().strip()
             # Multiple video streams possible — take the first non-empty line
             first_line = next((ln.strip() for ln in probe_out.splitlines() if ln.strip()), "")
             parts = first_line.split(",")
@@ -1108,6 +1172,21 @@ def load_camera(camera_id):
         data = json.load(f)
     for cam in data["cameras"]:
         if cam["id"] == camera_id:
+            # If camera has a _tokenApi (for signed URLs that expire), refresh
+            # the streamUrl by hitting the token endpoint.
+            token_api = cam.get("_tokenApi")
+            if token_api:
+                try:
+                    import urllib.request
+                    with urllib.request.urlopen(token_api, timeout=10) as r:
+                        fresh_url = r.read().decode().strip()
+                    if fresh_url.startswith("http"):
+                        print(f"[Camera] Refreshed signed URL via _tokenApi")
+                        cam["streamUrl"] = fresh_url
+                    else:
+                        print(f"[WARN] _tokenApi returned non-URL: {fresh_url[:80]}")
+                except Exception as e:
+                    print(f"[WARN] Could not refresh token: {e}")
             return cam
     print(f"[ERROR] Camera '{camera_id}' not found")
     sys.exit(1)
@@ -1156,12 +1235,14 @@ def main():
     cam_lanes = None
     cam_id = ''
     cam_classes = None
+    cam_roi = None
     if args.camera:
         cam = load_camera(args.camera)
         stream_url = cam.get("streamUrl", cam.get("imageUrl"))
         cam_id = cam["id"]
         cam_lanes = cam.get("lanes")
         cam_classes = cam.get("classes")
+        cam_roi = cam.get("roi")
         if not args.line_points and cam.get("linePoints"):
             args.line_points = cam["linePoints"]
             args.mode = "line"
@@ -1175,6 +1256,10 @@ def main():
         if cam_classes:
             label = ','.join(COCO_NAMES.get(c, str(c)) for c in cam_classes)
             print(f"[Camera] Classes override: {cam_classes} ({label})")
+        if cam_roi:
+            # Count polygons (supports single or multi-polygon format)
+            n_polys = len(cam_roi) if (cam_roi and isinstance(cam_roi[0], list) and cam_roi[0] and isinstance(cam_roi[0][0], list)) else 1
+            print(f"[Camera] ROI mask: {n_polys} polygon(s)")
 
     _kill_port(args.port)
 
@@ -1194,6 +1279,7 @@ def main():
         camera_id=cam_id,
         referer=cam_referer,
         classes=cam_classes,
+        roi=cam_roi,
     )
 
     try:

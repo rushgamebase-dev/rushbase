@@ -10,12 +10,157 @@
       "resolution": "1920x1080",
       "linePoints": "0.269,0.694,0.777,0.656",
       "linePoints2": "0.397,0.550,0.645,0.500",
-      "roi": [[0.5077,0.4156],[0.4894,0.4481],[0.4529,0.4805],[0.431,0.513],[0.4127,0.5455],[0.3798,0.5779],[0.3579,0.6104],[0.347,0.6429],[0.347,0.6753],[0.2849,0.7078],[0.2666,0.7403],[0.2557,0.7727],[0.252,0.8052],[0.2191,0.8377],[0.1863,0.8701],[0.1644,0.9026],[0.1351,0.9351],[0.1315,0.9675],[0.9752,0.9935],[0.9861,0.961],[0.9861,0.9286],[0.9606,0.8961],[0.9642,0.8636],[0.9496,0.8312],[0.9058,0.7987],[0.8619,0.7662],[0.8218,0.7338],[0.7925,0.7013],[0.767,0.6688],[0.7524,0.6364],[0.7378,0.6039],[0.7195,0.5714],[0.7012,0.539],[0.6428,0.5065],[0.6172,0.474],[0.5844,0.4416]],
+      "roi": [
+        [
+          0.5077,
+          0.4156
+        ],
+        [
+          0.4894,
+          0.4481
+        ],
+        [
+          0.4529,
+          0.4805
+        ],
+        [
+          0.431,
+          0.513
+        ],
+        [
+          0.4127,
+          0.5455
+        ],
+        [
+          0.3798,
+          0.5779
+        ],
+        [
+          0.3579,
+          0.6104
+        ],
+        [
+          0.347,
+          0.6429
+        ],
+        [
+          0.347,
+          0.6753
+        ],
+        [
+          0.2849,
+          0.7078
+        ],
+        [
+          0.2666,
+          0.7403
+        ],
+        [
+          0.2557,
+          0.7727
+        ],
+        [
+          0.252,
+          0.8052
+        ],
+        [
+          0.2191,
+          0.8377
+        ],
+        [
+          0.1863,
+          0.8701
+        ],
+        [
+          0.1644,
+          0.9026
+        ],
+        [
+          0.1351,
+          0.9351
+        ],
+        [
+          0.1315,
+          0.9675
+        ],
+        [
+          0.9752,
+          0.9935
+        ],
+        [
+          0.9861,
+          0.961
+        ],
+        [
+          0.9861,
+          0.9286
+        ],
+        [
+          0.9606,
+          0.8961
+        ],
+        [
+          0.9642,
+          0.8636
+        ],
+        [
+          0.9496,
+          0.8312
+        ],
+        [
+          0.9058,
+          0.7987
+        ],
+        [
+          0.8619,
+          0.7662
+        ],
+        [
+          0.8218,
+          0.7338
+        ],
+        [
+          0.7925,
+          0.7013
+        ],
+        [
+          0.767,
+          0.6688
+        ],
+        [
+          0.7524,
+          0.6364
+        ],
+        [
+          0.7378,
+          0.6039
+        ],
+        [
+          0.7195,
+          0.5714
+        ],
+        [
+          0.7012,
+          0.539
+        ],
+        [
+          0.6428,
+          0.5065
+        ],
+        [
+          0.6172,
+          0.474
+        ],
+        [
+          0.5844,
+          0.4416
+        ]
+      ],
       "notes": "Direct HLS. 2 counting lines + ROI mask on road surface. Excludes sky, camera housing, timestamp."
     },
     {
       "id": "netherlands-highway",
-      "name": "Netherlands Highway — Live Traffic",
+      "name": "Netherlands Highway \u2014 Live Traffic",
       "region": "Netherlands, EU",
       "source": "Axis Communications",
       "streamUrl": "https://www.youtube.com/watch?v=Jy1Y9f8NEY0",
@@ -23,12 +168,157 @@
       "resolution": "1280x720",
       "linePoints": "0.936,0.394,0.963,0.473",
       "linePoints2": "0.775,0.414,0.825,0.527",
-      "roi": [[0.9688,0.3819],[0.4766,0.4167],[0.4727,0.4514],[0.4727,0.4861],[0.457,0.5208],[0.418,0.5556],[0.375,0.5903],[0.332,0.625],[0.293,0.6597],[0.2656,0.6944],[0.2422,0.7292],[0.2148,0.7639],[0.1914,0.7986],[0.1719,0.8333],[0.1602,0.8681],[0.1523,0.9028],[0.1523,0.9375],[0.1563,0.9722],[0.6016,0.9861],[0.6055,0.9514],[0.6211,0.9167],[0.6367,0.8819],[0.6406,0.8472],[0.6484,0.8125],[0.6563,0.7778],[0.6641,0.7431],[0.6719,0.7083],[0.6797,0.6736],[0.6875,0.6389],[0.7109,0.6042],[0.7734,0.5694],[0.8125,0.5347],[0.8438,0.5],[0.9492,0.4653],[0.9922,0.4306],[0.9922,0.3958]],
+      "roi": [
+        [
+          0.9688,
+          0.3819
+        ],
+        [
+          0.4766,
+          0.4167
+        ],
+        [
+          0.4727,
+          0.4514
+        ],
+        [
+          0.4727,
+          0.4861
+        ],
+        [
+          0.457,
+          0.5208
+        ],
+        [
+          0.418,
+          0.5556
+        ],
+        [
+          0.375,
+          0.5903
+        ],
+        [
+          0.332,
+          0.625
+        ],
+        [
+          0.293,
+          0.6597
+        ],
+        [
+          0.2656,
+          0.6944
+        ],
+        [
+          0.2422,
+          0.7292
+        ],
+        [
+          0.2148,
+          0.7639
+        ],
+        [
+          0.1914,
+          0.7986
+        ],
+        [
+          0.1719,
+          0.8333
+        ],
+        [
+          0.1602,
+          0.8681
+        ],
+        [
+          0.1523,
+          0.9028
+        ],
+        [
+          0.1523,
+          0.9375
+        ],
+        [
+          0.1563,
+          0.9722
+        ],
+        [
+          0.6016,
+          0.9861
+        ],
+        [
+          0.6055,
+          0.9514
+        ],
+        [
+          0.6211,
+          0.9167
+        ],
+        [
+          0.6367,
+          0.8819
+        ],
+        [
+          0.6406,
+          0.8472
+        ],
+        [
+          0.6484,
+          0.8125
+        ],
+        [
+          0.6563,
+          0.7778
+        ],
+        [
+          0.6641,
+          0.7431
+        ],
+        [
+          0.6719,
+          0.7083
+        ],
+        [
+          0.6797,
+          0.6736
+        ],
+        [
+          0.6875,
+          0.6389
+        ],
+        [
+          0.7109,
+          0.6042
+        ],
+        [
+          0.7734,
+          0.5694
+        ],
+        [
+          0.8125,
+          0.5347
+        ],
+        [
+          0.8438,
+          0.5
+        ],
+        [
+          0.9492,
+          0.4653
+        ],
+        [
+          0.9922,
+          0.4306
+        ],
+        [
+          0.9922,
+          0.3958
+        ]
+      ],
       "notes": "Dutch highway, ROI mask on road surface only. Short line on main lanes."
     },
     {
       "id": "peace-bridge",
-      "name": "Peace Bridge — USA/Canada Border",
+      "name": "Peace Bridge \u2014 USA/Canada Border",
       "region": "Buffalo, NY / Fort Erie, ON",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=DnUFAShZKus",
@@ -37,11 +327,11 @@
       "primary": true,
       "linePoints": "0.15,0.75,0.85,0.75",
       "linePoints2": "0.330,0.451,0.646,0.448",
-      "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) — catches both directions"
+      "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) \u2014 catches both directions"
     },
     {
       "id": "peace-bridge-plaza",
-      "name": "Peace Bridge — CND Inspection Plaza",
+      "name": "Peace Bridge \u2014 CND Inspection Plaza",
       "region": "Fort Erie, ON, Canada",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=WPMgP2C3_co",
@@ -52,7 +342,7 @@
     },
     {
       "id": "peace-bridge-qew",
-      "name": "Peace Bridge — QEW to CND Duty Free",
+      "name": "Peace Bridge \u2014 QEW to CND Duty Free",
       "region": "Fort Erie, ON, Canada",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=SETJ79HmwI0",
@@ -154,33 +444,36 @@
     },
     {
       "id": "levi-ski-finland",
-      "name": "Levi Ski Resort — Finland",
+      "name": "Levi Ski Resort \u2014 Finland",
       "region": "Levi, Finland",
       "source": "Levi Ski Resort Live Cam",
       "streamUrl": "https://www.youtube.com/watch?v=Wr9b5aYA4mI",
       "type": "youtube",
       "resolution": "1280x720",
-      "classes": [0],
+      "classes": [
+        0
+      ],
       "linePoints": "0.996,0.471,0.068,0.804",
       "linePoints2": "0.257,0.440,0.822,0.340",
-      "notes": "Ski slope descent. Detects class 0 (person) — skiers crossing the calibrated lines."
+      "notes": "Ski slope descent. Detects class 0 (person) \u2014 skiers crossing the calibrated lines."
     },
     {
       "id": "bird-feeder-live",
-      "name": "Bird Feeder — Snow Birds 24/7",
+      "name": "Bird Feeder \u2014 Snow Birds 24/7",
       "region": "Live cam",
       "source": "YouTube Live",
       "streamUrl": "https://www.youtube.com/watch?v=QaGCkKIPAZU",
       "type": "youtube",
-      "enabled": true,
-      "classes": [14],
+      "classes": [
+        14
+      ],
       "linePoints": "0.296,0.553,0.393,0.429",
       "linePoints2": "0.444,0.433,0.563,0.536",
-      "notes": "Bird feeder. COCO class 14 (bird). Lines from nova config (subset of 5 — using opposite diagonals)."
+      "notes": "Bird feeder. COCO class 14 (bird). Lines from nova config (subset of 5 \u2014 using opposite diagonals)."
     },
     {
       "id": "konya-turkey-19",
-      "name": "Konya, Turkey — City Road",
+      "name": "Konya, Turkey \u2014 City Road",
       "region": "Konya, Turkey",
       "source": "TrafficVision",
       "streamUrl": "https://content.tvkur.com/l/c77i5e384cnrb6mlji10/master.m3u8",
@@ -189,9 +482,381 @@
       "resolution": "1920x1080",
       "linePoints": "0.175,0.789,0.809,0.792",
       "linePoints2": "0.260,0.624,0.715,0.624",
-      "roi": [[0.3336,0.4682],[0.2704,0.4994],[0.2528,0.5306],[0.2212,0.5618],[0.1685,0.593],[0.151,0.6242],[0.1545,0.6554],[0.1756,0.6866],[0.2177,0.7179],[0.2001,0.7491],[0.1861,0.7803],[0.1685,0.8115],[0.1545,0.8427],[0.1404,0.8739],[0.1264,0.9051],[0.1124,0.9363],[0.0983,0.9675],[0.0948,0.9988],[0.9059,0.9738],[0.9024,0.9426],[0.8708,0.9114],[0.8638,0.8801],[0.8532,0.8489],[0.8462,0.8177],[0.8357,0.7865],[0.8251,0.7553],[0.8006,0.7241],[0.7725,0.6929],[0.7514,0.6617],[0.7303,0.6305],[0.7058,0.5993],[0.6917,0.568],[0.6847,0.5368],[0.4354,0.5056],[0.3581,0.4744]],
+      "roi": [
+        [
+          0.3336,
+          0.4682
+        ],
+        [
+          0.2704,
+          0.4994
+        ],
+        [
+          0.2528,
+          0.5306
+        ],
+        [
+          0.2212,
+          0.5618
+        ],
+        [
+          0.1685,
+          0.593
+        ],
+        [
+          0.151,
+          0.6242
+        ],
+        [
+          0.1545,
+          0.6554
+        ],
+        [
+          0.1756,
+          0.6866
+        ],
+        [
+          0.2177,
+          0.7179
+        ],
+        [
+          0.2001,
+          0.7491
+        ],
+        [
+          0.1861,
+          0.7803
+        ],
+        [
+          0.1685,
+          0.8115
+        ],
+        [
+          0.1545,
+          0.8427
+        ],
+        [
+          0.1404,
+          0.8739
+        ],
+        [
+          0.1264,
+          0.9051
+        ],
+        [
+          0.1124,
+          0.9363
+        ],
+        [
+          0.0983,
+          0.9675
+        ],
+        [
+          0.0948,
+          0.9988
+        ],
+        [
+          0.9059,
+          0.9738
+        ],
+        [
+          0.9024,
+          0.9426
+        ],
+        [
+          0.8708,
+          0.9114
+        ],
+        [
+          0.8638,
+          0.8801
+        ],
+        [
+          0.8532,
+          0.8489
+        ],
+        [
+          0.8462,
+          0.8177
+        ],
+        [
+          0.8357,
+          0.7865
+        ],
+        [
+          0.8251,
+          0.7553
+        ],
+        [
+          0.8006,
+          0.7241
+        ],
+        [
+          0.7725,
+          0.6929
+        ],
+        [
+          0.7514,
+          0.6617
+        ],
+        [
+          0.7303,
+          0.6305
+        ],
+        [
+          0.7058,
+          0.5993
+        ],
+        [
+          0.6917,
+          0.568
+        ],
+        [
+          0.6847,
+          0.5368
+        ],
+        [
+          0.4354,
+          0.5056
+        ],
+        [
+          0.3581,
+          0.4744
+        ]
+      ],
       "referer": "https://trafficvision.live/",
       "notes": "Konya Turkey 1920x1080 HD. Requires Referer header."
+    },
+    {
+      "id": "korea-yangju-tunnel",
+      "name": "Yangju Tunnel \u2014 Korea Expressway",
+      "region": "Yangju Tunnel \u2014 Korea Expressway",
+      "source": "nova import",
+      "streamUrl": "https://live11.exmobile.hscdn.com/exlive/cctv1878.stream/chunklist_w392982620.m3u8",
+      "type": "hls",
+      "linePoints": "0.335,0.483,0.817,0.612",
+      "linePoints2": "0.136,0.651,0.793,0.886",
+      "notes": "Korean expressway tunnel entrance, 720x480, HLS direct"
+    },
+    {
+      "id": "indonesia-pekanbaru-dumai",
+      "name": "Pekanbaru-Dumai Toll Road",
+      "region": "Pekanbaru-Dumai Toll Road",
+      "source": "nova import",
+      "streamUrl": "https://extstream.hk-opt2.com/LiveApp/streams/LqeGG9WJKXgD1670832607382.m3u8",
+      "type": "hls",
+      "linePoints": "0.220,0.555,0.840,0.547",
+      "linePoints2": "0.355,0.373,0.698,0.362",
+      "notes": "Indonesian toll road Pekanbaru-Dumai, Riau province"
+    },
+    {
+      "id": "korea-ciclovia-kbs9965",
+      "name": "Korea \u2014 Ciclovia & Pedestres",
+      "region": "Korea \u2014 Ciclovia & Pedestres",
+      "source": "nova import",
+      "streamUrl": "https://kbscctv-cache.loomex.net/lowStream/_definst_/9965_low.stream/playlist.m3u8?wowzatokenendtime=1775757600&wowzatokenstarttime=1775671200&wowzatokenhash=XSLuoK_z5QRFuc6Yf3zW-hkWmTX7CgExOVp-iCQyDvg=",
+      "type": "hls",
+      "classes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "linePoints": "0.342,0.560,0.021,0.967",
+      "notes": "Korean bike path + pedestrians. Token expires ~15:00 BRT. Classes: person, bicycle, car, motorcycle. Native ~12-15fps lowStream.",
+      "_tokenApi": "https://kbsapi.loomex.net/v1/api/cctvRequest/9965/XjGDys9SF2HA+8S4rWNauIuPS/eWGDiOsXWbNmTF7qF8iJAH2ZFmqm0w0rA7c3WD!hls"
+    },
+    {
+      "id": "tokyo-shinjuku-crossing",
+      "name": "Tokyo Shinjuku \u2014 \u5927\u30ac\u30fc\u30c9\u4ea4\u5dee\u70b9",
+      "region": "Tokyo Shinjuku \u2014 \u5927\u30ac\u30fc\u30c9\u4ea4\u5dee\u70b9",
+      "source": "nova import",
+      "streamUrl": "https://www.youtube.com/watch?v=6dp-bvQ7RWo",
+      "type": "youtube",
+      "classes": [
+        0,
+        1
+      ],
+      "notes": "Shinjuku pedestrian crossing, Tokyo. YouTube live. Classes: person + bicycle only. Dedup 30px for pedestrian scale.",
+      "enabled": true,
+      "roi": [
+        [
+          [
+            0.6353,
+            0.251
+          ],
+          [
+            0.5894,
+            0.2887
+          ],
+          [
+            0.5612,
+            0.3264
+          ],
+          [
+            0.54,
+            0.364
+          ],
+          [
+            0.5224,
+            0.4017
+          ],
+          [
+            0.5012,
+            0.4393
+          ],
+          [
+            0.48,
+            0.477
+          ],
+          [
+            0.4553,
+            0.5146
+          ],
+          [
+            0.4306,
+            0.5523
+          ],
+          [
+            0.4059,
+            0.59
+          ],
+          [
+            0.3847,
+            0.6276
+          ],
+          [
+            0.3635,
+            0.6653
+          ],
+          [
+            0.3212,
+            0.7029
+          ],
+          [
+            0.2824,
+            0.7406
+          ],
+          [
+            0.2753,
+            0.7782
+          ],
+          [
+            0.2929,
+            0.8159
+          ],
+          [
+            0.3141,
+            0.8536
+          ],
+          [
+            0.3388,
+            0.8912
+          ],
+          [
+            0.36,
+            0.9289
+          ],
+          [
+            0.3812,
+            0.9665
+          ],
+          [
+            0.8294,
+            0.9979
+          ],
+          [
+            0.8471,
+            0.9603
+          ],
+          [
+            0.8576,
+            0.9226
+          ],
+          [
+            0.8612,
+            0.8849
+          ],
+          [
+            0.8718,
+            0.8473
+          ],
+          [
+            0.8894,
+            0.8096
+          ],
+          [
+            0.9035,
+            0.772
+          ],
+          [
+            0.9141,
+            0.7343
+          ],
+          [
+            0.9212,
+            0.6967
+          ],
+          [
+            0.9247,
+            0.659
+          ],
+          [
+            0.9318,
+            0.6213
+          ],
+          [
+            0.9388,
+            0.5837
+          ],
+          [
+            0.9459,
+            0.546
+          ],
+          [
+            0.9529,
+            0.5084
+          ],
+          [
+            0.96,
+            0.4707
+          ],
+          [
+            0.96,
+            0.4331
+          ],
+          [
+            0.9282,
+            0.3954
+          ],
+          [
+            0.8506,
+            0.3577
+          ],
+          [
+            0.78,
+            0.3201
+          ],
+          [
+            0.7341,
+            0.2824
+          ]
+        ]
+      ],
+      "countMode": "uid"
+    },
+    {
+      "id": "midway-airport-chicago",
+      "name": "Midway Airport \u2014 Chicago 4K",
+      "region": "Midway Airport \u2014 Chicago 4K",
+      "source": "nova import",
+      "streamUrl": "https://www.youtube.com/watch?v=67BCsiW-1Io",
+      "type": "youtube",
+      "classes": [
+        4
+      ],
+      "linePoints": "0.05,0.75,0.95,0.75",
+      "notes": "Midway Airport Chicago. Fixed runway cam. Class 4 = airplane. High dedup for slow-moving planes."
     }
   ]
 }
