@@ -256,6 +256,78 @@ export default function DocsPage() {
           </tbody>
         </table>
 
+        {/* ─── Harberger Tax Enforcement ─── */}
+        <h2 style={S.h2}>Harberger Tax &mdash; Non-Payment & Foreclosure</h2>
+        <div style={{
+          background: "linear-gradient(180deg, rgba(180,40,40,0.08), rgba(180,40,40,0.02))",
+          border: "1px solid rgba(255,80,80,0.35)",
+          borderRadius: 8,
+          padding: "1.25rem 1.5rem",
+          marginBottom: "1.5rem",
+        }}>
+          <p style={{ ...S.p, marginTop: 0 }}>
+            Both Series 1 and Series 2 tiles operate under a pure Harberger tax regime.
+            This is not a subscription &mdash; it is a self-enforced property tax written
+            into the contract. Failing to keep your tile solvent results in
+            <strong style={{ color: "#ff6464" }}> permanent foreclosure</strong>.
+          </p>
+          <p style={S.p}>
+            Every tile carries a weekly tax equal to{" "}
+            <strong style={{ color: "#ffd700" }}>5% of its declared price</strong>, charged
+            against the tile&apos;s on-chain deposit. The tax accrues continuously from the
+            moment you claim the tile. If the accrued tax ever exceeds your remaining
+            deposit, the contract consumes the entire deposit and revokes your ownership the
+            next time any function touches the tile (<code>buyoutTile</code>,{" "}
+            <code>setPrice</code>, <code>addDeposit</code>, <code>abandonTile</code>, or{" "}
+            <code>pokeTax</code>).
+          </p>
+          <p style={S.p}>
+            <strong style={{ color: "#ff6464" }}>pokeTax is permissionless.</strong> Anyone
+            &mdash; any wallet on Base &mdash; can call it on any tile at any time. If your
+            tile is insolvent when they do, you lose the tile and the deposit in the same
+            transaction. There is no grace period, no warning, no refund.
+          </p>
+          <p style={S.p}>
+            The deposit on a tile can <strong>appear unchanged</strong> in explorer
+            snapshots because the contract uses lazy collection: tax only decrements the
+            deposit when the tile is interacted with. This does <strong>not</strong> mean
+            the tax is waived &mdash; it means the debt is accumulating silently. The
+            balance you see is a pre-settlement view, not a solvency check.
+          </p>
+          <p style={S.p}>
+            To keep a tile alive indefinitely, top up its deposit before it runs dry by
+            calling <code>addDeposit(tileIndex)</code>. A useful rule of thumb: keep at
+            least 2&ndash;3 weeks of tax on deposit, and refill monthly. If you cannot or
+            do not want to maintain a tile, you can{" "}
+            <code>abandonTile(tileIndex)</code> at any time to recover whatever deposit
+            remains.
+          </p>
+          <p style={{ ...S.p, marginBottom: 0 }}>
+            This is the Harberger design working as intended: holders either pay for the
+            right to hold, or the position returns to the market. The rules are hardcoded
+            in{" "}
+            <a
+              href="https://basescan.org/address/0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4#code"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#00aaff", textDecoration: "underline" }}
+            >
+              RushTiles V1
+            </a>
+            {" "}and{" "}
+            <a
+              href="https://basescan.org/address/0x5b7b2a6AC4f3A017fb943C9F550d609174532fFF#code"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#00aaff", textDecoration: "underline" }}
+            >
+              RushTiles V2
+            </a>
+            {" "}and can be independently verified on Basescan. See the{" "}
+            <code>_applyTax</code> function for the exact foreclosure logic.
+          </p>
+        </div>
+
         {/* ─── Security ─── */}
         <h2 style={S.h2}>Security & Trust</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
