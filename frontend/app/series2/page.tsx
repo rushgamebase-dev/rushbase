@@ -6,7 +6,7 @@ import { formatEther, parseEther } from "viem";
 import Header from "@/components/Header";
 import { RUSH_TILES_V2_ABI, RUSH_TILES_V2_ADDRESS, BASE_MAINNET } from "@/lib/contracts";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Shield, Flame, Crown, CheckCircle } from "lucide-react";
+import { X, ExternalLink, Shield, Flame, Crown, CheckCircle, Wallet, Tag, Clock, Zap, Trash2, DollarSign } from "lucide-react";
 
 const GRID = 100;
 const EXPLORER = BASE_MAINNET.blockExplorerUrls[0];
@@ -25,6 +25,7 @@ interface TileV2 {
   owner: string | null;
   price: number;
   deposit: number;
+  lastTaxTime: number;
   isFounder: boolean;
   isMine: boolean;
   isActive: boolean;
@@ -52,21 +53,30 @@ function useTilesV2() {
     query: { enabled },
   });
 
+  const { data: pendingFeesData } = useReadContract({
+    address: addr, abi: RUSH_TILES_V2_ABI, functionName: "pendingFees",
+    args: address ? [address] : undefined,
+    query: { enabled: enabled && !!address, refetchInterval: 10_000 },
+  });
+
+  const pendingFees = pendingFeesData ? parseFloat(formatEther(pendingFeesData as bigint)) : 0;
+
   const tiles: TileV2[] = allTiles
-    ? (allTiles as Array<{ owner: string; price: bigint; deposit: bigint; lastTaxTime: number; lastBuyoutTime: number; isFounder: boolean }>).map((t, i) => {
+    ? (allTiles as Array<{ owner: string; price: bigint; deposit: bigint; lastTaxTime: bigint; lastBuyoutTime: bigint; isFounder: boolean }>).map((t, i) => {
         const isOwned = t.owner !== "0x0000000000000000000000000000000000000000";
         return {
           id: i,
           owner: isOwned ? t.owner : null,
           price: parseFloat(formatEther(t.price)),
           deposit: parseFloat(formatEther(t.deposit)),
+          lastTaxTime: Number(t.lastTaxTime),
           isFounder: t.isFounder,
           isMine: isOwned && address ? t.owner.toLowerCase() === address.toLowerCase() : false,
           isActive: isOwned,
         };
       })
     : Array.from({ length: GRID }, (_, i) => ({
-        id: i, owner: null, price: 0, deposit: 0, isFounder: false, isMine: false, isActive: false,
+        id: i, owner: null, price: 0, deposit: 0, lastTaxTime: 0, isFounder: false, isMine: false, isActive: false,
       }));
 
   const claimed = tiles.filter(t => t.isActive).length;
@@ -75,7 +85,7 @@ function useTilesV2() {
   const totalDist = totalDistData ? formatEther(totalDistData as bigint) : "0";
   const totalClaims = totalClaimsData ? Number(totalClaimsData) : 0;
 
-  return { tiles, claimed, available, totalShares, totalDist, totalClaims, refetch };
+  return { tiles, claimed, available, totalShares, totalDist, totalClaims, pendingFees, refetch };
 }
 
 // ── Claim Modal ──────────────────────────────────────────────────────────────
@@ -237,6 +247,320 @@ function ClaimModal({
             >
               {isPending || confirming ? "CLAIMING..." : `CLAIM — ${totalCost.toFixed(3)} ETH`}
             </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Manage Modal ────────────────────────────────────────────────────────────
+
+function ManageModal({
+  tile,
+  pendingFees,
+  onClose,
+  refetch,
+}: {
+  tile: TileV2;
+  pendingFees: number;
+  onClose: () => void;
+  refetch: () => void;
+}) {
+  const [depositAmount, setDepositAmount] = useState("");
+  const [priceAmount, setPriceAmount] = useState("");
+  const [activeAction, setActiveAction] = useState<"deposit" | "price" | "abandon" | "claim" | null>(null);
+
+  const { writeContract, data: txHash, isPending, reset } = useWriteContract();
+  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const TAX_RATE = 0.05; // 5% per week
+  const WEEK_SECONDS = 7 * 24 * 60 * 60;
+
+  // Calculate accrued tax since lastTaxTime (only for non-founder)
+  const now = Math.floor(Date.now() / 1000);
+  const elapsed = tile.lastTaxTime > 0 ? now - tile.lastTaxTime : 0;
+  const accruedTax = tile.isFounder ? 0 : (tile.price * TAX_RATE * elapsed) / WEEK_SECONDS;
+  const effectiveDeposit = tile.isFounder ? tile.deposit : Math.max(0, tile.deposit - accruedTax);
+  const taxPerWeek = tile.isFounder ? 0 : tile.price * TAX_RATE;
+  const timeLeftSeconds = taxPerWeek > 0 && effectiveDeposit > 0
+    ? (effectiveDeposit / taxPerWeek) * WEEK_SECONDS
+    : 0;
+
+  function formatTimeLeft(seconds: number): string {
+    if (seconds <= 0) return "EMPTY";
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    if (days > 30) return `${Math.floor(days / 30)}mo ${days % 30}d`;
+    if (days > 0) return `${days}d ${hours}h`;
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  }
+
+  function handleDeposit() {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) return;
+    setActiveAction("deposit");
+    reset();
+    writeContract({
+      address: RUSH_TILES_V2_ADDRESS,
+      abi: RUSH_TILES_V2_ABI,
+      functionName: "addDeposit",
+      args: [tile.id],
+      value: parseEther(depositAmount),
+    });
+  }
+
+  function handleSetPrice() {
+    if (!priceAmount || parseFloat(priceAmount) <= 0) return;
+    setActiveAction("price");
+    reset();
+    writeContract({
+      address: RUSH_TILES_V2_ADDRESS,
+      abi: RUSH_TILES_V2_ABI,
+      functionName: "setPrice",
+      args: [tile.id, parseEther(priceAmount)],
+      value: BigInt(0),
+    });
+  }
+
+  function handleAbandon() {
+    setActiveAction("abandon");
+    reset();
+    writeContract({
+      address: RUSH_TILES_V2_ADDRESS,
+      abi: RUSH_TILES_V2_ABI,
+      functionName: "abandonTile",
+      args: [tile.id],
+    });
+  }
+
+  function handleClaimFees() {
+    setActiveAction("claim");
+    reset();
+    writeContract({
+      address: RUSH_TILES_V2_ADDRESS,
+      abi: RUSH_TILES_V2_ABI,
+      functionName: "claimFees",
+    });
+  }
+
+  if (isSuccess) {
+    setTimeout(() => { refetch(); onClose(); }, 2000);
+  }
+
+  const accentColor = tile.isFounder ? "#ffd700" : "#00ff88";
+  const busy = isPending || confirming;
+
+  const depositPresets = ["0.005", "0.01", "0.025", "0.05", "0.1"];
+  const pricePresets = ["0.01", "0.05", "0.1", "0.25", "0.5"];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.85)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+        className="w-full max-w-md rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        style={{ background: "#0a0a0a", border: `1px solid ${tile.isFounder ? "rgba(255,215,0,0.3)" : "#222"}`, boxShadow: "0 24px 48px rgba(0,0,0,0.8)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #1a1a1a" }}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black tracking-widest" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
+              SEAT #{tile.id + 1}
+            </span>
+            {tile.isFounder && (
+              <span className="px-2 py-0.5 rounded text-[9px] font-black tracking-wider"
+                style={{ background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.3)", color: "#ffd700", fontFamily: "monospace" }}>
+                FOUNDER
+              </span>
+            )}
+          </div>
+          <button onClick={onClose} style={{ color: "#555", background: "none", border: "none", cursor: "pointer" }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4">
+          {/* Tax Exempt Badge for Founders */}
+          {tile.isFounder && (
+            <div className="flex items-center justify-center gap-2 py-2 rounded-lg"
+              style={{ background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)" }}>
+              <Shield size={14} style={{ color: "#ffd700" }} />
+              <span className="text-xs font-black tracking-wider" style={{ color: "#ffd700", fontFamily: "monospace" }}>
+                TAX: EXEMPT
+              </span>
+              <span className="text-[9px]" style={{ color: "#b8960f", fontFamily: "monospace" }}>
+                Buyout-immune
+              </span>
+            </div>
+          )}
+
+          {/* Stats Panel */}
+          <div className="rounded-lg px-4 py-3 flex flex-col gap-2" style={{ background: "#0c0c0c", border: "1px solid #151515" }}>
+            <div className="flex justify-between text-[11px]" style={{ fontFamily: "monospace" }}>
+              <span style={{ color: "#666" }}>VALUE</span>
+              <span style={{ color: accentColor, fontWeight: 700 }}>{tile.price.toFixed(4)} ETH</span>
+            </div>
+            <div className="flex justify-between text-[11px]" style={{ fontFamily: "monospace" }}>
+              <span style={{ color: "#666" }}>TAX/WK</span>
+              <span style={{ color: tile.isFounder ? "#ffd700" : "#ccc", fontWeight: 700 }}>
+                {tile.isFounder ? "EXEMPT" : `${taxPerWeek.toFixed(5)} ETH`}
+              </span>
+            </div>
+            <div className="flex justify-between text-[11px]" style={{ fontFamily: "monospace" }}>
+              <span style={{ color: "#666" }}>DEPOSIT</span>
+              <span style={{ color: tile.isFounder ? "#ffd700" : effectiveDeposit > 0 ? "#ccc" : "#ff4444", fontWeight: 700 }}>
+                {tile.isFounder ? "EXEMPT" : `${effectiveDeposit.toFixed(5)} ETH`}
+              </span>
+            </div>
+            <div className="flex justify-between text-[11px]" style={{ fontFamily: "monospace" }}>
+              <span style={{ color: "#666" }}>TIME LEFT</span>
+              <span style={{ color: tile.isFounder ? "#ffd700" : timeLeftSeconds > 86400 ? "#ccc" : "#ff4444", fontWeight: 700 }}>
+                {tile.isFounder ? "PERMANENT" : formatTimeLeft(timeLeftSeconds)}
+              </span>
+            </div>
+            {!tile.isFounder && (
+              <div className="flex justify-between text-[11px]" style={{ fontFamily: "monospace" }}>
+                <span style={{ color: "#666" }}>BUYOUT COST</span>
+                <span style={{ color: "#ccc", fontWeight: 700 }}>{(tile.price * 1.1).toFixed(4)} ETH</span>
+              </div>
+            )}
+          </div>
+
+          {/* Top Up Deposit */}
+          <div className="rounded-lg px-4 py-3" style={{ background: "#0c0c0c", border: "1px solid rgba(255,215,0,0.15)" }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Wallet size={12} style={{ color: "#ffd700" }} />
+              <span className="text-[10px] font-bold tracking-widest" style={{ color: "#ffd700", fontFamily: "monospace" }}>TOP UP DEPOSIT</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {depositPresets.map((v) => (
+                <button key={v} onClick={() => setDepositAmount(v)}
+                  className="px-2 py-1 rounded text-[10px] transition-all"
+                  style={{
+                    background: depositAmount === v ? "rgba(255,215,0,0.15)" : "#111",
+                    border: `1px solid ${depositAmount === v ? "rgba(255,215,0,0.4)" : "#1a1a1a"}`,
+                    color: depositAmount === v ? "#ffd700" : "#666",
+                    fontFamily: "monospace", cursor: "pointer",
+                  }}>
+                  {v}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number" step="0.001" min="0" placeholder="Custom ETH"
+                value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)}
+                className="flex-1 px-3 py-2 rounded text-xs"
+                style={{ background: "#111", border: "1px solid #1a1a1a", color: "#ccc", fontFamily: "monospace", outline: "none" }}
+              />
+              <button
+                onClick={handleDeposit}
+                disabled={busy || !depositAmount || parseFloat(depositAmount) <= 0}
+                className="px-4 py-2 rounded text-xs font-black tracking-wider transition-all"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,215,0,0.15), rgba(255,215,0,0.06))",
+                  border: "1px solid rgba(255,215,0,0.3)",
+                  color: "#ffd700", fontFamily: "monospace",
+                  cursor: busy ? "wait" : "pointer",
+                  opacity: busy || !depositAmount ? 0.5 : 1,
+                }}>
+                {busy && activeAction === "deposit" ? "..." : "FUND"}
+              </button>
+            </div>
+          </div>
+
+          {/* Set Price */}
+          <div className="rounded-lg px-4 py-3" style={{ background: "#0c0c0c", border: "1px solid #151515" }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Tag size={12} style={{ color: "#888" }} />
+              <span className="text-[10px] font-bold tracking-widest" style={{ color: "#888", fontFamily: "monospace" }}>SET PRICE</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {pricePresets.map((v) => (
+                <button key={v} onClick={() => setPriceAmount(v)}
+                  className="px-2 py-1 rounded text-[10px] transition-all"
+                  style={{
+                    background: priceAmount === v ? "rgba(0,255,136,0.1)" : "#111",
+                    border: `1px solid ${priceAmount === v ? "rgba(0,255,136,0.3)" : "#1a1a1a"}`,
+                    color: priceAmount === v ? "#00ff88" : "#666",
+                    fontFamily: "monospace", cursor: "pointer",
+                  }}>
+                  {v}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number" step="0.001" min="0" placeholder="New price ETH"
+                value={priceAmount} onChange={(e) => setPriceAmount(e.target.value)}
+                className="flex-1 px-3 py-2 rounded text-xs"
+                style={{ background: "#111", border: "1px solid #1a1a1a", color: "#ccc", fontFamily: "monospace", outline: "none" }}
+              />
+              <button
+                onClick={handleSetPrice}
+                disabled={busy || !priceAmount || parseFloat(priceAmount) <= 0}
+                className="px-4 py-2 rounded text-xs font-black tracking-wider transition-all"
+                style={{
+                  background: "linear-gradient(180deg, rgba(0,255,136,0.1), rgba(0,255,136,0.04))",
+                  border: "1px solid rgba(0,255,136,0.3)",
+                  color: "#00ff88", fontFamily: "monospace",
+                  cursor: busy ? "wait" : "pointer",
+                  opacity: busy || !priceAmount ? 0.5 : 1,
+                }}>
+                {busy && activeAction === "price" ? "..." : "SET"}
+              </button>
+            </div>
+          </div>
+
+          {/* Claim Fees */}
+          {pendingFees > 0 && (
+            <button
+              onClick={handleClaimFees}
+              disabled={busy}
+              className="w-full py-3 rounded-lg text-sm font-black tracking-wider transition-all flex items-center justify-center gap-2"
+              style={{
+                background: "linear-gradient(180deg, rgba(0,255,136,0.12), rgba(0,255,136,0.04))",
+                border: "1px solid rgba(0,255,136,0.3)",
+                color: "#00ff88", fontFamily: "monospace",
+                cursor: busy ? "wait" : "pointer",
+                opacity: busy && activeAction === "claim" ? 0.5 : 1,
+                minHeight: 44,
+              }}>
+              <DollarSign size={14} />
+              {busy && activeAction === "claim" ? "CLAIMING..." : `CLAIM ${pendingFees.toFixed(5)} ETH`}
+            </button>
+          )}
+
+          {/* Abandon */}
+          <button
+            onClick={handleAbandon}
+            disabled={busy}
+            className="w-full py-2.5 rounded-lg text-xs font-bold tracking-wider transition-all flex items-center justify-center gap-2"
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(255,68,68,0.2)",
+              color: "#ff4444", fontFamily: "monospace",
+              cursor: busy ? "wait" : "pointer",
+              opacity: busy && activeAction === "abandon" ? 0.5 : 0.6,
+              minHeight: 36,
+            }}>
+            <Trash2 size={12} />
+            {busy && activeAction === "abandon" ? "ABANDONING..." : "ABANDON TILE"}
+          </button>
+
+          {/* TX Success */}
+          {txHash && isSuccess && (
+            <a href={`${EXPLORER}/tx/${txHash}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-xs"
+              style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "monospace" }}>
+              <span>Transaction confirmed!</span>
+              <ExternalLink size={11} />
+            </a>
           )}
         </div>
       </motion.div>
@@ -706,22 +1030,22 @@ function FullGrid({
           return (
             <button
               key={tile.id}
-              onClick={() => { if (isEmpty) onSelect(tile); }}
+              onClick={() => { if (isEmpty) onSelect(tile); else if (isMine) onSelect(tile); }}
               className="relative aspect-square rounded-sm overflow-hidden flex flex-col items-center justify-center transition-all"
               style={{
                 background: tile.isActive ? `url(${getTileImage(tile.id, isFounder)}) center/cover` : bg,
                 border: `1px solid ${borderColor}`,
                 boxShadow,
-                cursor: isEmpty ? "pointer" : "default",
+                cursor: isEmpty || isMine ? "pointer" : "default",
               }}
               onMouseEnter={(e) => {
-                if (isEmpty) {
-                  e.currentTarget.style.borderColor = "rgba(255,215,0,0.3)";
-                  e.currentTarget.style.boxShadow = "0 0 8px rgba(255,215,0,0.08)";
+                if (isEmpty || isMine) {
+                  e.currentTarget.style.borderColor = isMine ? "rgba(0,255,136,0.6)" : "rgba(255,215,0,0.3)";
+                  e.currentTarget.style.boxShadow = isMine ? "0 0 10px rgba(0,255,136,0.2)" : "0 0 8px rgba(255,215,0,0.08)";
                 }
               }}
               onMouseLeave={(e) => {
-                if (isEmpty) {
+                if (isEmpty || isMine) {
                   e.currentTarget.style.borderColor = borderColor;
                   e.currentTarget.style.boxShadow = boxShadow;
                 }
@@ -829,8 +1153,9 @@ function S1ProofLink() {
 
 export default function Series2Page() {
   useAccount();
-  const { tiles, claimed, available, totalDist, refetch } = useTilesV2();
+  const { tiles, claimed, available, totalDist, pendingFees, refetch } = useTilesV2();
   const [selected, setSelected] = useState<TileV2 | null>(null);
+  const [manageTile, setManageTile] = useState<TileV2 | null>(null);
   const [defaultFounder, setDefaultFounder] = useState(false);
 
   const founderTiles = tiles.filter((t) => t.isActive && t.isFounder);
@@ -965,7 +1290,14 @@ export default function Series2Page() {
         <EarningsProjection />
 
         {/* ── Full Grid ── */}
-        <FullGrid tiles={tiles} onSelect={(tile) => { setDefaultFounder(false); setSelected(tile); }} />
+        <FullGrid tiles={tiles} onSelect={(tile) => {
+          if (tile.isMine && tile.isActive) {
+            setManageTile(tile);
+          } else if (!tile.isActive) {
+            setDefaultFounder(false);
+            setSelected(tile);
+          }
+        }} />
 
         {/* ── S1 Proof ── */}
         <S1ProofLink />
@@ -979,6 +1311,18 @@ export default function Series2Page() {
             onClose={() => setSelected(null)}
             refetch={refetch}
             defaultFounder={defaultFounder}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Manage modal */}
+      <AnimatePresence>
+        {manageTile && manageTile.isMine && manageTile.isActive && (
+          <ManageModal
+            tile={manageTile}
+            pendingFees={pendingFees}
+            onClose={() => setManageTile(null)}
+            refetch={refetch}
           />
         )}
       </AnimatePresence>
