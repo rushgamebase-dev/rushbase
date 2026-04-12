@@ -439,6 +439,7 @@ function TileModal({
               const secsLeft = taxPerSec > 0 ? depositAfterTax / taxPerSec : 0;
               const daysLeft = secsLeft / 86400;
               const timeLabel = daysLeft >= 1 ? `${daysLeft.toFixed(1)}d` : secsLeft >= 3600 ? `${(secsLeft / 3600).toFixed(1)}h` : secsLeft > 0 ? `${Math.floor(secsLeft / 60)}m` : "0";
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               const depositHealthPct = taxPerWeek > 0 ? Math.min(100, (depositAfterTax / taxPerWeek) * 100) : 0;
               const depositColor = daysLeft < 1 ? "#ff4444" : daysLeft < 3 ? "#ff8844" : daysLeft < 7 ? "#ffd700" : "#00ff88";
 

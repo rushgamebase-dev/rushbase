@@ -6,7 +6,7 @@ import { formatEther, parseEther } from "viem";
 import Header from "@/components/Header";
 import { RUSH_TILES_V2_ABI, RUSH_TILES_V2_ADDRESS, BASE_MAINNET } from "@/lib/contracts";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Shield, Flame, Crown, CheckCircle, Wallet, Tag, Clock, Zap, Trash2, DollarSign } from "lucide-react";
+import { X, ExternalLink, Shield, Flame, Crown, CheckCircle, Wallet, Tag, Trash2, DollarSign } from "lucide-react";
 
 const GRID = 100;
 const EXPLORER = BASE_MAINNET.blockExplorerUrls[0];
