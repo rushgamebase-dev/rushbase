@@ -10,18 +10,12 @@ interface TilesGridProps {
 }
 
 /**
- * Tile IDs permanently blocked from purchase via UI.
- * These are tiles whose owners abandoned them (tax debt > deposit)
- * and are no longer available for sale.
+ * Tile IDs blocked from purchase via UI.
+ * Empty set during the Harberger grace period — holders can still
+ * addDeposit() / setPrice() / abandonTile() / etc. via the normal flow.
+ * Will be repopulated after the grace window closes.
  */
-export const CLOSED_TILE_IDS = new Set<number>([
-  0, 1, 6, 7, 8, 11, 12, 13, 14, 15,
-  16, 17, 24, 28, 29, 35, 37, 39, 40, 41,
-  42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
-  52, 53, 54, 65, 66, 67, 70, 71, 74, 76,
-  77, 78, 81, 82, 83, 84, 87, 88, 90, 93,
-  94, 98, 99,
-]);
+export const CLOSED_TILE_IDS = new Set<number>([]);
 
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
