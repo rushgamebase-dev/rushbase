@@ -127,6 +127,16 @@ export default function Header() {
             DOCS
           </Link>
 
+          <Link
+            href="/transparency"
+            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#ffd700")}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
+          >
+            LEDGER
+          </Link>
+
           {/* ADMIN — only shown to admin wallets */}
           {isAdmin && (
             <Link
