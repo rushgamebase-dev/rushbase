@@ -236,6 +236,7 @@ interface TileModalProps {
   tile: Tile;
   onClose: () => void;
   onAction: (action?: string) => Promise<void>;
+  onAddDeposit: (tileIndex: number, ethAmount: string) => Promise<void>;
   isLoading: boolean;
   newPrice: string;
   setNewPrice: (v: string) => void;
@@ -249,6 +250,7 @@ function TileModal({
   tile,
   onClose,
   onAction,
+  onAddDeposit,
   isLoading,
   newPrice,
   setNewPrice,
@@ -257,6 +259,7 @@ function TileModal({
   explorerUrl,
   contractLoading,
 }: TileModalProps) {
+  const [depositAmount, setDepositAmount] = useState("");
   const busy = isLoading || contractLoading;
 
   // Raccoon identity
@@ -590,9 +593,69 @@ function TileModal({
               );
             })()}
 
-            {/* OWN TILE — set price + abandon */}
+            {/* OWN TILE — deposit + set price + abandon */}
             {tile.isMine && (
               <>
+                {/* Top Up Deposit */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold tracking-widest" style={{ color: "#ffd700", fontFamily: "monospace" }}>
+                      TOP UP DEPOSIT
+                    </span>
+                    <span className="text-[10px]" style={{ color: "#666", fontFamily: "monospace" }}>
+                      keeps tile alive
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[0.005, 0.01, 0.025, 0.05, 0.1].map((v) => {
+                      const sel = depositAmount === String(v);
+                      return (
+                        <button key={v} onClick={() => setDepositAmount(String(v))}
+                          className="px-2.5 py-1.5 rounded text-[10px] font-bold transition-all"
+                          style={{
+                            background: sel ? "linear-gradient(180deg, rgba(255,215,0,0.12), rgba(255,215,0,0.06))" : "#0a0a0a",
+                            border: `1px solid ${sel ? "rgba(255,215,0,0.3)" : "#181818"}`,
+                            color: sel ? "#ffd700" : "#888",
+                            fontFamily: "monospace",
+                            cursor: "pointer",
+                          }}>
+                          {v} ETH
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="number" placeholder="ETH amount" value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      className="flex-1 px-3 py-2.5 rounded-lg text-xs"
+                      style={{
+                        fontFamily: "monospace",
+                        background: "#0a0a0a",
+                        border: "1px solid #181818",
+                        color: "#aaa",
+                        boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3)",
+                        outline: "none",
+                      }}
+                      min="0.001" step="0.001"
+                      onFocus={(e) => { e.target.style.borderColor = "rgba(255,215,0,0.25)"; }}
+                      onBlur={(e) => { e.target.style.borderColor = "#181818"; }}
+                    />
+                    <button onClick={() => { if (depositAmount) onAddDeposit(tile.id, depositAmount); }} disabled={!depositAmount || busy}
+                      className="px-4 py-2.5 rounded-lg text-xs font-black tracking-wider transition-all"
+                      style={{
+                        background: depositAmount ? "linear-gradient(180deg, rgba(255,215,0,0.12), rgba(255,215,0,0.06))" : "#0a0a0a",
+                        border: `1px solid ${depositAmount ? "rgba(255,215,0,0.25)" : "#151515"}`,
+                        color: depositAmount ? "#ffd700" : "#666",
+                        fontFamily: "monospace",
+                      }}>
+                      FUND
+                    </button>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: "#1a1a1a", margin: "4px 0" }} />
+
                 <div className="flex flex-col gap-2.5">
                   {/* Price presets */}
                   <div className="flex gap-1.5 flex-wrap">
@@ -759,6 +822,13 @@ export default function TilesPage() {
     setNewPrice("");
   }
 
+  async function handleAddDeposit(tileIndex: number, ethAmount: string) {
+    setIsLoading(true);
+    await tilesContract.addDeposit(tileIndex, ethAmount);
+    tilesContract.refetchAll();
+    setIsLoading(false);
+  }
+
   async function handleClaimFees() {
     setIsLoading(true);
     await tilesContract.claimFees();
@@ -889,6 +959,7 @@ export default function TilesPage() {
             tile={selectedTile}
             onClose={() => { setSelectedTile(null); setNewPrice(""); }}
             onAction={handleAction}
+            onAddDeposit={handleAddDeposit}
             isLoading={isLoading}
             newPrice={newPrice}
             setNewPrice={setNewPrice}

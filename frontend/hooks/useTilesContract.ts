@@ -166,6 +166,22 @@ export function useTilesContract() {
     [enabled, writeContract, reset]
   );
 
+  const addDeposit = useCallback(
+    async (tileIndex: number, depositEth: string) => {
+      if (!enabled) return;
+      reset();
+      const value = parseEther(depositEth);
+      writeContract({
+        address: RUSH_TILES_ADDRESS,
+        abi: RUSH_TILES_ABI,
+        functionName: "addDeposit",
+        args: [tileIndex],
+        value,
+      });
+    },
+    [enabled, writeContract, reset]
+  );
+
   const claimFees = useCallback(async () => {
     if (!enabled) return;
     reset();
@@ -246,6 +262,7 @@ export function useTilesContract() {
     buyoutTile,
     abandonTile,
     setPrice,
+    addDeposit,
     claimFees,
     distributeFees,
     refetchAll,
