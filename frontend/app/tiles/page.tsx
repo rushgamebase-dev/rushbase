@@ -429,23 +429,42 @@ function TileModal({
             border: "1px solid #151515",
             boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.02)",
           }}>
-            {[
-              { label: "VALUE", value: tile.price.toFixed(4), max: 0.5, color: "#ffd700" },
-              { label: "TAX/WK", value: (tile.price * 0.05).toFixed(4), max: 0.025, color: "#ff4488" },
-              { label: "BUYOUT", value: (tile.price * 1.15).toFixed(4), max: 0.6, color: "#00ccff" },
-            ].map((stat, i) => (
+            {(() => {
+              const taxPerWeek = tile.price * 0.05;
+              const taxPerSec = taxPerWeek / 604800;
+              const now = Math.floor(Date.now() / 1000);
+              const elapsed = tile.lastTaxTime > 0 ? Math.max(0, now - tile.lastTaxTime) : 0;
+              const taxAccrued = taxPerSec * elapsed;
+              const depositAfterTax = Math.max(0, tile.deposit - taxAccrued);
+              const secsLeft = taxPerSec > 0 ? depositAfterTax / taxPerSec : 0;
+              const daysLeft = secsLeft / 86400;
+              const timeLabel = daysLeft >= 1 ? `${daysLeft.toFixed(1)}d` : secsLeft >= 3600 ? `${(secsLeft / 3600).toFixed(1)}h` : secsLeft > 0 ? `${Math.floor(secsLeft / 60)}m` : "0";
+              const depositHealthPct = taxPerWeek > 0 ? Math.min(100, (depositAfterTax / taxPerWeek) * 100) : 0;
+              const depositColor = daysLeft < 1 ? "#ff4444" : daysLeft < 3 ? "#ff8844" : daysLeft < 7 ? "#ffd700" : "#00ff88";
+
+              const stats = [
+                { label: "VALUE", value: tile.price.toFixed(4), max: 0.5, color: "#ffd700" },
+                { label: "TAX/WK", value: taxPerWeek.toFixed(4), max: 0.025, color: "#ff4488" },
+                ...(tile.isActive ? [
+                  { label: "DEPOSIT", value: depositAfterTax.toFixed(4), max: taxPerWeek * 4, color: depositColor },
+                  { label: "TIME LEFT", value: timeLabel, max: 28, color: depositColor, rawVal: daysLeft },
+                ] : []),
+                { label: "BUYOUT", value: (tile.price * 1.15).toFixed(4), max: 0.6, color: "#00ccff" },
+              ];
+              return stats;
+            })().map((stat, i) => (
               <div key={stat.label} className="flex items-center gap-3 px-3 py-[7px]"
                 style={{ borderTop: i > 0 ? "1px solid #111" : "none" }}>
-                <span className="text-[9px] w-11 text-right font-bold tracking-wide" style={{ color: "#777", fontFamily: "monospace" }}>{stat.label}</span>
+                <span className="text-[9px] w-14 text-right font-bold tracking-wide" style={{ color: "#777", fontFamily: "monospace" }}>{stat.label}</span>
                 <div className="flex-1 h-[3px] rounded-sm overflow-hidden" style={{ background: "#0a0a0a", boxShadow: "inset 0 1px 1px rgba(0,0,0,0.5)" }}>
                   <div className="h-full rounded-sm transition-all duration-500" style={{
-                    width: `${Math.min(100, (parseFloat(stat.value) / stat.max) * 100)}%`,
+                    width: `${Math.min(100, (("rawVal" in stat ? (stat as {rawVal:number}).rawVal : parseFloat(stat.value)) / stat.max) * 100)}%`,
                     background: `linear-gradient(90deg, ${stat.color}55, ${stat.color}cc)`,
                     boxShadow: `0 0 8px ${stat.color}22`,
                   }} />
                 </div>
                 <span className="text-[10px] font-black w-[72px] text-right tabular-nums" style={{ color: stat.color, fontFamily: "monospace", textShadow: `0 0 12px ${stat.color}15` }}>
-                  {stat.value}
+                  {stat.value}{stat.label !== "TIME LEFT" && stat.label !== "DEPOSIT" ? "" : ""}
                 </span>
               </div>
             ))}
@@ -749,6 +768,8 @@ export default function TilesPage() {
           id: i,
           owner: isOwned ? t.owner : null,
           price: parseFloat(formatEther(t.price)),
+          deposit: parseFloat(formatEther(t.deposit)),
+          lastTaxTime: t.lastTaxTime,
           isActive: isOwned,
           pendingFees: 0,
           isMine,
@@ -758,6 +779,8 @@ export default function TilesPage() {
         id: i,
         owner: null,
         price: 0.01,
+        deposit: 0,
+        lastTaxTime: 0,
         isActive: false,
         pendingFees: 0,
         isMine: false,

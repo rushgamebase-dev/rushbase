@@ -33,6 +33,8 @@ export interface Tile {
   owner: string | null;
   price: number;
   effectivePrice?: number;
+  deposit: number;
+  lastTaxTime: number;
   isActive: boolean;
   pendingFees: number;
   isMine: boolean;
