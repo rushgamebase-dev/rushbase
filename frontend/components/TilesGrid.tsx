@@ -11,11 +11,11 @@ interface TilesGridProps {
 
 /**
  * Tile IDs blocked from purchase via UI.
- * Empty set during the Harberger grace period — holders can still
- * addDeposit() / setPrice() / abandonTile() / etc. via the normal flow.
- * Will be repopulated after the grace window closes.
+ * Currently holds tiles that got foreclosed on-chain (owner = 0x0)
+ * during the grace period and must not be claimable through the UI.
+ * The 46+ healthy tiles remain fully interactive.
  */
-export const CLOSED_TILE_IDS = new Set<number>([]);
+export const CLOSED_TILE_IDS = new Set<number>([13, 45, 87, 88, 99]);
 
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
