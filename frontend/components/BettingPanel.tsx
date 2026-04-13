@@ -195,6 +195,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
     }
     if (!canBet || isBetLoading) return;
 
+    // Haptic tick on tap — quietly no-op if unsupported (desktop, iOS Safari).
+    navigator.vibrate?.(12);
+
     // Token mode: approve first if needed
     if (isTokenMode && needsApproval) {
       const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935");
@@ -478,6 +481,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
           </span>
           <input
             type="number"
+            inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -491,6 +495,7 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
               fontFamily: "monospace",
               fontSize: 16,
               fontWeight: 700,
+              minHeight: 44,
             }}
             aria-label="Bet amount in ETH"
           />
@@ -510,6 +515,9 @@ export default function BettingPanel({ market, marketAddress, winningRangeIndex 
                 color: parseFloat(amount) === q ? "#00ff88" : "#555",
                 fontFamily: "monospace",
                 cursor: isOpen ? "pointer" : "not-allowed",
+                minHeight: 44,
+                touchAction: "manipulation",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               {isTokenMode ? `${q}` : q}

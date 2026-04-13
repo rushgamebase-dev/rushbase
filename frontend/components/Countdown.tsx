@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface CountdownProps {
   lockTime?: number;
@@ -32,6 +32,11 @@ export default function Countdown({
   oracleRemaining,
 }: CountdownProps) {
   const clockOffsetRef = useRef(0);
+  const prefersReducedMotion = useReducedMotion();
+  // Infinite loops disabled when user opted into reduced motion (system-wide
+  // iOS "Reduce Motion" or Android accessibility setting). Saves battery on
+  // mobile and respects vestibular-sensitivity.
+  const loop = prefersReducedMotion ? undefined : Infinity;
 
   useEffect(() => {
     async function syncClock() {
@@ -195,8 +200,8 @@ export default function Countdown({
   if (effectiveStatus === "resolving") {
     return (
       <motion.div
-        animate={{ borderColor: ["rgba(255,170,0,0.3)", "rgba(255,170,0,0.7)", "rgba(255,170,0,0.3)"] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        animate={prefersReducedMotion ? {} : { borderColor: ["rgba(255,170,0,0.3)", "rgba(255,170,0,0.7)", "rgba(255,170,0,0.3)"] }}
+        transition={{ duration: 2, repeat: loop }}
         className="w-full py-3 text-center"
         style={{ background: "rgba(255,170,0,0.08)", borderWidth: 1, borderStyle: "solid", borderRadius: 12 }}
       >
@@ -205,8 +210,8 @@ export default function Countdown({
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <motion.div
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
+                animate={prefersReducedMotion ? {} : { scale: [1, 1.3, 1] }}
+                transition={{ duration: 0.8, repeat: loop }}
                 className="w-3 h-3 rounded-full"
                 style={{ background: "#ffaa00", boxShadow: "0 0 12px rgba(255,170,0,0.8)" }}
               />
@@ -311,7 +316,7 @@ export default function Countdown({
         borderColor: ["rgba(255,68,68,0.3)", "rgba(255,68,68,0.8)", "rgba(255,68,68,0.3)"],
         boxShadow: ["0 0 0px rgba(255,68,68,0)", "0 0 25px rgba(255,68,68,0.3)", "0 0 0px rgba(255,68,68,0)"],
       } : {}}
-      transition={isUrgent ? { duration: 1, repeat: Infinity } : {}}
+      transition={isUrgent && !prefersReducedMotion ? { duration: 1, repeat: loop } : {}}
       style={{
         background: isUrgent ? "rgba(255,68,68,0.08)" : "rgba(0,0,0,0.85)",
         border: `1px solid ${timerColor}44`,
@@ -341,8 +346,8 @@ export default function Countdown({
         </div>
         <motion.span
           className="font-black tabular-nums text-lg md:text-2xl"
-          animate={isUrgent ? { scale: [1, 1.1, 1] } : {}}
-          transition={isUrgent ? { duration: 0.5, repeat: Infinity } : {}}
+          animate={isUrgent && !prefersReducedMotion ? { scale: [1, 1.1, 1] } : {}}
+          transition={isUrgent && !prefersReducedMotion ? { duration: 0.5, repeat: loop } : {}}
           style={{
             fontFamily: "monospace",
             color: timerColor,

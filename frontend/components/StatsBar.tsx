@@ -27,6 +27,8 @@ export default function StatsBar({
         background: "#0d0d0d",
         borderBottom: "1px solid #1a1a1a",
         minHeight: 36,
+        scrollSnapType: "x mandatory",
+        WebkitOverflowScrolling: "touch",
       }}
     >
       {stats.map((stat, i) => (
@@ -35,6 +37,7 @@ export default function StatsBar({
           className="flex items-center gap-2 px-4 py-2 shrink-0"
           style={{
             borderRight: i < stats.length - 1 ? "1px solid #1a1a1a" : "none",
+            scrollSnapAlign: "start",
           }}
         >
           <span

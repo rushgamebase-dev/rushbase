@@ -109,6 +109,9 @@ export default function VideoPlayer({
       className="relative w-full"
       style={{
         aspectRatio: "16/9",
+        // Portrait phones: cap video height so betting panel stays in view.
+        // Landscape + tablet/desktop ignore this (max-height exceeds needed).
+        maxHeight: "min(100%, 45dvh)",
         background: "#000",
         borderRadius: "4px",
         overflow: "hidden",

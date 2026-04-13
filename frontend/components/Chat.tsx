@@ -28,6 +28,10 @@ export default function Chat({ onCollapse }: ChatProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  // Shrinks the drawer when the iOS/Android keyboard opens so the input
+  // never hides behind it. Falls back to 65dvh when visualViewport isn't
+  // available (older browsers / desktop).
+  const [drawerHeight, setDrawerHeight] = useState<string>("65dvh");
 
   // Separate refs for desktop and mobile scroll targets
   const desktopScrollRef = useRef<HTMLDivElement>(null);
@@ -46,6 +50,26 @@ export default function Chat({ onCollapse }: ChatProps) {
       el.scrollTop = el.scrollHeight;
     }
   }, [messages, collapsed, mobileOpen]);
+
+  // Keyboard-aware drawer height (mobile). When the virtual keyboard opens
+  // visualViewport.height shrinks; we bind the drawer to min(65%, avail-48px).
+  useEffect(() => {
+    if (!mobileOpen || typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      const avail = Math.max(240, vv.height - 48);
+      const target = Math.min(avail, Math.floor(window.innerHeight * 0.65));
+      setDrawerHeight(`${target}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setDrawerHeight("65dvh");
+    };
+  }, [mobileOpen]);
 
   const doSend = useCallback(() => {
     const text = input.trim();
@@ -170,12 +194,15 @@ export default function Chat({ onCollapse }: ChatProps) {
           maxLength={150}
           disabled={rateLimited}
           autoComplete="off"
+          inputMode="text"
+          enterKeyHint="send"
           style={{
             flex: 1,
             background: "transparent",
             border: "none",
             outline: "none",
-            fontSize: mobile ? 14 : 12,
+            // iOS auto-zooms inputs < 16px on focus — stay ≥ 16px on mobile.
+            fontSize: mobile ? 16 : 12,
             color: "#e0e0e0",
             caretColor: "#00ff88",
             fontFamily: "monospace",
@@ -299,7 +326,7 @@ export default function Chat({ onCollapse }: ChatProps) {
             />
             <div
               className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
-              style={{ maxHeight: "65dvh", height: "65dvh", paddingBottom: "env(safe-area-inset-bottom)", background: "#0c0c0c", borderTop: "1px solid #2a2a2a", borderRadius: "12px 12px 0 0" }}
+              style={{ height: drawerHeight, maxHeight: "85dvh", paddingBottom: "env(safe-area-inset-bottom)", background: "#0c0c0c", borderTop: "1px solid #2a2a2a", borderRadius: "12px 12px 0 0" }}
             >
               <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 0" }}>
                 <div style={{ width: 32, height: 3, borderRadius: 2, background: "#333" }} />

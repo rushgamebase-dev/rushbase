@@ -918,7 +918,7 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
 
       {/* OVER button */}
       <button
-        onClick={onTap}
+        onClick={() => { navigator.vibrate?.(8); onTap(); }}
         className="flex-1 rounded font-black text-xs tracking-widest transition-all"
         style={{
           height: 44,
@@ -926,6 +926,8 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
           border: "1px solid rgba(0,255,136,0.3)",
           color: "#00ff88",
           fontFamily: "monospace",
+          touchAction: "manipulation",
+          WebkitTapHighlightColor: "transparent",
         }}
         aria-label={`Bet OVER ${threshold} — tap to open betting panel`}
       >
@@ -934,7 +936,7 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
 
       {/* UNDER button */}
       <button
-        onClick={onTap}
+        onClick={() => { navigator.vibrate?.(8); onTap(); }}
         className="flex-1 rounded font-black text-xs tracking-widest transition-all"
         style={{
           height: 44,
@@ -942,6 +944,8 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
           border: "1px solid rgba(255,68,68,0.3)",
           color: "#ff4444",
           fontFamily: "monospace",
+          touchAction: "manipulation",
+          WebkitTapHighlightColor: "transparent",
         }}
         aria-label={`Bet UNDER ${threshold} — tap to open betting panel`}
       >
