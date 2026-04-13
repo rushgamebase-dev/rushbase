@@ -69,7 +69,8 @@ class VehicleCounter:
     def __init__(self, model_name='yolov8x.pt', confidence=0.20,
                  line_position=0.45, line_angle=10, line_points=None,
                  count_mode='line', min_frames=5, lanes=None,
-                 classes=None, roi=None, **_kwargs):
+                 classes=None, roi=None, dedup_radius=120, dedup_window=10.0,
+                 line_zones=None, crossing_threshold=2, **_kwargs):
         self.count_mode = count_mode
         self.min_frames = min_frames
         self.seen_frames = {}
@@ -82,6 +83,13 @@ class VehicleCounter:
         self.roi_config = roi
         self.roi = []            # list of np.array polygons (absolute coords)
         self.roi_ready = False
+        # Line zones (sv.LineZone) — canonical line counting via supervision.
+        # count_mode='zones' activates this. Each zone triggers on BOTTOM_CENTER
+        # (feet), requires minimum_crossing_threshold=2 frames of confirmation.
+        self.line_zones_config = line_zones  # list of "x1,y1,x2,y2" strings (fractions)
+        self.line_zones = []                  # list of sv.LineZone objects
+        self.line_zones_ready = False
+        self.crossing_threshold = max(1, int(crossing_threshold))
         self.model = YOLO(model_name)
         self.confidence = confidence
         # COCO classes to detect. Default = vehicles. Override via cameras.json
@@ -106,11 +114,11 @@ class VehicleCounter:
         self.count_in = 0         # crossed left-to-right
         self.count_out = 0        # crossed right-to-left
 
-        # Anti-double-count: recent crossing positions with timestamps
-        # If a new ID crosses within DEDUP_RADIUS pixels of a recent crossing, skip it
+        # Anti-double-count: recent crossing positions with timestamps.
+        # Configurable per camera via cameras.json `dedup.radius` / `dedup.window`.
         self._recent_crossings: list[tuple[int, int, float]] = []  # (cx, cy, time)
-        self.DEDUP_RADIUS = 60     # pixels — must be far enough from recent crossing
-        self.DEDUP_WINDOW = 3.0    # seconds — how long to remember a crossing
+        self.DEDUP_RADIUS = int(dedup_radius)    # pixels — min distance from recent crossing
+        self.DEDUP_WINDOW = float(dedup_window)  # seconds — how long to remember a crossing
 
         # Per-class counts — dynamic based on configured classes
         self.class_counts = {c: 0 for c in self.classes}
@@ -119,9 +127,9 @@ class VehicleCounter:
         self.line_start = None    # (x, y) top point
         self.line_end = None      # (x, y) bottom point
 
-        # Annotators
+        # Annotators — trace length 2 = effectively no visible trail.
         self.trace_annotator = sv.TraceAnnotator(
-            thickness=1, trace_length=20,
+            thickness=1, trace_length=2,
             color=sv.Color.from_hex("#00ff88")
         )
         self.smoother = sv.DetectionsSmoother(length=3)
@@ -225,6 +233,28 @@ class VehicleCounter:
             print(f"[Lane] {lc['name']}: zone={polygon.tolist()}, line={line_start}->{line_end}")
         self.lanes_ready = True
 
+    def _setup_line_zones(self, w, h):
+        """Build sv.LineZone objects from fractional coord strings."""
+        if not self.line_zones_config:
+            return
+        self._line_zone_pts = []  # list of ((x1,y1),(x2,y2)) for drawing
+        for line_str in self.line_zones_config:
+            parts = [float(p) for p in line_str.split(",")]
+            sx, sy = int(parts[0] * w), int(parts[1] * h)
+            ex, ey = int(parts[2] * w), int(parts[3] * h)
+            start = sv.Point(sx, sy)
+            end = sv.Point(ex, ey)
+            zone = sv.LineZone(
+                start=start,
+                end=end,
+                triggering_anchors=[sv.Position.BOTTOM_CENTER],
+                minimum_crossing_threshold=self.crossing_threshold,
+            )
+            self.line_zones.append(zone)
+            self._line_zone_pts.append(((sx, sy), (ex, ey)))
+            print(f"[LineZone] ({sx},{sy}) -> ({ex},{ey})")
+        self.line_zones_ready = True
+
     def _setup_roi(self, w, h):
         """Convert ROI config (fractions) to absolute polygons."""
         if not self.roi_config:
@@ -281,6 +311,10 @@ class VehicleCounter:
         # Setup ROI mask on first frame
         if not self.roi_ready and self.roi_config:
             self._setup_roi(w, h)
+
+        # Setup LineZones on first frame
+        if not self.line_zones_ready and self.line_zones_config:
+            self._setup_line_zones(w, h)
 
         # Set line endpoints on first frame
         if self.line_start is None:
@@ -392,6 +426,33 @@ class VehicleCounter:
                         side = self._cross_product_sign(cx, cy, ls[0], ls[1], le[0], le[1])
                         self.prev_pos[tid] = (cx, cy, side)
 
+            elif self.count_mode == 'zones' and self.line_zones_ready:
+                # ─── Canonical line counting via supervision LineZone ───
+                # Each zone triggers on BOTTOM_CENTER anchor, with
+                # minimum_crossing_threshold=2 (anti-flicker). A tracker_id
+                # that crosses is tracked internally by the zone, so we
+                # only count the first crossing per id (across all zones
+                # combined — counted_ids set protects against double-count
+                # when the person crosses multiple parallel lines).
+                for zone_idx, zone in enumerate(self.line_zones):
+                    # supervision trigger returns boolean arrays of shape (N,)
+                    crossed_in, crossed_out = zone.trigger(detections)
+                    for i in range(len(detections)):
+                        if not (crossed_in[i] or crossed_out[i]):
+                            continue
+                        tid = detections.tracker_id[i]
+                        if tid is None or tid in self.counted_ids:
+                            continue
+                        cls = detections.class_id[i] if detections.class_id is not None else 2
+                        self.counted_ids.add(tid)
+                        self.total_count += 1
+                        self.counted_number[tid] = self.total_count
+                        self.class_counts[cls] = self.class_counts.get(cls, 0) + 1
+                        if crossed_in[i]:
+                            self.count_in += 1
+                        else:
+                            self.count_out += 1
+
             elif self.count_mode == 'uid':
                 # ─── Unique ID mode: count every vehicle seen min_frames+ ───
                 # Uses bottom-center anchor and tracks movement direction
@@ -421,7 +482,19 @@ class VehicleCounter:
                         first_pos = self.prev_pos[tid]
                         dx = abs(anchor_x - first_pos[0])
                         dy = abs(anchor_y - first_pos[1])
-                        if dx + dy >= 15 and not self._is_duplicate_crossing(anchor_x, anchor_y):
+                        # Adaptive threshold: proportional to bbox height so
+                        # distant/small targets (few px/frame movement) still count.
+                        # Floor 8 prevents bbox jitter from triggering false
+                        # "moved" events on stationary ghosts.
+                        bbox_h = max(1, int(y2 - y1))
+                        move_thresh = max(8, int(bbox_h * 0.2))
+                        # NOTE: dedup_radius check intentionally omitted in uid mode.
+                        # counted_ids set already guarantees each tracker_id counts
+                        # at most once. Running dedup on top caused legit new IDs
+                        # to be suppressed when the tracker flickered an ID in
+                        # dense scenes (scramble crossings, ski pistes). Trust
+                        # the tracker; ReID/Kalman inside BoT-SORT handle re-ID.
+                        if dx + dy >= move_thresh:
                             self.counted_ids.add(tid)
                             self.total_count += 1
                             self.counted_number[tid] = self.total_count
@@ -494,12 +567,17 @@ class VehicleCounter:
                 # Count numbers removed — frontend handles display
 
         # ─── Draw counting line (only in line mode) ──────────
+        # ROI outline NOT drawn — stream stays clean.
+        # Uncomment the 4 lines below if you ever need to debug a polygon.
+        # if self.roi_ready and self.roi:
+        #     for poly in self.roi:
+        #         pts = poly.reshape((-1, 1, 2))
+        #         cv2.polylines(frame, [pts], True, (0, 200, 100), 1, cv2.LINE_AA)
 
-        # Draw ROI outline (subtle green) so users can see the active zone
-        if self.roi_ready and self.roi:
-            for poly in self.roi:
-                pts = poly.reshape((-1, 1, 2))
-                cv2.polylines(frame, [pts], True, (0, 200, 100), 1, cv2.LINE_AA)
+        # Draw line zones (canonical sv.LineZone visualization)
+        if self.line_zones_ready and hasattr(self, '_line_zone_pts'):
+            for (p1, p2) in self._line_zone_pts:
+                cv2.line(frame, p1, p2, NEON_GREEN, 2, cv2.LINE_AA)
 
         # Draw lanes
         if self.lanes_ready and self.lanes:
@@ -609,13 +687,16 @@ class StreamServer:
 
     # States
     STATE_IDLE = "idle"
+    STATE_BETTING = "betting_open"
     STATE_COUNTING = "counting"
 
     def __init__(self, stream_url, host='0.0.0.0', port=8765,
                  model='yolov8x.pt', confidence=0.10, line_pos=0.5,
                  line_angle=10, line_points=None, line_points2=None,
                  count_mode='uid', lanes=None, target_fps=8, camera_id='',
-                 referer=None, classes=None, roi=None, **kwargs):
+                 referer=None, classes=None, roi=None,
+                 dedup_radius=120, dedup_window=10.0,
+                 line_zones=None, crossing_threshold=2, **kwargs):
         self.stream_url = stream_url
         self._referer = referer
         self.host = host
@@ -634,6 +715,10 @@ class StreamServer:
         self._lanes = lanes
         self._classes = classes
         self._roi = roi
+        self._dedup_radius = dedup_radius
+        self._dedup_window = dedup_window
+        self._line_zones = line_zones
+        self._crossing_threshold = crossing_threshold
 
         # Create initial counter (for YOLO model loading + visual annotations in IDLE)
         self.counter = VehicleCounter(model_name=model, confidence=confidence,
@@ -641,7 +726,12 @@ class StreamServer:
                                        line_points=line_points,
                                        line_points2=line_points2,
                                        count_mode=count_mode, lanes=lanes,
-                                       classes=classes, roi=roi, min_frames=3)
+                                       classes=classes, roi=roi,
+                                       dedup_radius=dedup_radius,
+                                       dedup_window=dedup_window,
+                                       line_zones=line_zones,
+                                       crossing_threshold=crossing_threshold,
+                                       min_frames=2)
         self.clients = set()
         self.running = False
 
@@ -666,27 +756,42 @@ class StreamServer:
                            line_position=self._line_pos, line_angle=self._line_angle,
                            line_points=self._line_points, line_points2=self._line_points2,
                            count_mode=self._count_mode, lanes=self._lanes,
-                           classes=self._classes, roi=self._roi, min_frames=3)
+                           classes=self._classes, roi=self._roi,
+                           dedup_radius=self._dedup_radius,
+                           dedup_window=self._dedup_window,
+                           line_zones=self._line_zones,
+                           crossing_threshold=self._crossing_threshold,
+                           min_frames=2)
         c.model = self.counter.model  # reuse loaded model — no GPU reload
         return c
 
     def _start_round(self, data):
-        """Begin a new counting round. All state is clean."""
+        """Begin a new round. Phase 1: betting (off-chain countdown matching
+        on-chain lockTime). Phase 2: counting (authoritative vehicle tally)."""
         self._round_market = data.get("marketAddress", "")
-        self._round_duration = data.get("duration", 300)
+        self._round_duration = data.get("duration", 300)          # counting window
+        # round_manager sends camelCase "bettingDuration"; accept snake_case too
+        self._betting_duration = data.get("bettingDuration", data.get("betting_duration", 0))
         self._round_id = data.get("roundId", 0)
-        self._round_start_time = time.time()
         self._round_active = True
-        self._state = self.STATE_COUNTING
-        # Fresh counter — zero carryover
+        # Fresh counter + evidence up front (count result only collected during counting)
         self.counter = self._new_counter()
-        # Fresh evidence
         self._evidence_frames = []
         self._evidence_hashes = []
         self._evidence_final = None
         self._last_evidence_time = 0.0
         self._ensure_evidence_dir()
-        print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
+        if self._betting_duration > 0:
+            self._state = self.STATE_BETTING
+            self._betting_start_time = time.time()
+            # counting start deferred until betting elapses
+            self._round_start_time = 0.0
+            print(f"[STATE] betting — market={self._round_market[:10]}... bet={self._betting_duration}s count={self._round_duration}s round={self._round_id}")
+        else:
+            self._state = self.STATE_COUNTING
+            self._round_start_time = time.time()
+            self._betting_start_time = 0.0
+            print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
 
     def _stop_round(self):
         """End current round. Write result, broadcast final, go IDLE."""
@@ -988,8 +1093,30 @@ class StreamServer:
             while self.running:
                 frame_start = time.time()
 
+                # ── Reader healthcheck: detect dead ffmpeg / stalled reader ──
+                # If the reader hasn't produced a frame in STALL_LIMIT seconds,
+                # something is wedged (ffmpeg died, broadcast deadlock, GPU
+                # hang). Exit cleanly — start.sh auto-respawns in 3s.
+                STALL_LIMIT = 8.0
+                since_frame = frame_start - _last_frame_time[0]
+                if since_frame > STALL_LIMIT:
+                    print(f"[HEALTHCHECK] No frame for {since_frame:.1f}s — exiting for auto-respawn", flush=True)
+                    sys.exit(1)
+
+                # ── Betting → Counting transition ────────────────────
+                if self._round_active and self._state == self.STATE_BETTING:
+                    betting_elapsed = frame_start - self._betting_start_time
+                    if betting_elapsed >= self._betting_duration:
+                        self._state = self.STATE_COUNTING
+                        self._round_start_time = time.time()
+                        self.counter = self._new_counter()  # clean slate for official tally
+                        self._evidence_frames = []
+                        self._evidence_hashes = []
+                        self._last_evidence_time = 0.0
+                        print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
+
                 # ── Check round duration expiry ──────────────────────
-                if self._round_active:
+                if self._round_active and self._state == self.STATE_COUNTING:
                     round_elapsed = frame_start - self._round_start_time
                     if round_elapsed >= self._round_duration:
                         # Round complete — stop counting, write result
@@ -1046,7 +1173,21 @@ class StreamServer:
                 jpeg_bytes = jpeg.tobytes()
 
                 # ── Broadcast based on state ─────────────────────────
-                if self._round_active:
+                if self._round_active and self._state == self.STATE_BETTING:
+                    betting_elapsed = time.time() - self._betting_start_time
+                    msg = json.dumps({
+                        "type": "count",
+                        "state": "betting_open",
+                        "count": 0,  # official count not tallied during betting
+                        "count_in": 0,
+                        "count_out": 0,
+                        "elapsed": round(betting_elapsed, 1),
+                        "remaining": max(0, round(self._betting_duration - betting_elapsed, 1)),
+                        "marketAddress": self._round_market,
+                        "cameraId": self.camera_id,
+                        "roundId": self._round_id,
+                    })
+                elif self._round_active and self._state == self.STATE_COUNTING:
                     round_elapsed = time.time() - self._round_start_time
                     msg = json.dumps({
                         "type": "count",
@@ -1074,8 +1215,8 @@ class StreamServer:
                 if _frame_elapsed < frame_interval:
                     await asyncio.sleep(frame_interval - _frame_elapsed)
 
-                # ── Evidence capture (only during round) ─────────────
-                if self._round_active:
+                # ── Evidence capture (only during counting) ──────────
+                if self._round_active and self._state == self.STATE_COUNTING:
                     round_elapsed = time.time() - self._round_start_time
                     round_ts = int(self._round_start_time)
                     if round_elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
@@ -1225,7 +1366,7 @@ def main():
                        help='Line 1 as "x1,y1,x2,y2" fractions')
     parser.add_argument('--line-points2', type=str, default=None,
                        help='Line 2 (optional) as "x1,y1,x2,y2" fractions')
-    parser.add_argument('--mode', choices=['line', 'uid'], default='uid',
+    parser.add_argument('--mode', choices=['line', 'uid', 'zones'], default='uid',
                        help='Counting mode: line=crossing, uid=unique IDs (default: uid)')
     parser.add_argument('--fps', type=int, default=8, help='Target output FPS')
 
@@ -1236,6 +1377,10 @@ def main():
     cam_id = ''
     cam_classes = None
     cam_roi = None
+    cam_dedup_radius = 120
+    cam_dedup_window = 10.0
+    cam_line_zones = None
+    cam_crossing_threshold = 2
     if args.camera:
         cam = load_camera(args.camera)
         stream_url = cam.get("streamUrl", cam.get("imageUrl"))
@@ -1243,6 +1388,17 @@ def main():
         cam_lanes = cam.get("lanes")
         cam_classes = cam.get("classes")
         cam_roi = cam.get("roi")
+        _dedup = cam.get("dedup") or {}
+        cam_dedup_radius = int(_dedup.get("radius", 120))
+        cam_dedup_window = float(_dedup.get("window", 10.0))
+        cam_line_zones = cam.get("lines")  # list of "x1,y1,x2,y2" strings
+        if cam_line_zones:
+            args.mode = "zones"
+        cam_crossing_threshold = int(cam.get("crossingThreshold", 2))
+        # Per-camera confidence override
+        if cam.get("confidence") is not None:
+            args.confidence = float(cam["confidence"])
+            print(f"[Camera] Confidence override: {args.confidence}")
         if not args.line_points and cam.get("linePoints"):
             args.line_points = cam["linePoints"]
             args.mode = "line"
@@ -1260,6 +1416,10 @@ def main():
             # Count polygons (supports single or multi-polygon format)
             n_polys = len(cam_roi) if (cam_roi and isinstance(cam_roi[0], list) and cam_roi[0] and isinstance(cam_roi[0][0], list)) else 1
             print(f"[Camera] ROI mask: {n_polys} polygon(s)")
+        if cam.get("dedup"):
+            print(f"[Camera] Dedup override: radius={cam_dedup_radius}px window={cam_dedup_window}s")
+        if cam_line_zones:
+            print(f"[Camera] Line zones: {len(cam_line_zones)} (canonical sv.LineZone, threshold={cam_crossing_threshold})")
 
     _kill_port(args.port)
 
@@ -1280,6 +1440,10 @@ def main():
         referer=cam_referer,
         classes=cam_classes,
         roi=cam_roi,
+        dedup_radius=cam_dedup_radius,
+        dedup_window=cam_dedup_window,
+        line_zones=cam_line_zones,
+        crossing_threshold=cam_crossing_threshold,
     )
 
     try:
