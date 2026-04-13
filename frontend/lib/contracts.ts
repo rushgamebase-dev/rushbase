@@ -242,8 +242,8 @@ export const STATE_COLORS: Record<string, string> = {
 
 // ─── Contract addresses — fill in after deploy ─────────────────────────────
 
-// Old ETH factory: 0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
-export const FACTORY_ADDRESS = "0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f" as `0x${string}`;
+// BurnMarket (RUSH) factory archived: 0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f
+export const FACTORY_ADDRESS = "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9" as `0x${string}`;
 export const RUSH_TILES_ADDRESS = "0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4" as `0x${string}`;
 export const RUSH_TILES_V2_ADDRESS = "0x5b7b2a6AC4f3A017fb943C9F550d609174532fFF" as `0x${string}`;
 

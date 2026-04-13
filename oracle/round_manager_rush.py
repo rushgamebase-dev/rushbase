@@ -229,8 +229,8 @@ MARKET_RESOLVED_ABI = {
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 UINT256_MAX = 2 ** 256 - 1
-MIN_BET_WEI = 100 * 10 ** 18         # 100 $RUSH (token mode)
-MAX_BET_WEI = 10_000_000 * 10 ** 18  # 10M $RUSH max
+MIN_BET_WEI = 10 ** 15               # 0.001 ETH
+MAX_BET_WEI = 10 ** 20               # 100 ETH cap
 DEFAULT_GAS  = 3_000_000
 INTER_ROUND_SECS = 15
 MAX_TX_RETRIES = 3
@@ -570,9 +570,16 @@ class ChainClient:
             house_account = Account.from_key(HOUSE_BOT_KEY)
             addr = Web3.to_checksum_address(market_address)
 
-            # All BurnMarkets are token mode — force true
-            # (BurnMarketFactory only creates token markets)
-            is_token = True
+            # Detect token mode from the market contract (ETH factory returns address(0))
+            try:
+                bt_market = self.w3.eth.contract(address=addr, abi=[{
+                    "name": "bettingToken", "type": "function", "stateMutability": "view",
+                    "inputs": [], "outputs": [{"name": "", "type": "address"}],
+                }])
+                betting_token = bt_market.functions.bettingToken().call()
+                is_token = betting_token != "0x0000000000000000000000000000000000000000"
+            except Exception:
+                is_token = False
 
             gas_price = self.w3.eth.gas_price
 

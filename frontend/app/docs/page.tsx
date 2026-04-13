@@ -8,7 +8,7 @@ import {
   RUSH_TOKEN_ADDRESS,
 } from "@/lib/contracts";
 
-const OLD_ETH_FACTORY = "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9";
+const OLD_RUSH_FACTORY = "0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f";
 
 const S = {
   page: { background: "#0a0a0a", color: "#ccc", minHeight: "100vh", fontFamily: "monospace" } as const,
@@ -45,8 +45,8 @@ export default function DocsPage() {
         <h1 style={S.h1}>Rush Protocol</h1>
         <p style={S.subtitle}>
           Fully on-chain prediction market on <strong style={{ color: "#e0e0e0" }}>Base</strong>.
-          AI observes live traffic cameras. Users bet on real outcomes.
-          30% of every $RUSH pool is burned forever.
+          AI observes live traffic cameras. Users bet ETH on real outcomes.
+          Winners split 95% of the pool; 5% goes to Series 1 tile holders.
         </p>
 
         {/* ─── Key Numbers ─── */}
@@ -56,15 +56,15 @@ export default function DocsPage() {
             <span style={S.statLabel}>House Edge</span>
           </div>
           <div style={S.stat}>
-            <span style={{ ...S.statVal, color: "#ff6666" }}>30%</span>
-            <span style={S.statLabel}>Burned / Round</span>
+            <span style={{ ...S.statVal, color: "#00ff88" }}>95%</span>
+            <span style={S.statLabel}>To Winners</span>
           </div>
           <div style={S.stat}>
-            <span style={{ ...S.statVal, color: "#00ff88" }}>200</span>
-            <span style={S.statLabel}>Total Tiles</span>
+            <span style={{ ...S.statVal, color: "#88aaff" }}>5%</span>
+            <span style={S.statLabel}>Tile Holder Fee</span>
           </div>
           <div style={S.stat}>
-            <span style={{ ...S.statVal, color: "#88aaff" }}>5 min</span>
+            <span style={{ ...S.statVal, color: "#ff6666" }}>5 min</span>
             <span style={S.statLabel}>Round Duration</span>
           </div>
         </div>
@@ -80,15 +80,7 @@ export default function DocsPage() {
           </thead>
           <tbody>
             <tr>
-              <td style={S.td}><strong style={{ color: "#ffd700" }}>$RUSH Token</strong></td>
-              <td style={S.td}>
-                <a href={`https://basescan.org/token/${RUSH_TOKEN_ADDRESS}`} target="_blank" rel="noopener noreferrer" style={S.link}>
-                  <code style={S.addr}>{RUSH_TOKEN_ADDRESS}</code>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td style={S.td}>BurnMarketFactory<span style={S.tagCurrent}>production</span></td>
+              <td style={S.td}>MarketFactory<span style={S.tagCurrent}>production</span></td>
               <td style={S.td}>
                 <a href={`https://basescan.org/address/${FACTORY_ADDRESS}`} target="_blank" rel="noopener noreferrer" style={S.link}>
                   <code style={S.addr}>{FACTORY_ADDRESS}</code>
@@ -112,10 +104,18 @@ export default function DocsPage() {
               </td>
             </tr>
             <tr>
-              <td style={S.td}><span style={{ color: "#555" }}>MarketFactory</span><span style={S.tagLegacy}>legacy</span></td>
+              <td style={S.td}><strong style={{ color: "#ffd700" }}>$RUSH Token</strong></td>
               <td style={S.td}>
-                <a href={`https://basescan.org/address/${OLD_ETH_FACTORY}`} target="_blank" rel="noopener noreferrer" style={{ ...S.link, opacity: 0.5 }}>
-                  <code style={{ ...S.addr, color: "#666" }}>{OLD_ETH_FACTORY}</code>
+                <a href={`https://basescan.org/token/${RUSH_TOKEN_ADDRESS}`} target="_blank" rel="noopener noreferrer" style={S.link}>
+                  <code style={S.addr}>{RUSH_TOKEN_ADDRESS}</code>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style={S.td}><span style={{ color: "#555" }}>BurnMarketFactory</span><span style={S.tagLegacy}>legacy</span></td>
+              <td style={S.td}>
+                <a href={`https://basescan.org/address/${OLD_RUSH_FACTORY}`} target="_blank" rel="noopener noreferrer" style={{ ...S.link, opacity: 0.5 }}>
+                  <code style={{ ...S.addr, color: "#666" }}>{OLD_RUSH_FACTORY}</code>
                 </a>
               </td>
             </tr>
@@ -140,48 +140,51 @@ export default function DocsPage() {
             <strong style={{ color: "#e0e0e0" }}>1. Watch</strong> &mdash; Live traffic camera streams 24/7
           </p>
           <p style={{ ...S.p, marginBottom: "0.5rem", color: "#bbb" }}>
-            <strong style={{ color: "#e0e0e0" }}>2. Predict</strong> &mdash; Bet $RUSH on Over or Under the vehicle threshold
+            <strong style={{ color: "#e0e0e0" }}>2. Predict</strong> &mdash; Bet ETH on Over or Under the vehicle threshold
           </p>
           <p style={{ ...S.p, marginBottom: "0.5rem", color: "#bbb" }}>
             <strong style={{ color: "#e0e0e0" }}>3. AI Counts</strong> &mdash; Proprietary vision system counts every vehicle crossing
           </p>
           <p style={{ ...S.p, marginBottom: 0, color: "#bbb" }}>
-            <strong style={{ color: "#e0e0e0" }}>4. Win or Burn</strong> &mdash; 70% to winners, 30% burned forever
+            <strong style={{ color: "#e0e0e0" }}>4. Settle</strong> &mdash; 95% to winners (proportional), 5% to Series 1 tile holders
           </p>
         </div>
 
-        <h3 style={S.h3}>$RUSH Markets <span style={S.tagCurrent}>current</span></h3>
+        <h3 style={S.h3}>ETH Markets <span style={S.tagCurrent}>current</span></h3>
         <p style={S.p}>
-          Bet with $RUSH tokens. Winners receive 70% of the pool. 30% is permanently burned.
-          Zero protocol fees. Every resolved market makes $RUSH more scarce.
+          Bet with native ETH. Winners receive 95% of the pool, split proportionally to their stake.
+          The 5% fee flows to Series 1 tile holders. Zero protocol take &mdash; the house never wins.
         </p>
-        <pre style={S.code}>{`Bets ($RUSH) -> Pool -> Resolve
-                         ├── 70% -> Winners (proportional to bet)
-                         └── 30% -> Burned (0x...dEaD, permanent)`}</pre>
+        <pre style={S.code}>{`Bets (ETH) -> Pool -> Resolve
+                       ├── 95% -> Winners (proportional to bet)
+                       └── 5%  -> Series 1 tile holders`}</pre>
 
-        <h3 style={S.h3}>ETH Markets <span style={S.tagLegacy}>legacy</span></h3>
+        <h3 style={S.h3}>$RUSH Markets <span style={S.tagLegacy}>legacy</span></h3>
         <p style={S.p}>
-          Original format. Bet with ETH, winners split 95%. The 5% fee goes to Series 1 tile holders.
+          Earlier format used $RUSH tokens with a 30% burn per round. Archived.
+          The $RUSH token itself continues to trade on Flaunch and remains a revenue
+          asset for holders via Flaunch trading fees.
         </p>
 
-        {/* ─── $RUSH Burn ─── */}
-        <h2 style={S.h2}>$RUSH &mdash; Deflationary Token</h2>
+        {/* ─── Payout Stats ─── */}
+        <h2 style={S.h2}>Payout Economics</h2>
         <p style={S.p}>
-          $RUSH is an ERC-20 on Base launched via Flaunch. It&apos;s the sole betting currency.
-          The burn is hardcoded in the smart contract &mdash; nobody can change or disable it.
+          Pari-mutuel pools. The protocol never bets against you &mdash; all ETH in each round
+          is returned to the market (winners + tile holders). Fee is hardcoded in the contract
+          and cannot be changed.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "1.5rem" }}>
           <div style={{ flex: 1, minWidth: 180, background: "#0a150a", border: "1px solid #00ff8822", borderRadius: 8, padding: "1rem", textAlign: "center" as const }}>
-            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#00ff88", display: "block" }}>70%</span>
+            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#00ff88", display: "block" }}>95%</span>
             <span style={{ fontSize: "0.75rem", color: "#666" }}>TO WINNERS</span>
           </div>
-          <div style={{ flex: 1, minWidth: 180, background: "#1a0a0a", border: "1px solid #ff444422", borderRadius: 8, padding: "1rem", textAlign: "center" as const }}>
-            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#ff6666", display: "block" }}>30%</span>
-            <span style={{ fontSize: "0.75rem", color: "#666" }}>BURNED FOREVER</span>
+          <div style={{ flex: 1, minWidth: 180, background: "#0a1528", border: "1px solid #88aaff22", borderRadius: 8, padding: "1rem", textAlign: "center" as const }}>
+            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#88aaff", display: "block" }}>5%</span>
+            <span style={{ fontSize: "0.75rem", color: "#666" }}>TILE HOLDERS</span>
           </div>
           <div style={{ flex: 1, minWidth: 180, background: "#0d0d0d", border: "1px solid #222", borderRadius: 8, padding: "1rem", textAlign: "center" as const }}>
             <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#ffd700", display: "block" }}>0%</span>
-            <span style={{ fontSize: "0.75rem", color: "#666" }}>PROTOCOL FEES</span>
+            <span style={{ fontSize: "0.75rem", color: "#666" }}>PROTOCOL TAKE</span>
           </div>
         </div>
 
@@ -334,8 +337,8 @@ export default function DocsPage() {
           {[
             { label: "Open Source", desc: "All contracts verified and readable on Basescan" },
             { label: "No House Edge", desc: "Pari-mutuel pools \u2014 protocol never bets against you" },
-            { label: "Immutable Rules", desc: "Fee rates and burn % are hardcoded \u2014 nobody can change them" },
-            { label: "Permanent Burn", desc: "30% goes to 0x...dEaD \u2014 irrecoverable by anyone, ever" },
+            { label: "Immutable Rules", desc: "Fee rates are hardcoded \u2014 nobody can change them" },
+            { label: "Native ETH", desc: "No token approvals. No custody. placeBet is payable." },
             { label: "Industry Standards", desc: "Built on OpenZeppelin \u2014 the most battle-tested Solidity library" },
             { label: "Proof of Outcome", desc: "Every round has timestamped evidence with SHA-256 hashes" },
           ].map(({ label, desc }) => (
@@ -353,7 +356,7 @@ export default function DocsPage() {
             style={{ ...S.badge, background: "#1a1a1a", color: "#ffd700", border: "1px solid #ffd70033" }}>
             rushgame.vip
           </a>
-          <a href={`https://basescan.org/token/${RUSH_TOKEN_ADDRESS}`} target="_blank" rel="noopener noreferrer"
+          <a href={`https://basescan.org/address/${FACTORY_ADDRESS}`} target="_blank" rel="noopener noreferrer"
             style={{ ...S.badge, background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
             Basescan
           </a>
