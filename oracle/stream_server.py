@@ -781,16 +781,18 @@ class StreamServer:
         self._evidence_final = None
         self._last_evidence_time = 0.0
         self._ensure_evidence_dir()
+        # _round_start_time is the wall-clock start of the ROUND (covers
+        # betting + counting). Counter runs continuously from here.
+        self._round_start_time = time.time()
         if self._betting_duration > 0:
             self._state = self.STATE_BETTING
             self._betting_start_time = time.time()
-            # counting start deferred until betting elapses
-            self._round_start_time = 0.0
+            self._counting_start_time = 0.0  # set at betting→counting transition
             print(f"[STATE] betting — market={self._round_market[:10]}... bet={self._betting_duration}s count={self._round_duration}s round={self._round_id}")
         else:
             self._state = self.STATE_COUNTING
-            self._round_start_time = time.time()
             self._betting_start_time = 0.0
+            self._counting_start_time = time.time()
             print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
 
     def _stop_round(self):
@@ -1104,21 +1106,21 @@ class StreamServer:
                     sys.exit(1)
 
                 # ── Betting → Counting transition ────────────────────
+                # Betting window closes but counter KEEPS its cumulative count.
+                # The count players saw climbing during betting continues into
+                # the counting phase — no reset, no discontinuity.
                 if self._round_active and self._state == self.STATE_BETTING:
                     betting_elapsed = frame_start - self._betting_start_time
                     if betting_elapsed >= self._betting_duration:
                         self._state = self.STATE_COUNTING
-                        self._round_start_time = time.time()
-                        self.counter = self._new_counter()  # clean slate for official tally
-                        self._evidence_frames = []
-                        self._evidence_hashes = []
-                        self._last_evidence_time = 0.0
+                        self._counting_start_time = time.time()
+                        # counter preserved — running count continues into counting phase
                         print(f"[STATE] counting — market={self._round_market[:10]}... duration={self._round_duration}s round={self._round_id}")
 
-                # ── Check round duration expiry ──────────────────────
+                # ── Check counting window expiry ─────────────────────
                 if self._round_active and self._state == self.STATE_COUNTING:
-                    round_elapsed = frame_start - self._round_start_time
-                    if round_elapsed >= self._round_duration:
+                    counting_elapsed = frame_start - self._counting_start_time
+                    if counting_elapsed >= self._round_duration:
                         # Round complete — stop counting, write result
                         result = self._stop_round()
                         # Broadcast final + round_complete to all clients
@@ -1152,14 +1154,11 @@ class StreamServer:
                     frame = cv2.resize(frame, (OUTPUT_WIDTH, int(h * scale)),
                                       interpolation=cv2.INTER_LINEAR)
 
-                # ── Process with YOLO only outside betting phase ─────────
-                # During betting we skip the counter entirely — no detection,
-                # no tracker state advance, no risk of pre-counting.
-                if self._round_active and self._state == self.STATE_BETTING:
-                    annotated = frame
-                    count = 0
-                else:
-                    annotated, count = self.counter.process_frame(frame)
+                # ── Process with YOLO (always during round) ──────────────
+                # Counter runs continuously through betting + counting phases.
+                # Players watch the count climb live while placing bets — the
+                # final on-chain count is cumulative over the whole round.
+                annotated, count = self.counter.process_frame(frame)
 
                 # Debug overlay
                 uptime = frame_start - server_start
@@ -1187,9 +1186,9 @@ class StreamServer:
                     msg = json.dumps({
                         "type": "count",
                         "state": "betting_open",
-                        "count": 0,  # official count not tallied during betting
-                        "count_in": 0,
-                        "count_out": 0,
+                        "count": count,  # live running count — visible to bettors
+                        "count_in": self.counter.count_in,
+                        "count_out": self.counter.count_out,
                         "elapsed": round(betting_elapsed, 1),
                         "remaining": max(0, round(self._betting_duration - betting_elapsed, 1)),
                         "marketAddress": self._round_market,
@@ -1197,15 +1196,15 @@ class StreamServer:
                         "roundId": self._round_id,
                     })
                 elif self._round_active and self._state == self.STATE_COUNTING:
-                    round_elapsed = time.time() - self._round_start_time
+                    counting_elapsed = time.time() - self._counting_start_time
                     msg = json.dumps({
                         "type": "count",
                         "state": "counting",
                         "count": count,
                         "count_in": self.counter.count_in,
                         "count_out": self.counter.count_out,
-                        "elapsed": round(round_elapsed, 1),
-                        "remaining": max(0, round(self._round_duration - round_elapsed, 1)),
+                        "elapsed": round(counting_elapsed, 1),
+                        "remaining": max(0, round(self._round_duration - counting_elapsed, 1)),
                         "marketAddress": self._round_market,
                         "cameraId": self.camera_id,
                         "roundId": self._round_id,
@@ -1224,14 +1223,15 @@ class StreamServer:
                 if _frame_elapsed < frame_interval:
                     await asyncio.sleep(frame_interval - _frame_elapsed)
 
-                # ── Evidence capture (only during counting) ──────────
-                if self._round_active and self._state == self.STATE_COUNTING:
+                # ── Evidence capture (during full active round) ──────
+                if self._round_active:
                     round_elapsed = time.time() - self._round_start_time
                     round_ts = int(self._round_start_time)
+                    total_round_len = self._betting_duration + self._round_duration
                     if round_elapsed - self._last_evidence_time >= self.EVIDENCE_INTERVAL:
                         self._save_evidence_frame(annotated, round_ts, round_elapsed)
                         self._last_evidence_time = round_elapsed
-                    if self._round_duration - round_elapsed < frame_interval * 2:
+                    if total_round_len - round_elapsed < frame_interval * 2:
                         self._save_evidence_frame(annotated, round_ts, round_elapsed, is_final=True)
 
                 # Yield to event loop
