@@ -91,15 +91,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           50% { box-shadow: 0 0 18px rgba(255,215,0,0.6), inset 0 0 10px rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.8); }
         }
         .closed-tile {
-          background-image:
-            repeating-linear-gradient(
-              45deg,
-              rgba(255,60,60,0.10) 0px,
-              rgba(255,60,60,0.10) 2px,
-              transparent 2px,
-              transparent 6px
-            ) !important;
-          filter: grayscale(0.9) brightness(0.45);
+          filter: grayscale(0.3) brightness(0.75);
         }
       `}</style>
       <div
@@ -150,7 +142,11 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
             key={tile.id}
             className={`relative flex flex-col items-start justify-between rounded-sm overflow-hidden${isClosed ? " closed-tile" : ""}`}
             style={{
-              background: hasImage && !isClosed ? `url(${getTileImage(tile.owner!)}) center/cover` : "#141414",
+              background: isClosed
+                ? `url(/tiles/foreclosed.png) center/cover`
+                : hasImage
+                ? `url(${getTileImage(tile.owner!)}) center/cover`
+                : "#141414",
               border: `2px solid ${borderColor}`,
               boxShadow: shadow,
               transition: "transform 0.15s, border-color 0.2s",
@@ -183,32 +179,31 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               />
             )}
 
-            {/* Closed tile X marker */}
+            {/* Closed tile — foreclosed marker */}
             {isClosed && (
               <>
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background:
-                      "linear-gradient(135deg, transparent 46%, rgba(255,80,80,0.55) 48%, rgba(255,80,80,0.55) 52%, transparent 54%), linear-gradient(45deg, transparent 46%, rgba(255,80,80,0.55) 48%, rgba(255,80,80,0.55) 52%, transparent 54%)",
+                    background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)",
                     zIndex: 2,
                   }}
                 />
                 <span
                   className="absolute bottom-0 left-0 right-0 text-center"
                   style={{
-                    background: "rgba(120,20,20,0.85)",
-                    color: "#ffb4b4",
+                    background: "rgba(120,20,20,0.9)",
+                    color: "#ff9090",
                     fontFamily: "monospace",
                     fontSize: 6,
                     fontWeight: 800,
                     letterSpacing: "0.1em",
                     padding: "1px 0",
                     zIndex: 3,
-                    borderTop: "1px solid rgba(255,80,80,0.4)",
+                    borderTop: "1px solid rgba(255,80,80,0.5)",
                   }}
                 >
-                  CLOSED
+                  FORECLOSED
                 </span>
               </>
             )}
@@ -321,7 +316,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 >
                   <div className="font-bold mb-0.5">
                     {isClosed ? (
-                      <span style={{ color: "#ff6464" }}>NOT FOR SALE</span>
+                      <span style={{ color: "#ff6464" }}>FORECLOSED</span>
                     ) : tile.isMine ? (
                       <span style={{ color: "#00ff88" }}>YOUR TILE</span>
                     ) : tile.isActive ? (
@@ -332,7 +327,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                     <span style={{ color: "#444" }}> #{tile.id + 1}</span>
                   </div>
                   {isClosed ? (
-                    <div style={{ color: "#888", fontSize: 10 }}>abandoned · closed</div>
+                    <div style={{ color: "#888", fontSize: 10 }}>unpaid Harberger tax · permanently closed</div>
                   ) : (
                     <>
                       {tile.owner && (
