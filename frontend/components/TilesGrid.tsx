@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Tile } from "@/lib/mock";
+
+interface ForeclosedData { price: string; deposit: string; }
+type ForeclosedMap = Record<string, ForeclosedData>;
 
 interface TilesGridProps {
   tiles: Tile[];
@@ -61,6 +64,23 @@ function addressHue(addr: string): number {
 
 export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [foreclosedData, setForeclosedData] = useState<ForeclosedMap>({});
+
+  useEffect(() => {
+    fetch("/tiles/foreclosed-data.json")
+      .then(r => r.ok ? r.json() : {})
+      .then(setForeclosedData)
+      .catch(() => {});
+  }, []);
+
+  const formatEth = (wei: string) => {
+    try {
+      const n = BigInt(wei);
+      const whole = n / BigInt("1000000000000000000");
+      const frac = (n % BigInt("1000000000000000000")).toString().padStart(18, "0").slice(0, 3);
+      return `${whole}.${frac}`;
+    } catch { return "0.000"; }
+  };
 
   return (
     <div
@@ -185,14 +205,37 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.6) 100%)",
+                    background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.75) 100%)",
                     zIndex: 2,
                   }}
                 />
+                {/* Foreclosure price/deposit stamp */}
+                {foreclosedData[String(tile.id)] && (
+                  <div
+                    className="absolute"
+                    style={{
+                      top: 2,
+                      right: 2,
+                      background: "rgba(120,20,20,0.85)",
+                      border: "1px solid rgba(255,100,100,0.6)",
+                      borderRadius: 2,
+                      padding: "1px 3px",
+                      zIndex: 3,
+                      fontFamily: "monospace",
+                      fontSize: 7,
+                      fontWeight: 800,
+                      color: "#ffb4b4",
+                      lineHeight: 1.1,
+                      textShadow: "0 1px 2px rgba(0,0,0,1)",
+                    }}
+                  >
+                    <div>Ξ{formatEth(foreclosedData[String(tile.id)].price)}</div>
+                  </div>
+                )}
                 <span
                   className="absolute bottom-0 left-0 right-0 text-center"
                   style={{
-                    background: "rgba(120,20,20,0.9)",
+                    background: "rgba(120,20,20,0.92)",
                     color: "#ff9090",
                     fontFamily: "monospace",
                     fontSize: 6,
@@ -327,7 +370,19 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                     <span style={{ color: "#444" }}> #{tile.id + 1}</span>
                   </div>
                   {isClosed ? (
-                    <div style={{ color: "#888", fontSize: 10 }}>unpaid Harberger tax · permanently closed</div>
+                    <>
+                      {foreclosedData[String(tile.id)] && (
+                        <>
+                          <div style={{ color: "#ff9090", fontSize: 10 }}>
+                            Last price: {formatEth(foreclosedData[String(tile.id)].price)} ETH
+                          </div>
+                          <div style={{ color: "#ff9090", fontSize: 10 }}>
+                            Initial deposit: {formatEth(foreclosedData[String(tile.id)].deposit)} ETH
+                          </div>
+                        </>
+                      )}
+                      <div style={{ color: "#888", fontSize: 10 }}>unpaid Harberger tax · permanently closed</div>
+                    </>
                   ) : (
                     <>
                       {tile.owner && (
