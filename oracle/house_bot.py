@@ -83,10 +83,16 @@ RPC_URL = os.environ.get("RPC_URL", "https://base-mainnet.core.chainstack.com/97
 FACTORY = os.environ.get("FACTORY_ADDRESS", "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9")
 ABLY_KEY = os.environ.get("ABLY_API_KEY", "")
 
-# 0.001 ETH per side (matches historical minBet of 1e15 wei)
-BET_ETH = "0.001"
-BET_ETH_WEI = "1000000000000000"
+# 0.01 ETH per side — base visibility seed
+BET_ETH = "0.01"
+BET_ETH_WEI = "10000000000000000"
 POLL_INTERVAL = 2
+
+# Reactive matching: when real players create pool imbalance, house bets on
+# the smaller side to keep odds sane. Bounded per-round to cap losses.
+REACTIVE_IMBALANCE_THRESHOLD = 10**16        # 0.01 ETH — trigger when |pool0-pool1| above this
+REACTIVE_CAP_WEI = 5 * 10**16                # 0.05 ETH — max reactive spend per market
+REACTIVE_MIN_WEI = 2 * 10**15                # 0.002 ETH — don't bet below min
 CHAT_URL = "https://www.rushgame.vip/api/chat/messages"
 
 if not HOUSE_KEY:
@@ -106,6 +112,7 @@ except Exception:
 
 seen_markets = set()
 failed_markets = {}  # market -> timestamp of last failure (cooldown 60s)
+reactive_spent = {}  # market -> total wei spent reactively (bounded by REACTIVE_CAP_WEI)
 
 RPCS = [
     RPC_URL,
@@ -245,7 +252,25 @@ def place_bet_verified(market, side, amount_wei=BET_ETH_WEI, retries=3):
             return ""
     return ""
 
+def read_lock_time(market):
+    for rpc in RPCS:
+        try:
+            r = subprocess.run(
+                ["cast", "call", market, "lockTime()(uint256)", "--rpc-url", rpc],
+                capture_output=True, text=True, timeout=10,
+            )
+            if r.returncode == 0:
+                return int(r.stdout.strip().split()[0])
+        except Exception:
+            continue
+    return None
+
 def seed_market(market):
+    lt = read_lock_time(market)
+    if lt is not None and lt > 0 and time.time() >= lt:
+        log.info("Skip %s — lockTime passed (%.0fs ago)", market[:12], time.time() - lt)
+        seen_markets.add(market)
+        return False
     log.info("Seeding %s...", market[:12])
     tx0 = place_bet_verified(market, 0, BET_ETH_WEI)
     if tx0:
@@ -268,11 +293,55 @@ def seed_market(market):
         return False
 
     seen_markets.add(market)
+    reactive_spent[market] = 0
     log.info("Seeded %s — %s + %s ETH", market[:12], BET_ETH, BET_ETH)
     global _chat_index
     send_chat(CHAT_AFTER_SEED[_chat_index % len(CHAT_AFTER_SEED)])
     _chat_index += 1
     return True
+
+def react_to_imbalance(market):
+    """If players pushed one pool well above the other, bet the smaller side
+    up to REACTIVE_CAP_WEI total per market. Keeps odds attractive without
+    symmetric seeding bleed."""
+    if market not in seen_markets:
+        return
+    spent = reactive_spent.get(market, 0)
+    if spent >= REACTIVE_CAP_WEI:
+        return
+
+    st = read_state(market)
+    if st is None or st != 0:
+        return  # market locked/resolved
+
+    p0 = read_pool(market, 0)
+    p1 = read_pool(market, 1)
+    if p0 is None or p1 is None:
+        return
+
+    imbalance = abs(p0 - p1)
+    if imbalance < REACTIVE_IMBALANCE_THRESHOLD:
+        return
+
+    smaller_side = 0 if p0 < p1 else 1
+    budget_left = REACTIVE_CAP_WEI - spent
+    # bet half the imbalance, clamped to budget and min
+    amount = min(imbalance // 2, budget_left)
+    if amount < REACTIVE_MIN_WEI:
+        return
+
+    side_label = "UNDER" if smaller_side == 0 else "OVER"
+    log.info("Reactive %s on %s (imbalance=%s ETH, bet=%s ETH, spent=%s/%s)",
+             side_label, market[:12],
+             f"{imbalance/1e18:.4f}", f"{amount/1e18:.4f}",
+             f"{spent/1e18:.4f}", f"{REACTIVE_CAP_WEI/1e18:.4f}")
+
+    tx = place_bet_verified(market, smaller_side, str(amount))
+    if tx:
+        reactive_spent[market] = spent + amount
+        publish_bet(side_label.lower(), tx, f"{amount/1e18:.4f}")
+    else:
+        log.warning("Reactive bet failed on %s", market[:12])
 
 def run():
     log.info("House bot started (ETH mode)")
@@ -284,6 +353,7 @@ def run():
             markets = get_active_markets()
             for m in markets:
                 if m in seen_markets:
+                    react_to_imbalance(m)
                     continue
                 if m in failed_markets and time.time() - failed_markets[m] < 60:
                     continue
