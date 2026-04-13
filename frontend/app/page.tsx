@@ -160,7 +160,7 @@ function buildMarketFromContract(contractData: ReturnType<typeof useMarketContra
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
+    const mq = window.matchMedia("(min-width: 768px)");
     setIsDesktop(mq.matches);
     const h = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     mq.addEventListener("change", h);
@@ -273,7 +273,7 @@ export default function Home() {
   const mobileBettingPanelRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh" }}>
+    <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh", paddingBottom: "calc(60px + env(safe-area-inset-bottom))" }}>
       <WelcomeOverlay />
       <Header />
       <StatsBar
@@ -284,7 +284,7 @@ export default function Home() {
       />
 
       {/* Main 3-column layout */}
-      <div className="flex flex-col lg:flex-row" style={{ flex: "1 1 auto" }}>
+      <div className="flex flex-col md:flex-row" style={{ flex: "1 1 auto" }}>
 
         {/* Left: Video + content (55%) */}
         <div
@@ -419,7 +419,7 @@ export default function Home() {
           </div>
 
           {/* Mobile betting panel — shows right after video on small screens */}
-          <div ref={mobileBettingPanelRef} className="lg:hidden">
+          <div ref={mobileBettingPanelRef} className="md:hidden">
             <ErrorBoundary>
               <BettingPanel market={market} marketAddress={marketAddress} winningRangeIndex={winningRangeIndex} lockTime={lockTime} oraclePhase={oracle.phase} />
             </ErrorBoundary>
@@ -556,7 +556,7 @@ export default function Home() {
         {/* Center: Betting panel (25%) — hidden on mobile, shown inline after video instead */}
         <div
           ref={bettingPanelRef}
-          className="hidden lg:flex flex-col lg:sticky lg:top-0 lg:self-start"
+          className="hidden md:flex flex-col md:sticky md:top-0 md:self-start"
           style={{ flex: "0 0 25%", maxWidth: "100%", minWidth: 0, maxHeight: "100vh" }}
         >
           <div className="overflow-y-auto" style={{ maxHeight: "100vh" }}>
@@ -892,9 +892,10 @@ function MobileStickyBar({ status, threshold, onTap }: MobileStickyBarProps) {
 
   return (
     <div
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 px-3"
       style={{
-        height: 60,
+        height: "calc(60px + env(safe-area-inset-bottom))",
+        paddingBottom: "env(safe-area-inset-bottom)",
         background: "#0d0d0d",
         borderTop: "2px solid rgba(0,255,136,0.3)",
         boxShadow: "0 -4px 24px rgba(0,255,136,0.08)",

@@ -52,7 +52,7 @@ export default function Header() {
         <nav className="flex items-center gap-1.5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-none" aria-label="Main navigation">
           <Link
             href="/"
-            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
@@ -64,7 +64,7 @@ export default function Header() {
             href="https://markets.rushgame.vip/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#00aaff", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#44ccff")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#00aaff")}
@@ -75,7 +75,7 @@ export default function Header() {
           {/* TILES — highlighted with gold color */}
           <Link
             href="/tiles"
-            className="flex items-center gap-1 text-[9px] md:text-xs font-bold transition-colors whitespace-nowrap"
+            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
             style={{ color: "#ffd700", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffe44d")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffd700")}
@@ -85,7 +85,7 @@ export default function Header() {
 
           <Link
             href="/series2"
-            className="flex items-center gap-1 text-[9px] md:text-xs font-bold transition-colors whitespace-nowrap"
+            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
             style={{ color: "#ff6600", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff8833")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff6600")}
@@ -94,7 +94,7 @@ export default function Header() {
             <span
               className="px-1 py-0.5 rounded text-center"
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 background: "rgba(255,102,0,0.12)",
                 border: "1px solid rgba(255,102,0,0.3)",
                 color: "#ff6600",
@@ -109,7 +109,7 @@ export default function Header() {
 
           <Link
             href="/stats"
-            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
@@ -119,7 +119,7 @@ export default function Header() {
 
           <Link
             href="/docs"
-            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
@@ -129,7 +129,7 @@ export default function Header() {
 
           <Link
             href="/transparency"
-            className="text-[9px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
             onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#ffd700")}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
@@ -150,7 +150,7 @@ export default function Header() {
               ADMIN
               <span
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   padding: "1px 5px",
                   borderRadius: 3,
                   background: "rgba(255,68,68,0.12)",

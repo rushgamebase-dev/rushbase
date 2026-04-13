@@ -299,7 +299,7 @@ export default function Chat({ onCollapse }: ChatProps) {
             />
             <div
               className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
-              style={{ height: "65vh", background: "#0c0c0c", borderTop: "1px solid #2a2a2a", borderRadius: "12px 12px 0 0" }}
+              style={{ maxHeight: "65dvh", height: "65dvh", paddingBottom: "env(safe-area-inset-bottom)", background: "#0c0c0c", borderTop: "1px solid #2a2a2a", borderRadius: "12px 12px 0 0" }}
             >
               <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 0" }}>
                 <div style={{ width: 32, height: 3, borderRadius: 2, background: "#333" }} />
