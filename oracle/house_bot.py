@@ -139,7 +139,7 @@ def send_chat(text):
     except Exception as exc:
         log.warning("  Chat failed: %s", exc)
 
-def publish_bet(side, tx_hash, amount_eth=BET_ETH):
+def publish_bet(side, tx_hash, amount_eth=float(BET_ETH)):
     if not ably_client:
         return
     try:
@@ -150,7 +150,7 @@ def publish_bet(side, tx_hash, amount_eth=BET_ETH):
             "user": HOUSE_ADDR,
             "shortWallet": f"{HOUSE_ADDR[:6]}...{HOUSE_ADDR[-4:]}",
             "side": side,
-            "amount": amount_eth,
+            "amount": float(amount_eth),
             "txHash": tx_hash,
             "timestamp": ts,
         }
