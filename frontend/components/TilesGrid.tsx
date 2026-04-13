@@ -15,7 +15,12 @@ interface TilesGridProps {
  * during the grace period and must not be claimable through the UI.
  * The 46+ healthy tiles remain fully interactive.
  */
-export const CLOSED_TILE_IDS = new Set<number>([13, 45, 87, 88, 99]);
+export const CLOSED_TILE_IDS = new Set<number>([
+  // Original 5 closed during V2 migration
+  13, 45, 87, 88, 99,
+  // 22 foreclosed on 2026-04-13 for unpaid Harberger tax
+  15, 16, 17, 19, 24, 37, 44, 46, 47, 48, 50, 51, 52, 54, 66, 70, 71, 76, 77, 81, 82, 92,
+]);
 
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
