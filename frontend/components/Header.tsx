@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { WalletButton } from "@/components/WalletButton";
+import ShareButton from "@/components/ShareButton";
 import { useAccount } from "wagmi";
 
 // Admin wallet addresses — only these see the ADMIN nav link
@@ -201,6 +202,7 @@ export default function Header() {
           </span>
         </div>
 
+        <ShareButton compact />
         <WalletButton />
       </div>
     </header>

@@ -2,13 +2,26 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata = {
+  metadataBase: new URL("https://rushgame.vip"),
   title: "Rush — Live Prediction Market",
   description: "On-chain vehicle count prediction market. Bet on traffic. Win ETH.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Rush",
+  appleWebApp: {
+    capable: true,
+    title: "Rush",
+    statusBarStyle: "black-translucent" as const,
+  },
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "Rush — Live Prediction Market",
     description: "Predict vehicle counts on live cameras. Win ETH on Base Chain.",
     url: "https://rushgame.vip",
-    images: ["https://rushgame.vip/og-image.png"],
+    images: ["/og-image.png"],
     type: "website",
     siteName: "Rush Games",
   },
@@ -16,7 +29,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Rush — Live Prediction Market",
     description: "Predict vehicle counts on live cameras. Win ETH on Base Chain.",
-    images: ["https://rushgame.vip/og-image.png"],
+    images: ["/og-image.png"],
     site: "@rushgamebase",
   },
 };

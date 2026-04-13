@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import ShareButton from "@/components/ShareButton";
 
 interface CountdownProps {
   lockTime?: number;
@@ -278,11 +279,18 @@ export default function Countdown({
               </motion.span>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-xs font-black block" style={{ color: "#00ff88", fontFamily: "monospace" }}>
+          <div className="flex flex-col items-end gap-1.5">
+            <span className="text-xs font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>
               {nextRoundCountdown > 0 ? `Next in ${nextRoundCountdown}s` : "Starting..."}
             </span>
-            <img src="/mascot/payout.gif" alt="" style={{ width: 28, height: 28, borderRadius: "50%", marginTop: 4 }} />
+            <ShareButton
+              title="Rush — Live Prediction Market"
+              text={
+                finalCount !== undefined
+                  ? `Final count: ${finalCount} — ${winLabel} on Rush. AI watches traffic, players bet ETH.`
+                  : `${winLabel} on Rush. AI watches traffic, players bet ETH.`
+              }
+            />
           </div>
         </div>
       </motion.div>
