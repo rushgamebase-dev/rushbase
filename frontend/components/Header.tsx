@@ -207,19 +207,6 @@ export default function Header() {
       </div>
     </header>
 
-      {/* Burn announcement banner */}
-      <div
-        className="w-full py-1.5 text-center text-[10px] font-bold tracking-widest"
-        style={{
-          background: "linear-gradient(90deg, rgba(255,68,0,0.08), rgba(255,140,0,0.12), rgba(255,68,0,0.08))",
-          borderBottom: "1px solid rgba(255,100,0,0.15)",
-          color: "#ff8800",
-          fontFamily: "monospace",
-        }}
-      >
-        ALL MARKETS NOW IN $RUSH ONLY — 30% OF EVERY BET IS BURNED FOREVER
-      </div>
-
       {/* Mobile-only Series 2 CTA — big and unmissable */}
       <Link
         href="/series2"
