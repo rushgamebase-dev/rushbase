@@ -25,6 +25,8 @@ export const CLOSED_TILE_IDS = new Set<number>([
   15, 16, 17, 19, 24, 37, 44, 46, 47, 48, 50, 51, 52, 54, 66, 70, 71, 76, 77, 81, 82, 92,
   // 4 foreclosed on 2026-04-14 for unpaid Harberger tax
   58, 69, 79, 89,
+  // 1 foreclosed on 2026-04-15 for unpaid Harberger tax
+  59,
 ]);
 
 /** 20 raccoon tile images */
