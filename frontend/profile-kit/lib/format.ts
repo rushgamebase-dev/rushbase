@@ -25,6 +25,34 @@ export function formatPnl(ethValue: string): { text: string; isPositive: boolean
   return { text: `${sign}${compactEth(Math.abs(num))} ETH`, isPositive: num > 0, isZero: false };
 }
 
+// ROI as % of volume. Returns null when volume is zero / invalid.
+export function formatRoi(pnlEth: string, volumeEth: string): {
+  percentText: string;
+  ethText: string;
+  isPositive: boolean;
+  isZero: boolean;
+  percentNum: number;
+} | null {
+  const pnl = parseFloat(pnlEth);
+  const vol = parseFloat(volumeEth);
+  if (!isFinite(pnl) || !isFinite(vol) || vol <= 0) return null;
+  const ratio = pnl / vol;
+  const pct = ratio * 100;
+  const isZero = Math.abs(pct) < 0.01;
+  const isPositive = pct > 0;
+  const sign = isZero ? '' : isPositive ? '+' : '−';
+  const absEth = compactEth(Math.abs(pnl));
+  const absPct = Math.abs(pct);
+  const pctStr = absPct >= 10 ? absPct.toFixed(1) : absPct.toFixed(2);
+  return {
+    percentText: isZero ? '0%' : `${sign}${pctStr}%`,
+    ethText: isZero ? '0 ETH' : `${sign}${absEth} ETH`,
+    isPositive,
+    isZero,
+    percentNum: pct,
+  };
+}
+
 export function formatWinRate(rate: number): string {
   if (isNaN(rate)) return '0%';
   return `${(rate * 100).toFixed(1)}%`;
