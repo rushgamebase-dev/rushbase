@@ -41,7 +41,7 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <ProfileCard data={cardData} isOwnProfile={isOwnProfile} onEditClick={onEditClick} />
+      <ProfileCard data={cardData} stats={stats} badges={badges} isOwnProfile={isOwnProfile} onEditClick={onEditClick} />
       <div className="flex gap-1 border-b border-[#1a1a1a]">
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}

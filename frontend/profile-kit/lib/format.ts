@@ -3,20 +3,26 @@ export function shortenAddress(address: string, chars: number = 4): string {
   return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
 }
 
+function compactEth(absNum: number): string {
+  if (absNum >= 1_000_000) return `${(absNum / 1_000_000).toFixed(1)}M`;
+  if (absNum >= 1_000) return `${(absNum / 1_000).toFixed(1)}k`;
+  if (absNum >= 100) return absNum.toFixed(0);
+  if (absNum >= 1) return absNum.toFixed(2);
+  if (absNum >= 0.01) return absNum.toFixed(3);
+  return absNum.toFixed(4);
+}
+
 export function formatVolume(ethValue: string): string {
   const num = parseFloat(ethValue);
   if (isNaN(num)) return '0 ETH';
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}k ETH`;
-  if (num >= 1) return `${num.toFixed(2)} ETH`;
-  if (num >= 0.01) return `${num.toFixed(3)} ETH`;
-  return `${num.toFixed(4)} ETH`;
+  return `${compactEth(Math.abs(num))} ETH`;
 }
 
-export function formatPnl(ethValue: string): { text: string; isPositive: boolean } {
+export function formatPnl(ethValue: string): { text: string; isPositive: boolean; isZero: boolean } {
   const num = parseFloat(ethValue);
-  if (isNaN(num)) return { text: '0 ETH', isPositive: true };
-  const sign = num >= 0 ? '+' : '';
-  return { text: `${sign}${formatVolume(ethValue.replace('-', ''))}`, isPositive: num >= 0 };
+  if (isNaN(num) || num === 0) return { text: '0 ETH', isPositive: true, isZero: true };
+  const sign = num > 0 ? '+' : '−';
+  return { text: `${sign}${compactEth(Math.abs(num))} ETH`, isPositive: num > 0, isZero: false };
 }
 
 export function formatWinRate(rate: number): string {
