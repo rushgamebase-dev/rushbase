@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAccount, useConnect, useDisconnect, useBalance, useSwitchChain } from "wagmi";
 import { base } from "wagmi/chains";
 import { formatEther } from "viem";
-import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw, Plus } from "lucide-react";
+import { Copy, LogOut, ExternalLink, ChevronDown, X, RefreshCw, Plus, User } from "lucide-react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ---------------------------------------------------------------------------
@@ -405,7 +406,19 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const items = [
+  const items: Array<{
+    label: string;
+    icon: React.ReactNode;
+    color: string;
+    href?: string;
+    onClick?: () => void;
+  }> = [
+    {
+      label: "My Profile",
+      icon: <User size={13} />,
+      href: "/profile/me",
+      color: "#00ff88",
+    },
     {
       label: copied ? "Copied!" : "Copy Address",
       icon: <Copy size={13} />,
@@ -453,27 +466,36 @@ function AccountDropdown({ address, onDisconnect, onClose, onSwitchWallet }: Acc
       }}
       role="menu"
     >
-      {items.map((item, i) => (
-        <button
-          key={item.label}
-          onClick={item.onClick}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-colors text-left"
-          style={{
+      {items.map((item, i) => {
+        const common = {
+          className: "w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-colors text-left",
+          style: {
             color: item.color,
             fontFamily: "monospace",
             background: "transparent",
             border: "none",
             borderTop: i > 0 ? "1px solid #1a1a1a" : "none",
             cursor: "pointer",
-          }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#1a1a1a")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
-          role="menuitem"
-        >
-          {item.icon}
-          {item.label}
-        </button>
-      ))}
+          } as React.CSSProperties,
+          onMouseEnter: (e: React.MouseEvent<HTMLElement>) => ((e.currentTarget as HTMLElement).style.background = "#1a1a1a"),
+          onMouseLeave: (e: React.MouseEvent<HTMLElement>) => ((e.currentTarget as HTMLElement).style.background = "transparent"),
+          role: "menuitem" as const,
+        };
+        if (item.href) {
+          return (
+            <Link key={item.label} href={item.href} onClick={onClose} {...common}>
+              {item.icon}
+              {item.label}
+            </Link>
+          );
+        }
+        return (
+          <button key={item.label} onClick={item.onClick} {...common}>
+            {item.icon}
+            {item.label}
+          </button>
+        );
+      })}
     </motion.div>
   );
 }
