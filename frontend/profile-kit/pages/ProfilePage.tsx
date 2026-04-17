@@ -5,15 +5,14 @@ import { useProfile } from '../hooks/useProfile';
 import { useStats } from '../hooks/useStats';
 import { useBadges } from '../hooks/useBadges';
 import { ProfileCard } from '../components/profile/ProfileCard';
-import { StatsGrid } from '../components/profile/StatsGrid';
 import { BetHistory } from '../components/bet-history/BetHistory';
 import { ProfileBadges } from '../components/profile/ProfileBadges';
 import type { ProfileCardData } from '../types/profile';
 
-type Tab = 'stats' | 'history' | 'badges';
+type Tab = 'history' | 'badges';
 
 export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: string; isOwnProfile?: boolean; onEditClick?: () => void }) {
-  const [activeTab, setActiveTab] = useState<Tab>('stats');
+  const [activeTab, setActiveTab] = useState<Tab>('history');
   const { data: profile, isLoading } = useProfile(handle);
   const { data: stats } = useStats(profile?.id);
   const { data: badges } = useBadges(profile?.id);
@@ -21,7 +20,10 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
   if (isLoading) return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
       <div className="bg-[#111111] border border-[#1a1a1a] rounded-xl h-64 animate-pulse" />
-      <div className="h-10 bg-[#111111] border border-[#1a1a1a] rounded-lg animate-pulse" />
+      <div className="grid grid-cols-5 gap-3">
+        <div className="col-span-3 h-32 bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl animate-pulse" />
+        <div className="col-span-2 h-32 bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl animate-pulse" />
+      </div>
     </div>
   );
 
@@ -37,11 +39,12 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
     joinedAt: profile.createdAt,
   };
 
-  const tabs: { key: Tab; label: string }[] = [{ key: 'stats', label: 'Stats' }, { key: 'history', label: 'History' }, { key: 'badges', label: 'Badges' }];
+  const tabs: { key: Tab; label: string }[] = [{ key: 'history', label: 'History' }, { key: 'badges', label: 'Badges' }];
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-5">
       <ProfileCard data={cardData} stats={stats} badges={badges} isOwnProfile={isOwnProfile} onEditClick={onEditClick} />
+
       <div className="flex gap-1 border-b border-[#1a1a1a]">
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -49,7 +52,6 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
         ))}
       </div>
       <div>
-        {activeTab === 'stats' && stats && <StatsGrid stats={stats} />}
         {activeTab === 'history' && profile.id && <BetHistory userId={profile.id} />}
         {activeTab === 'badges' && badges && <ProfileBadges badges={badges} layout="grid" showLocked />}
       </div>
