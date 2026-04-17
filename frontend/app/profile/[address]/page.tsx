@@ -1,13 +1,12 @@
 "use client";
 
-import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import { ProfilePage } from "@/profile-kit/pages/ProfilePage";
 
-export default function ProfilePageRoute({ params }: { params: Promise<{ address: string }> }) {
-  const { address } = use(params);
+export default function ProfilePageRoute({ params }: { params: { address: string } }) {
+  const { address } = params;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0" }}>
