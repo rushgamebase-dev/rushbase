@@ -21,6 +21,28 @@ const BADGE_ICONS: Record<string, string> = {
   'verified': '✅', 'founder': '⭐',
 };
 
+// Win rate tiering — pill + base color, scaled by sample size
+function winRatePill(wr: number, bets: number): { label: string; color: string } | null {
+  if (bets < 5) return null; // not enough data
+  if (wr >= 0.7)  return { label: 'SCORCHING', color: '#ff6633' };
+  if (wr >= 0.6)  return { label: 'HOT', color: '#00ff88' };
+  if (wr >= 0.5)  return { label: 'WARM', color: '#00aaff' };
+  if (wr >= 0.4)  return { label: 'EVEN', color: '#888888' };
+  if (wr >= 0.3)  return { label: 'COLD', color: '#888888' };
+  return { label: 'ICE', color: '#ff4444' };
+}
+
+function winRateColor(wr: number, bets: number): string {
+  if (bets === 0) return '#555555';
+  if (bets < 5)   return '#e0e0e0';
+  if (wr >= 0.7)  return '#ff6633';
+  if (wr >= 0.6)  return '#00ff88';
+  if (wr >= 0.5)  return '#00ff88';
+  if (wr >= 0.4)  return '#e0e0e0';
+  if (wr >= 0.3)  return '#aaaaaa';
+  return '#ff4444';
+}
+
 export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: ProfileCardProps) {
   const tier = getLevelTier(data.level);
   const userTitle = getUserTitle(stats ?? null);
@@ -181,15 +203,29 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
       <div className="border-t border-[#1a1a1a] grid grid-cols-2">
         {/* Win Rate */}
         <div className="p-5 md:p-6 border-r border-[#1a1a1a]">
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Win Rate</div>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Win Rate</div>
+            {(() => {
+              const wrPill = winRatePill(data.winRate, data.totalBets);
+              if (!wrPill) return null;
+              return (
+                <span
+                  className="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
+                  style={{ color: wrPill.color, background: `${wrPill.color}12`, border: `1px solid ${wrPill.color}40` }}
+                >
+                  {wrPill.label}
+                </span>
+              );
+            })()}
+          </div>
           <div className="mt-1.5 flex items-baseline gap-3">
             <div
               className="text-4xl md:text-5xl font-mono font-black leading-none"
-              style={{ color: data.winRate > 0.5 ? '#00ff88' : data.winRate > 0 ? '#e0e0e0' : '#555' }}
+              style={{ color: winRateColor(data.winRate, data.totalBets) }}
             >
               {formatWinRate(data.winRate)}
             </div>
-            {stats && (data.winRate > 0) && (
+            {stats && (data.totalBets > 0) && (
               <div className="text-[10px] font-mono text-[#666] tracking-wider">
                 <span className="text-[#00ff88]">{stats.totalWins}W</span>
                 <span className="mx-1 text-[#333]">/</span>
@@ -197,32 +233,30 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
               </div>
             )}
           </div>
-          {data.winRate > 0 && (
-            <div className="mt-3 h-1 w-full rounded-full bg-[#1a1a1a] overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${Math.min(100, data.winRate * 100)}%`,
-                  background: data.winRate > 0.5 ? '#00ff88' : '#666',
-                }}
-              />
-            </div>
-          )}
+          <div className="mt-3 h-1 w-full rounded-full bg-[#1a1a1a] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.max(2, Math.min(100, data.winRate * 100))}%`,
+                background: winRateColor(data.winRate, data.totalBets),
+              }}
+            />
+          </div>
         </div>
 
-        {/* ROI / PnL */}
+        {/* ROI / PnL — slightly more restrained than Win Rate */}
         <div className="p-5 md:p-6">
           <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">ROI · All-Time</div>
           {roi ? (
             <>
               <div
-                className="mt-1.5 text-4xl md:text-5xl font-mono font-black leading-none"
+                className="mt-1.5 text-[2.5rem] md:text-[2.75rem] font-mono font-black leading-none tracking-tight"
                 style={{ color: roiColor }}
               >
                 {roi.percentText}
               </div>
               <div className="mt-1.5 text-[11px] font-mono text-[#666]">
-                <span style={{ color: roiColor, opacity: 0.75 }}>{roi.ethText}</span>
+                <span style={{ color: roiColor, opacity: 0.7 }}>{roi.ethText}</span>
                 {stats && parseFloat(stats.biggestWin) > 0 && (
                   <>
                     <span className="mx-2 text-[#333]">·</span>
@@ -233,7 +267,10 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
               </div>
             </>
           ) : (
-            <div className="mt-1.5 text-2xl font-mono font-black text-[#555] leading-none">—</div>
+            <>
+              <div className="mt-1.5 text-2xl font-mono font-black text-[#555] leading-none">—</div>
+              <div className="mt-1.5 text-[11px] font-mono text-[#555]">No activity yet</div>
+            </>
           )}
         </div>
       </div>
@@ -254,9 +291,16 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         </div>
         <div className="py-3">
           <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#555]">Best Streak</div>
-          <div className={`text-lg font-mono font-bold mt-0.5 ${data.bestStreak > 0 ? 'text-[#ff6633]' : 'text-[#555]'}`}>
-            {data.bestStreak > 0 ? `${data.bestStreak}W 🔥` : '—'}
-          </div>
+          {data.bestStreak > 0 ? (
+            <div className="text-lg font-mono font-bold mt-0.5 text-[#ff6633]">
+              {data.bestStreak}W <span>🔥</span>
+            </div>
+          ) : (
+            <div className="text-[11px] font-mono text-[#555] mt-1 flex items-center justify-center gap-1">
+              <span className="grayscale opacity-60">🔥</span>
+              <span>No streak yet</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -276,54 +320,75 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         </div>
 
         {earnedBadges.length > 0 ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-stretch gap-4">
             {featured && (
-              <div
-                className="shrink-0 relative group cursor-default"
-                title={`${featured.name}${featured.description ? ' — ' + featured.description : ''}`}
-              >
+              <div className="shrink-0 flex flex-col items-center gap-1.5 pr-4 border-r border-[#1a1a1a] min-w-[84px]">
                 <div
-                  className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl transition-transform group-hover:scale-105"
-                  style={{
-                    background: `linear-gradient(135deg, ${tier.color}28, ${tier.color}08)`,
-                    border: `2px solid ${tier.color}`,
-                    boxShadow: `0 0 16px ${tier.color}55`,
-                  }}
+                  className="text-[8px] font-mono font-black uppercase tracking-[0.2em]"
+                  style={{ color: tier.color }}
                 >
-                  {featured.imageUrl ? (
-                    <img src={featured.imageUrl} alt={featured.name} className="w-10 h-10" />
-                  ) : (
-                    BADGE_ICONS[featured.slug] || '🏆'
-                  )}
+                  ★ Featured
                 </div>
-                <div className="mt-1 text-center text-[9px] font-mono font-bold truncate" style={{ color: tier.color }}>
+                <div
+                  className="group cursor-default"
+                  title={`${featured.name}${featured.description ? ' — ' + featured.description : ''}`}
+                >
+                  <div
+                    className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl transition-transform group-hover:scale-105"
+                    style={{
+                      background: `linear-gradient(135deg, ${tier.color}28, ${tier.color}08)`,
+                      border: `2px solid ${tier.color}`,
+                      boxShadow: `0 0 18px ${tier.color}66`,
+                    }}
+                  >
+                    {featured.imageUrl ? (
+                      <img src={featured.imageUrl} alt={featured.name} className="w-10 h-10" />
+                    ) : (
+                      BADGE_ICONS[featured.slug] || '🏆'
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="text-center text-[9px] font-mono font-bold truncate w-full"
+                  style={{ color: tier.color }}
+                >
                   {featured.name}
                 </div>
               </div>
             )}
 
-            <div className="flex gap-2 overflow-x-auto scrollbar-none flex-1 -my-1 py-1">
-              {otherBadges.map((b) => (
-                <div
-                  key={b.slug}
-                  className="shrink-0 group cursor-default"
-                  title={`${b.name}${b.description ? ' — ' + b.description : ''}`}
-                >
-                  <div
-                    className="w-11 h-11 rounded-lg flex items-center justify-center text-xl transition-transform group-hover:scale-110"
-                    style={{
-                      background: '#141414',
-                      border: '1px solid #222',
-                    }}
-                  >
-                    {b.imageUrl ? (
-                      <img src={b.imageUrl} alt={b.name} className="w-7 h-7" />
-                    ) : (
-                      BADGE_ICONS[b.slug] || '🏷️'
-                    )}
-                  </div>
+            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+              {otherBadges.length > 0 && (
+                <div className="text-[8px] font-mono font-black uppercase tracking-[0.2em] text-[#555]">
+                  Collection ({otherBadges.length})
                 </div>
-              ))}
+              )}
+              <div className="flex gap-2 overflow-x-auto scrollbar-none -my-1 py-1">
+                {otherBadges.length > 0 ? (
+                  otherBadges.map((b) => (
+                    <div
+                      key={b.slug}
+                      className="shrink-0 group cursor-default"
+                      title={`${b.name}${b.description ? ' — ' + b.description : ''}`}
+                    >
+                      <div
+                        className="w-11 h-11 rounded-lg flex items-center justify-center text-xl transition-transform group-hover:scale-110"
+                        style={{ background: '#141414', border: '1px solid #222' }}
+                      >
+                        {b.imageUrl ? (
+                          <img src={b.imageUrl} alt={b.name} className="w-7 h-7" />
+                        ) : (
+                          BADGE_ICONS[b.slug] || '🏷️'
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-[11px] font-mono text-[#555] italic py-3">
+                    Your first badge sets the tone →
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (

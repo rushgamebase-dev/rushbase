@@ -24,7 +24,23 @@ export function BetHistory({ userId, pageSize = 20 }: { userId: string; pageSize
       {isLoading ? (
         <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="bg-[#111111] border border-[#1a1a1a] rounded-lg p-4 animate-pulse h-20" />)}</div>
       ) : data?.items.length === 0 ? (
-        <div className="text-center text-sm font-mono text-[#666666] py-8">No bets found</div>
+        <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-[#1a1a1a] rounded-xl">
+          <div className="text-3xl mb-2">🎯</div>
+          <div className="text-sm font-mono text-[#aaa] mb-1">
+            {status === 'all' ? 'No bets yet' : `No ${status.toLowerCase()} bets`}
+          </div>
+          <div className="text-[11px] font-mono text-[#666] mb-4 text-center">
+            {status === 'all' ? 'Your first prediction starts the scoreboard.' : 'Switch filter to see everything.'}
+          </div>
+          {status === 'all' && (
+            <a
+              href="/"
+              className="text-[11px] font-mono font-bold uppercase tracking-wider px-4 py-2 rounded-full bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/40 hover:bg-[#00ff88]/20 transition-colors"
+            >
+              Place your first bet →
+            </a>
+          )}
+        </div>
       ) : (
         <>
           {data?.items.map((bet) => <BetHistoryRow key={bet.id} bet={bet} />)}
