@@ -96,6 +96,60 @@ export function getLevelProgress(xp: number, level: number): LevelProgress {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Win rate label — 3 tiers per brief
+// ─────────────────────────────────────────────────────────────────
+
+export function getWinRateBadge(wr: number, bets: number): { label: string; icon: string; color: string } | null {
+  if (bets < 5) return null;
+  if (wr > 0.6)  return { label: 'Hot',      icon: '🔥', color: '#00ff88' };
+  if (wr >= 0.4) return { label: 'Balanced', icon: '⚖️', color: '#aaaaaa' };
+  return { label: 'Risky', icon: '📉', color: '#ff4444' };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Momentum — derived from current streak + winRate
+// ─────────────────────────────────────────────────────────────────
+
+export function getMomentum(stats: UserStats | null | undefined): { label: string; icon: string; color: string } | null {
+  if (!stats || stats.totalBets < 5) return null;
+  if (stats.currentStreak >= 3) return { label: 'Improving',     icon: '📈', color: '#00ff88' };
+  if (stats.currentStreak >= 1 && stats.winRate >= 0.5) return { label: 'Warming up', icon: '↗️', color: '#00aaff' };
+  if (stats.currentStreak === 0 && stats.winRate < 0.4)  return { label: 'Losing streak', icon: '📉', color: '#ff4444' };
+  return { label: 'Even', icon: '⚖️', color: '#888888' };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Best rank summary — pick the strongest category (percentile ≤ 25)
+// ─────────────────────────────────────────────────────────────────
+
+import type { UserRank } from '../types/profile';
+
+export function getBestRank(rank: UserRank | null | undefined): { label: string; percentile: number } | null {
+  if (!rank) return null;
+  const cats: Array<{ key: 'volume' | 'pnl' | 'wins'; title: string; pct: number }> = [
+    { key: 'volume', title: 'Volume', pct: rank.volume.percentile },
+    { key: 'pnl',    title: 'P&L',    pct: rank.pnl.percentile },
+    { key: 'wins',   title: 'Wins',   pct: rank.wins.percentile },
+  ];
+  cats.sort((a, b) => a.pct - b.pct);
+  const best = cats[0];
+  if (best.pct > 25) return null; // not flex-worthy
+  return { label: `Top ${best.pct}% · ${best.title}`, percentile: best.pct };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// XP rewards per badge slug — keep in sync with seed/auto-grant scripts
+// ─────────────────────────────────────────────────────────────────
+
+export const BADGE_XP_REWARD: Record<string, number> = {
+  'first-bet': 50, 'ten-bets': 100, 'fifty-bets': 250, 'hundred-bets': 500, 'five-hundred-bets': 1000,
+  'first-win': 50, 'ten-wins': 200, 'fifty-wins': 500,
+  'streak-3': 100, 'streak-5': 200, 'streak-10': 500,
+  'high-roller': 200, 'whale': 1000, 'diamond-hands': 2500,
+  'beta-tester': 100, 'early-player': 50, 'verified': 0, 'founder': 500,
+};
+
+// ─────────────────────────────────────────────────────────────────
 // Next-badge goal: concrete, progressable CTA
 // ─────────────────────────────────────────────────────────────────
 
@@ -108,6 +162,7 @@ export interface NextBadgeGoal {
   current: number;
   target: number;
   percent: number;
+  xpReward: number;
 }
 
 const BADGE_ICON: Record<string, string> = {
@@ -162,6 +217,7 @@ export function getNextBadgeGoal(
     current: top.current,
     target: top.target,
     percent: Math.min(100, (top.current / top.target) * 100),
+    xpReward: BADGE_XP_REWARD[top.slug] ?? 0,
   };
 }
 

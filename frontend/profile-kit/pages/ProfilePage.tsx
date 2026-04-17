@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useProfile } from '../hooks/useProfile';
 import { useStats } from '../hooks/useStats';
 import { useBadges } from '../hooks/useBadges';
+import { useRank } from '../hooks/useRank';
 import { ProfileCard } from '../components/profile/ProfileCard';
 import { BetHistory } from '../components/bet-history/BetHistory';
 import { ProfileBadges } from '../components/profile/ProfileBadges';
@@ -16,6 +17,7 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
   const { data: profile, isLoading } = useProfile(handle);
   const { data: stats } = useStats(profile?.id);
   const { data: badges } = useBadges(profile?.id);
+  const { data: rank } = useRank(profile?.id);
 
   if (isLoading) return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
@@ -43,7 +45,7 @@ export function ProfilePage({ handle, isOwnProfile, onEditClick }: { handle: str
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-5">
-      <ProfileCard data={cardData} stats={stats} badges={badges} isOwnProfile={isOwnProfile} onEditClick={onEditClick} />
+      <ProfileCard data={cardData} stats={stats} rank={rank} badges={badges} isOwnProfile={isOwnProfile} onEditClick={onEditClick} />
 
       <div className="flex gap-1 border-b border-[#1a1a1a]">
         {tabs.map((tab) => (

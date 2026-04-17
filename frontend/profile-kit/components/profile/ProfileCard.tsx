@@ -1,13 +1,18 @@
 'use client';
 
-import type { ProfileCardData, UserStats, BadgeEarned } from '../../types/profile';
+import type { ProfileCardData, UserStats, BadgeEarned, UserRank } from '../../types/profile';
 import { Avatar } from './Avatar';
 import { shortenAddress, formatVolume, formatWinRate, formatNumber, formatRelativeTime, formatRoi } from '../../lib/format';
-import { getLevelTier, getUserTitle, getLevelProgress, getNextBadgeGoal, getFeaturedBadgeSlug } from '../../lib/progression';
+import {
+  getLevelTier, getUserTitle, getLevelProgress,
+  getNextBadgeGoal, getFeaturedBadgeSlug,
+  getWinRateBadge, getMomentum, getBestRank,
+} from '../../lib/progression';
 
 interface ProfileCardProps {
   data: ProfileCardData;
   stats?: UserStats | null;
+  rank?: UserRank | null;
   badges?: BadgeEarned[];
   isOwnProfile?: boolean;
   onEditClick?: () => void;
@@ -21,32 +26,23 @@ const BADGE_ICONS: Record<string, string> = {
   'verified': '✅', 'founder': '⭐',
 };
 
-// Win rate tiering — pill + base color, scaled by sample size
-function winRatePill(wr: number, bets: number): { label: string; color: string } | null {
-  if (bets < 5) return null; // not enough data
-  if (wr >= 0.7)  return { label: 'SCORCHING', color: '#ff6633' };
-  if (wr >= 0.6)  return { label: 'HOT', color: '#00ff88' };
-  if (wr >= 0.5)  return { label: 'WARM', color: '#00aaff' };
-  if (wr >= 0.4)  return { label: 'EVEN', color: '#888888' };
-  if (wr >= 0.3)  return { label: 'COLD', color: '#888888' };
-  return { label: 'ICE', color: '#ff4444' };
-}
+const BADGE_UNLOCK: Record<string, string> = {
+  'first-bet': 'Place 1 bet', 'ten-bets': 'Place 10 bets', 'fifty-bets': 'Place 50 bets',
+  'hundred-bets': 'Place 100 bets', 'five-hundred-bets': 'Place 500 bets',
+  'first-win': 'Win 1 bet', 'ten-wins': 'Win 10 bets', 'fifty-wins': 'Win 50 bets',
+  'streak-3': '3-win streak', 'streak-5': '5-win streak', 'streak-10': '10-win streak',
+  'high-roller': 'Wager 1 ETH', 'whale': 'Wager 10 ETH', 'diamond-hands': 'Wager 50 ETH',
+  'beta-tester': 'Granted in beta', 'early-player': 'Granted in early days',
+  'verified': 'Manual verify', 'founder': 'Manual grant',
+};
 
-function winRateColor(wr: number, bets: number): string {
-  if (bets === 0) return '#555555';
-  if (bets < 5)   return '#e0e0e0';
-  if (wr >= 0.7)  return '#ff6633';
-  if (wr >= 0.6)  return '#00ff88';
-  if (wr >= 0.5)  return '#00ff88';
-  if (wr >= 0.4)  return '#e0e0e0';
-  if (wr >= 0.3)  return '#aaaaaa';
-  return '#ff4444';
-}
-
-export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: ProfileCardProps) {
+export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditClick }: ProfileCardProps) {
   const tier = getLevelTier(data.level);
   const userTitle = getUserTitle(stats ?? null);
   const progress = getLevelProgress(data.xp, data.level);
+  const wrBadge = getWinRateBadge(data.winRate, data.totalBets);
+  const momentum = getMomentum(stats ?? null);
+  const bestRank = getBestRank(rank ?? null);
 
   const earnedBadges = (badges ?? []).filter((b) => b.isEarned);
   const earnedSlugs = new Set(earnedBadges.map((b) => b.slug));
@@ -57,13 +53,19 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
 
   const roi = formatRoi(data.totalPnl, data.totalVolume);
   const roiColor = !roi || roi.isZero ? '#e0e0e0' : roi.isPositive ? '#00ff88' : '#ff4444';
+  const wrColor = data.totalBets === 0 ? '#555'
+    : data.winRate > 0.6 ? '#00ff88'
+    : data.winRate >= 0.4 ? '#e0e0e0'
+    : '#ff4444';
 
   const hotStreak = stats && stats.currentStreak >= 3;
   const displayedName = data.displayName || (data.handle ? `@${data.handle}` : shortenAddress(data.wallet));
 
+  const streakText = data.bestStreak > 0 ? `🔥 ${data.bestStreak} streak` : '🔥 no streak';
+
   return (
     <article
-      className="relative overflow-hidden rounded-2xl border"
+      className="relative overflow-hidden rounded-2xl border animate-[fadeInUp_0.35s_ease-out]"
       style={{
         borderColor: `${tier.color}33`,
         background: `
@@ -92,7 +94,7 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         </button>
       )}
 
-      {/* ─── HERO BLOCK ─── */}
+      {/* ─── IDENTITY BLOCK ─── */}
       <div className="p-5 md:p-7 flex flex-col md:flex-row md:items-center gap-5">
         <div className="relative shrink-0">
           <Avatar address={data.wallet} avatarUrl={data.avatarUrl} size={96} />
@@ -121,6 +123,20 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
             >
               {tier.title}
             </span>
+            {bestRank && (
+              <span
+                className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                style={{
+                  color: '#ffd700',
+                  background: 'rgba(255,215,0,0.08)',
+                  border: '1px solid rgba(255,215,0,0.35)',
+                  boxShadow: '0 0 8px rgba(255,215,0,0.2)',
+                }}
+                title={`Out of ${rank!.total} active players`}
+              >
+                🏆 {bestRank.label}
+              </span>
+            )}
           </div>
           {userTitle && (
             <div className="mt-1.5 text-[15px] font-mono text-[#d0d0d0]">
@@ -136,7 +152,7 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         </div>
       </div>
 
-      {/* ─── XP BAR + NEXT GOAL ─── */}
+      {/* ─── XP + MISSION ─── */}
       <div className="px-5 md:px-7 pb-5">
         <div className="flex items-baseline justify-between mb-1.5">
           <span className="text-[11px] font-mono text-[#888]">
@@ -145,9 +161,9 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
             <span className="text-[#555]">Lv {data.level + 1}</span>
           </span>
           <span className="text-[11px] font-mono text-[#666]">
-            <span style={{ color: tier.color }}>{formatNumber(progress.xpInto)}</span>
-            <span className="text-[#333]"> / </span>
-            <span>{formatNumber(progress.xpNeeded)} XP</span>
+            <span style={{ color: tier.color }}>{progress.percent.toFixed(0)}%</span>
+            <span className="text-[#333]"> · </span>
+            <span>{formatNumber(progress.xpInto)}/{formatNumber(progress.xpNeeded)} XP</span>
           </span>
         </div>
         <div className="h-2.5 w-full rounded-full bg-[#1a1a1a]/80 overflow-hidden relative">
@@ -156,33 +172,41 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
             style={{
               width: `${Math.max(2, progress.percent)}%`,
               background: `linear-gradient(90deg, ${tier.color}99 0%, ${tier.color} 100%)`,
-              boxShadow: progress.percent > 70 ? `0 0 10px ${tier.color}88` : `0 0 4px ${tier.color}44`,
+              boxShadow: progress.percent > 70 ? `0 0 12px ${tier.color}aa` : `0 0 4px ${tier.color}44`,
             }}
           />
+          {progress.percent > 70 && (
+            <div
+              className="absolute inset-0 rounded-full animate-pulse pointer-events-none"
+              style={{ background: `linear-gradient(90deg, transparent 60%, ${tier.color}22)` }}
+            />
+          )}
         </div>
 
-        {/* NEXT BADGE GOAL — concrete CTA */}
         {nextGoal && (
           <div
             className="mt-3 rounded-lg px-3 py-2.5 flex items-center gap-3 border"
             style={{ background: '#0a0a0a', borderColor: '#1a1a1a' }}
           >
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 opacity-40"
-              style={{ background: `${tier.color}10`, border: `1px solid ${tier.color}22` }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 opacity-50"
+              style={{ background: `${tier.color}10`, border: `1px solid ${tier.color}33` }}
             >
               {nextGoal.icon}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[12px] font-mono text-[#e0e0e0] truncate">
-                  <span className="text-[#00ff88]">▸</span>{' '}
+                  <span style={{ color: tier.color }}>▸</span>{' '}
                   <span className="font-bold">{nextGoal.deltaLabel}</span>
                   <span className="text-[#555]"> to unlock </span>
                   <span style={{ color: tier.color }}>{nextGoal.name}</span>
+                  {nextGoal.xpReward > 0 && (
+                    <span className="text-[#888] font-bold"> (+{nextGoal.xpReward} XP)</span>
+                  )}
                 </span>
                 <span className="text-[10px] font-mono text-[#666] shrink-0">
-                  {nextGoal.current}/{nextGoal.target}
+                  {formatNumber(nextGoal.current)}/{formatNumber(nextGoal.target)}
                 </span>
               </div>
               <div className="mt-1 h-1 w-full rounded-full bg-[#1a1a1a] overflow-hidden">
@@ -199,30 +223,23 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         )}
       </div>
 
-      {/* ─── STATS ─── */}
+      {/* ─── PRIMARY STATS (2 dominant) ─── */}
       <div className="border-t border-[#1a1a1a] grid grid-cols-2">
         {/* Win Rate */}
         <div className="p-5 md:p-6 border-r border-[#1a1a1a]">
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Win Rate</div>
-            {(() => {
-              const wrPill = winRatePill(data.winRate, data.totalBets);
-              if (!wrPill) return null;
-              return (
-                <span
-                  className="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
-                  style={{ color: wrPill.color, background: `${wrPill.color}12`, border: `1px solid ${wrPill.color}40` }}
-                >
-                  {wrPill.label}
-                </span>
-              );
-            })()}
+            {wrBadge && (
+              <span
+                className="text-[9px] font-mono font-black uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ color: wrBadge.color, background: `${wrBadge.color}12`, border: `1px solid ${wrBadge.color}40` }}
+              >
+                {wrBadge.icon} {wrBadge.label}
+              </span>
+            )}
           </div>
           <div className="mt-1.5 flex items-baseline gap-3">
-            <div
-              className="text-4xl md:text-5xl font-mono font-black leading-none"
-              style={{ color: winRateColor(data.winRate, data.totalBets) }}
-            >
+            <div className="text-4xl md:text-5xl font-mono font-black leading-none" style={{ color: wrColor }}>
               {formatWinRate(data.winRate)}
             </div>
             {stats && (data.totalBets > 0) && (
@@ -236,15 +253,12 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
           <div className="mt-3 h-1 w-full rounded-full bg-[#1a1a1a] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${Math.max(2, Math.min(100, data.winRate * 100))}%`,
-                background: winRateColor(data.winRate, data.totalBets),
-              }}
+              style={{ width: `${Math.max(2, Math.min(100, data.winRate * 100))}%`, background: wrColor }}
             />
           </div>
         </div>
 
-        {/* ROI / PnL — slightly more restrained than Win Rate */}
+        {/* ROI */}
         <div className="p-5 md:p-6">
           <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">ROI · All-Time</div>
           {roi ? (
@@ -275,36 +289,37 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         </div>
       </div>
 
-      {/* ─── SECONDARY STATS (compact row) ─── */}
-      <div className="border-t border-[#1a1a1a] grid grid-cols-3 text-center">
-        <div className="py-3 border-r border-[#1a1a1a]">
-          <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#555]">Bets</div>
-          <div className="text-lg font-mono font-bold text-[#e0e0e0] mt-0.5">
-            {formatNumber(data.totalBets)}
-          </div>
-        </div>
-        <div className="py-3 border-r border-[#1a1a1a]">
-          <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#555]">Volume</div>
-          <div className="text-lg font-mono font-bold text-[#e0e0e0] mt-0.5 truncate px-2" title={data.totalVolume}>
-            {formatVolume(data.totalVolume)}
-          </div>
-        </div>
-        <div className="py-3">
-          <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#555]">Best Streak</div>
-          {data.bestStreak > 0 ? (
-            <div className="text-lg font-mono font-bold mt-0.5 text-[#ff6633]">
-              {data.bestStreak}W <span>🔥</span>
-            </div>
-          ) : (
-            <div className="text-[11px] font-mono text-[#555] mt-1 flex items-center justify-center gap-1">
-              <span className="grayscale opacity-60">🔥</span>
-              <span>No streak yet</span>
-            </div>
-          )}
-        </div>
+      {/* ─── INLINE SECONDARY + STATUS TRIGGERS ─── */}
+      <div className="border-t border-[#1a1a1a] px-5 md:px-7 py-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-mono">
+        <span className="text-[#888]">
+          <span className="text-[#e0e0e0] font-bold">{formatNumber(data.totalBets)}</span>
+          <span className="ml-1 text-[#555]">bets</span>
+        </span>
+        <span className="text-[#333]">·</span>
+        <span className="text-[#888]">
+          <span className="text-[#e0e0e0] font-bold">{formatVolume(data.totalVolume)}</span>
+          <span className="ml-1 text-[#555]">volume</span>
+        </span>
+        <span className="text-[#333]">·</span>
+        <span className={data.bestStreak > 0 ? 'text-[#ff6633]' : 'text-[#666]'}>
+          {streakText}
+        </span>
+
+        {momentum && (
+          <>
+            <span className="flex-1" />
+            <span
+              className="flex items-center gap-1 text-[11px] font-bold"
+              style={{ color: momentum.color }}
+            >
+              <span>{momentum.icon}</span>
+              <span>{momentum.label}</span>
+            </span>
+          </>
+        )}
       </div>
 
-      {/* ─── BADGE RAIL — featured + rest ─── */}
+      {/* ─── BADGE RAIL — featured + collection ─── */}
       <div className="border-t border-[#1a1a1a] p-5">
         <div className="flex items-baseline justify-between mb-3">
           <div className="flex items-baseline gap-2">
@@ -323,35 +338,11 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
           <div className="flex items-stretch gap-4">
             {featured && (
               <div className="shrink-0 flex flex-col items-center gap-1.5 pr-4 border-r border-[#1a1a1a] min-w-[84px]">
-                <div
-                  className="text-[8px] font-mono font-black uppercase tracking-[0.2em]"
-                  style={{ color: tier.color }}
-                >
+                <div className="text-[8px] font-mono font-black uppercase tracking-[0.2em]" style={{ color: tier.color }}>
                   ★ Featured
                 </div>
-                <div
-                  className="group cursor-default"
-                  title={`${featured.name}${featured.description ? ' — ' + featured.description : ''}`}
-                >
-                  <div
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl transition-transform group-hover:scale-105"
-                    style={{
-                      background: `linear-gradient(135deg, ${tier.color}28, ${tier.color}08)`,
-                      border: `2px solid ${tier.color}`,
-                      boxShadow: `0 0 18px ${tier.color}66`,
-                    }}
-                  >
-                    {featured.imageUrl ? (
-                      <img src={featured.imageUrl} alt={featured.name} className="w-10 h-10" />
-                    ) : (
-                      BADGE_ICONS[featured.slug] || '🏆'
-                    )}
-                  </div>
-                </div>
-                <div
-                  className="text-center text-[9px] font-mono font-bold truncate w-full"
-                  style={{ color: tier.color }}
-                >
+                <BadgeTile badge={featured} size="lg" tierColor={tier.color} />
+                <div className="text-center text-[9px] font-mono font-bold truncate w-full" style={{ color: tier.color }}>
                   {featured.name}
                 </div>
               </div>
@@ -365,24 +356,7 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
               )}
               <div className="flex gap-2 overflow-x-auto scrollbar-none -my-1 py-1">
                 {otherBadges.length > 0 ? (
-                  otherBadges.map((b) => (
-                    <div
-                      key={b.slug}
-                      className="shrink-0 group cursor-default"
-                      title={`${b.name}${b.description ? ' — ' + b.description : ''}`}
-                    >
-                      <div
-                        className="w-11 h-11 rounded-lg flex items-center justify-center text-xl transition-transform group-hover:scale-110"
-                        style={{ background: '#141414', border: '1px solid #222' }}
-                      >
-                        {b.imageUrl ? (
-                          <img src={b.imageUrl} alt={b.name} className="w-7 h-7" />
-                        ) : (
-                          BADGE_ICONS[b.slug] || '🏷️'
-                        )}
-                      </div>
-                    </div>
-                  ))
+                  otherBadges.map((b) => <BadgeTile key={b.slug} badge={b} size="sm" tierColor={tier.color} />)
                 ) : (
                   <div className="text-[11px] font-mono text-[#555] italic py-3">
                     Your first badge sets the tone →
@@ -392,9 +366,9 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {(badges ?? []).slice(0, 6).map((b) => (
-              <div key={b.slug} className="shrink-0 opacity-30" title={`Locked — ${b.description ?? b.name}`}>
+              <div key={b.slug} className="shrink-0 opacity-30" title={`Locked — ${BADGE_UNLOCK[b.slug] ?? b.description ?? b.name}`}>
                 <div className="w-11 h-11 rounded-lg flex items-center justify-center text-lg bg-[#141414] border border-[#222] grayscale">
                   {BADGE_ICONS[b.slug] || '🔒'}
                 </div>
@@ -405,5 +379,47 @@ export function ProfileCard({ data, stats, badges, isOwnProfile, onEditClick }: 
         )}
       </div>
     </article>
+  );
+}
+
+function BadgeTile({ badge, size, tierColor }: { badge: BadgeEarned; size: 'sm' | 'lg'; tierColor: string }) {
+  const px = size === 'lg' ? 64 : 44;
+  const textSize = size === 'lg' ? 'text-3xl' : 'text-xl';
+  const unlock = BADGE_UNLOCK[badge.slug] ?? badge.description ?? '';
+
+  return (
+    <div className="relative group shrink-0 cursor-default">
+      <div
+        className={`${textSize} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}
+        style={{
+          width: px,
+          height: px,
+          background: size === 'lg'
+            ? `linear-gradient(135deg, ${tierColor}28, ${tierColor}08)`
+            : '#141414',
+          border: size === 'lg' ? `2px solid ${tierColor}` : '1px solid #222',
+          boxShadow: size === 'lg' ? `0 0 18px ${tierColor}66` : 'none',
+        }}
+      >
+        {badge.imageUrl ? (
+          <img src={badge.imageUrl} alt={badge.name} className={size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'} />
+        ) : (
+          BADGE_ICONS[badge.slug] || '🏷️'
+        )}
+      </div>
+      {/* Hover tooltip */}
+      <div
+        className="absolute z-30 left-1/2 -translate-x-1/2 top-full mt-2 w-44 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+      >
+        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 shadow-2xl">
+          <div className="text-[11px] font-mono font-bold text-[#e0e0e0] truncate">{badge.name}</div>
+          {unlock && (
+            <div className="text-[10px] font-mono text-[#666] mt-0.5">
+              <span className="text-[#00ff88]">Unlocked:</span> {unlock}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

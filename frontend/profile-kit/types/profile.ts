@@ -112,3 +112,16 @@ export interface ProfileUpdatePayload {
   avatarUrl?: string;
   isPublic?: boolean;
 }
+
+export interface RankCategory {
+  rank: number;
+  percentile: number;
+}
+
+export interface UserRank {
+  total: number;
+  volume: RankCategory;
+  pnl: RankCategory;
+  wins: RankCategory;
+  bets: RankCategory;
+}
