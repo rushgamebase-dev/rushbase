@@ -7,8 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, setJwt, getJwt } from '../lib/api';
 import { queryKeys } from '../lib/query-keys';
 
-const SIWE_DOMAIN = process.env.NEXT_PUBLIC_SIWE_DOMAIN || 'localhost';
-const SIWE_ORIGIN = process.env.NEXT_PUBLIC_SIWE_ORIGIN || 'http://localhost:3000';
+const SIWE_DOMAIN = (process.env.NEXT_PUBLIC_SIWE_DOMAIN || 'localhost').trim();
+const SIWE_ORIGIN = (process.env.NEXT_PUBLIC_SIWE_ORIGIN || 'http://localhost:3000').trim();
 
 interface AuthState { isAuthenticated: boolean; jwt: string | null; userId: string | null; }
 

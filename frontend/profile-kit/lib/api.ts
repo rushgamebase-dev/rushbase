@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_PROFILE_API_URL || 'http://localhost:3100';
+const API_BASE = (process.env.NEXT_PUBLIC_PROFILE_API_URL || 'http://localhost:3100').trim();
 const JWT_KEY = 'rush_profile_jwt';
 
 let _jwt: string | null = null;
