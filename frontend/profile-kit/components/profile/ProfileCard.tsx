@@ -289,33 +289,83 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
         </div>
       </div>
 
-      {/* ─── INLINE SECONDARY + STATUS TRIGGERS ─── */}
-      <div className="border-t border-[#1a1a1a] px-5 md:px-7 py-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-mono">
-        <span className="text-[#888]">
-          <span className="text-[#e0e0e0] font-bold">{formatNumber(data.totalBets)}</span>
-          <span className="ml-1 text-[#555]">bets</span>
-        </span>
-        <span className="text-[#333]">·</span>
-        <span className="text-[#888]">
-          <span className="text-[#e0e0e0] font-bold">{formatVolume(data.totalVolume)}</span>
-          <span className="ml-1 text-[#555]">volume</span>
-        </span>
-        <span className="text-[#333]">·</span>
-        <span className={data.bestStreak > 0 ? 'text-[#ff6633]' : 'text-[#666]'}>
-          {streakText}
-        </span>
+      {/* ─── SECONDARY MINI-CARDS (3 blocks) ─── */}
+      <div className="border-t border-[#1a1a1a] px-5 md:px-6 pt-4 pb-4">
+        <div className="grid grid-cols-3 gap-2.5 md:gap-3">
+          {/* Bets */}
+          <div
+            className="relative rounded-xl px-3 py-3 text-center overflow-hidden"
+            style={{
+              background: 'radial-gradient(circle at 50% 0%, #161616, #0d0d0d 70%)',
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.03)',
+            }}
+          >
+            <div className="text-xl md:text-2xl font-mono font-black text-[#e0e0e0] leading-none">
+              {formatNumber(data.totalBets)}
+            </div>
+            <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[#555]">Bets</div>
+          </div>
+
+          {/* Volume — glow in tier color */}
+          <div
+            className="relative rounded-xl px-3 py-3 text-center overflow-hidden"
+            style={{
+              background: `radial-gradient(circle at 50% 100%, ${tier.color}14, #0d0d0d 70%)`,
+              boxShadow: `inset 0 0 0 1px ${tier.color}14, 0 0 14px ${tier.color}0f`,
+            }}
+          >
+            <div
+              className="text-xl md:text-2xl font-mono font-black leading-none truncate"
+              style={{ color: '#e0e0e0', textShadow: `0 0 10px ${tier.color}55` }}
+              title={data.totalVolume}
+            >
+              {formatVolume(data.totalVolume)}
+            </div>
+            <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[#555]">Volume</div>
+          </div>
+
+          {/* Streak — dynamic color + pulse if hot */}
+          <div
+            className="relative rounded-xl px-3 py-3 text-center overflow-hidden"
+            style={{
+              background: data.bestStreak > 0
+                ? 'radial-gradient(circle at 50% 100%, rgba(255,102,51,0.14), #0d0d0d 70%)'
+                : 'radial-gradient(circle at 50% 100%, #161616, #0d0d0d 70%)',
+              boxShadow: data.bestStreak > 0
+                ? 'inset 0 0 0 1px rgba(255,102,51,0.18), 0 0 14px rgba(255,102,51,0.1)'
+                : 'inset 0 0 0 1px rgba(255,255,255,0.03)',
+            }}
+          >
+            {data.bestStreak > 0 ? (
+              <>
+                <div
+                  className="text-xl md:text-2xl font-mono font-black leading-none flex items-center justify-center gap-1"
+                  style={{ color: '#ff6633', textShadow: '0 0 10px rgba(255,102,51,0.4)' }}
+                >
+                  <span className={hotStreak ? 'animate-pulse' : ''}>🔥</span>
+                  <span>{data.bestStreak}</span>
+                </div>
+                <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em]" style={{ color: '#ff663399' }}>
+                  Streak
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-xl md:text-2xl font-mono font-black leading-none flex items-center justify-center gap-1 text-[#555]">
+                  <span className="grayscale opacity-50">🔥</span>
+                  <span>0</span>
+                </div>
+                <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[#555]">Streak</div>
+              </>
+            )}
+          </div>
+        </div>
 
         {momentum && (
-          <>
-            <span className="flex-1" />
-            <span
-              className="flex items-center gap-1 text-[11px] font-bold"
-              style={{ color: momentum.color }}
-            >
-              <span>{momentum.icon}</span>
-              <span>{momentum.label}</span>
-            </span>
-          </>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-mono font-bold" style={{ color: momentum.color }}>
+            <span>{momentum.icon}</span>
+            <span>{momentum.label}</span>
+          </div>
         )}
       </div>
 
