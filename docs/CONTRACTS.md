@@ -1,6 +1,6 @@
 # Rush Protocol — Smart Contract Reference
 
-Comprehensive reference for the Rush prediction market protocol deployed on Base mainnet. Rush is a pari-mutuel prediction market where users bet on real-world outcomes (vehicle counts from live cameras). The protocol operates with zero house edge — fees go to tile holders or are burned.
+Comprehensive reference for the Rush prediction market protocol deployed on Base mainnet. Rush is a pari-mutuel prediction market where users bet ETH on real-world outcomes (vehicle counts from live cameras). The protocol operates with **zero house edge** — all fees flow to tile holders.
 
 ---
 
@@ -8,13 +8,13 @@ Comprehensive reference for the Rush prediction market protocol deployed on Base
 
 | Contract | Address | Status |
 |----------|---------|--------|
-| BurnMarketFactory | `0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f` | Production |
-| $RUSH Token | `0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b` | Production |
+| MarketFactory | `0x5b04F3DFaE780A7e109066E754d27f491Af55Af9` | Production |
+| $RUSH Token | `0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b` | Production (trading asset) |
 | RushTiles V1 (Series 1) | `0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4` | Production |
 | RushTiles V2 (Series 2) | `0x5b7b2a6AC4f3A017fb943C9F550d609174532fFF` | Production |
-| MarketFactory (ETH) | `0x5b04F3DFaE780A7e109066E754d27f491Af55Af9` | Legacy |
+| BurnMarketFactory | `0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f` | Archived |
 | Oracle/Admin | `0x4c385830c2E241EfeEd070Eb92606B6AedeDA277` | — |
-| Fee Recipient | `0xdd12D83786C2BAc7be3D59869834C23E91449A2D` | — |
+| Fee Recipient (dev) | `0xdd12D83786C2BAc7be3D59869834C23E91449A2D` | — |
 
 ### Previous Deploys (Deprecated)
 
@@ -28,83 +28,33 @@ Comprehensive reference for the Rush prediction market protocol deployed on Base
 
 ## Contract Details
 
-### 1. BurnMarketFactory (~130 lines)
+### 1. MarketFactory (~200 lines) — Production
 
-Factory contract for $RUSH token prediction markets. Creates BurnMarket instances for each round.
-
-**Key Functions:**
-
-| Function | Access | Description |
-|----------|--------|-------------|
-| `createMarket(description, ranges, roundDurationSecs)` | Oracle/Admin | Deploys a new BurnMarket instance |
-| `setAdmin(address)` | Admin | Transfer admin role |
-| `setOracle(address)` | Admin | Set oracle address |
-| `getMarketCount()` | Public | Total markets created |
-| `getMarkets(offset, limit)` | Public | Paginated market list |
-| `getActiveMarkets()` | Public | All non-resolved/cancelled markets |
-
-**Configuration:**
-- `feeBps = 0` — compatibility stub, no factory-level fee
-- `feeRecipient = address(0)` — compatibility stub
-
-**Events:**
-```
-MarketCreated(uint256 marketIndex, address marketAddress, string description, uint256 roundDurationSecs, bool isTokenMode)
-```
-
----
-
-### 2. BurnMarket (~300 lines)
-
-Prediction market with a 70/30 burn split. All bets denominated in $RUSH token (ERC20).
-
-**Constants:**
-- `BURN_BPS = 3000` (30%)
-- `BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD`
-
-**Lifecycle:**
-```
-OPEN → LOCKED → RESOLVED
-                 ↘ CANCELLED
-```
-
-**Key Functions:**
-
-| Function | Access | Description |
-|----------|--------|-------------|
-| `placeBetToken(rangeIndex, amount)` | Public | Place bet (requires prior `approve()` on $RUSH) |
-| `lockMarket()` | Oracle | Stop accepting bets |
-| `resolveMarket(actualCarCount)` | Oracle | Find winning range, execute burn, mark resolved |
-| `cancelMarket()` | Oracle | Cancel and enable refunds |
-| `distributeAll()` | Public | Auto-pay all winners |
-| `refundAll()` | Public | Auto-refund all bettors (after cancel) |
-
-**Payout Formula:**
-```
-totalBurned  = totalPool * BURN_BPS / 10000      (30% burned to 0xdead)
-prizePool    = totalPool - totalBurned            (70% to winners)
-userPayout   = (userBet / winningRangePool) * prizePool
-```
-
-**Flow:** `resolveMarket()` determines the winning range, transfers 30% of the total pool to `0x...dEaD` (permanent burn), and the remaining 70% is distributed proportionally among winners via `distributeAll()`.
-
----
-
-### 3. MarketFactory (~200 lines) — Legacy
-
-Factory contract for ETH-denominated prediction markets. Creates PredictionMarket instances.
+Factory contract for ETH-denominated prediction markets. Creates `PredictionMarket` instances for each round.
 
 **Configuration:**
 - `feeBps = 500` (5%)
-- `feeRecipient = 0xdd12D83786C2BAc7be3D59869834C23E91449A2D`
+- `feeRecipient` — routes to RushTiles holders
 
 **Key Functions:**
 
-Same `createMarket()` interface as BurnMarketFactory. Markets are created per-round by the oracle.
+| Function | Access | Description |
+|----------|--------|-------------|
+| `createMarket(...)` | Oracle/Admin | Deploys a new PredictionMarket instance |
+| `setAdmin(address)` | Admin | Transfer admin role |
+| `setOracle(address)` | Admin | Set oracle address |
+| `getMarketCount()` | Public | Total markets created |
+| `getMarkets()` | Public | Paginated market list |
+| `getActiveMarkets()` | Public | All non-resolved/cancelled markets |
+
+**Events:**
+```
+MarketCreated(uint256 indexed marketIndex, address indexed marketAddress, string description, uint256 roundDurationSecs, bool isTokenMode)
+```
 
 ---
 
-### 4. PredictionMarket (~500 lines) — Legacy
+### 2. PredictionMarket (~500 lines) — Production
 
 ETH pari-mutuel betting pool. 5% fee directed to tile holders via the fee recipient.
 
@@ -140,7 +90,7 @@ userPayout   = (userBet / winningRangePool) * prizePool
 
 ---
 
-### 5. RushTiles V1 — Series 1 (~700 lines)
+### 3. RushTiles V1 — Series 1 (~700 lines)
 
 100 tiles (10x10 grid), 1 share each, max 5 tiles per wallet. Harberger-taxed ownership with revenue distribution.
 
@@ -159,6 +109,8 @@ userPayout   = (userBet / winningRangePool) * prizePool
 | Buyout fee | 10% | 60% | 40% |
 | Appreciation tax | 30% | 60% | 40% |
 | Claim fee | 10% | 60% | 40% |
+| Market fees (5% of pool) | — | 0% | 100% |
+| Flaunch trading fees | — | 0% | 100% |
 
 **Integrations:**
 - **Flaunch:** `receive()` distributes incoming ETH to holders. `claimFlaunchFees(feeEscrow)` pulls fees from Flaunch escrow.
@@ -168,13 +120,13 @@ userPayout   = (userBet / winningRangePool) * prizePool
 
 ---
 
-### 6. RushTiles V2 — Series 2 (~590 lines)
+### 4. RushTiles V2 — Series 2 (~590 lines)
 
 100 tiles with a two-tier system. Designed to incentivize early commitment with founder-tier protections.
 
 **Tier System:**
 
-| Tier | Min Price | Shares/Tile | Buyout |
+| Tier | Upfront Price | Shares/Tile | Buyout |
 |------|-----------|-------------|--------|
 | Founder | 0.5 ETH | 5 | CANNOT be bought out |
 | Normal | 0.1 ETH | 1 | Can be bought out |
@@ -193,7 +145,20 @@ userPayout   = (userBet / winningRangePool) * prizePool
 
 ---
 
-### 7. Dormant Contracts
+### 5. BurnMarketFactory + BurnMarket — Archived
+
+Earlier market format denominated in $RUSH tokens with a 30% burn on resolution. **No longer used for new rounds.** The contract remains deployed and verified for historical reference.
+
+**Why archived:** The protocol consolidated around ETH markets (MarketFactory + PredictionMarket) because ETH is the native asset on Base and every bettor can pay gas with it, while $RUSH-denominated markets required an extra approval and limited the bettor universe to $RUSH holders.
+
+**Historical constants:**
+- `BURN_BPS = 3000` (30%)
+- `BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD`
+- `feeBps = 0` (no protocol fee — burn was the sole sink)
+
+---
+
+### 6. Dormant Contracts
 
 These contracts are deployed and verified on Basescan but not enforced in production. They provide infrastructure for a future multi-oracle setup.
 
@@ -213,23 +178,7 @@ Post-resolution dispute mechanism. Challengers deposit funds to dispute a market
 
 ## Fee Flow Diagrams
 
-### $RUSH Token Market Flow
-```
-                    placeBetToken()
-  Bettors ──────────────────────────► BurnMarket
-                                          │
-                              resolveMarket(count)
-                                          │
-                          ┌───────────────┼───────────────┐
-                          │               │               │
-                          ▼               ▼               ▼
-                     Winners (70%)   0xdead (30%)    [if cancel]
-                     distributeAll()  permanent       refundAll()
-                     proportional     burn            full refund
-                     to bet size
-```
-
-### ETH Market Flow (Legacy)
+### ETH Market Flow (Production)
 ```
                       placeBet()
   Bettors ──────────────────────────► PredictionMarket
@@ -247,17 +196,13 @@ Post-resolution dispute mechanism. Challengers deposit funds to dispute a market
                                          │
                                          ▼
                                     RushTiles
-                                    treasury
-                                         │
-                                         ▼
-                                    Tile holders
-                                    (per share)
+                                    (100% to V1 holders)
 ```
 
 ### Tile Economy Flow
 ```
   ┌─────────────────────────────────────────────────────────┐
-  │                    RushTiles Contract                     │
+  │                    RushTiles Contract                    │
   │                                                          │
   │   Harberger Tax (5%/week)                                │
   │       │                                                  │
@@ -279,6 +224,16 @@ Post-resolution dispute mechanism. Challengers deposit funds to dispute a market
   │   External ETH (receive)                                 │
   │       └──► Holders       (V1: 100% / V2: 100%)          │
   └─────────────────────────────────────────────────────────┘
+```
+
+### $RUSH Token Flow (Flaunch trading)
+```
+  $RUSH trading on Flaunch ──► DynamicAddressFeeSplitManager
+                                        │
+                               creator fees distribution
+                                        │
+                                        ▼
+                               RushTiles V1 (100% holders)
 ```
 
 ---

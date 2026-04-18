@@ -1,59 +1,58 @@
-# $RUSH Token — Deflationary Prediction Market Token
+# $RUSH Token
 
 ## Overview
 
-- **$RUSH** is the native token of the Rush prediction market protocol on Base
-- Launched via [Flaunch](https://flaunch.gg)
+$RUSH is the protocol's native trading asset on Base, launched via [Flaunch](https://flaunch.gg). It is a Flaunch-managed ERC20 whose creator fees are a continuous revenue stream for **RushTiles V1 holders**.
+
 - **Address:** `0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b`
 - **Chain:** Base Mainnet (8453)
 - **Standard:** ERC20
+- **Status:** Production (trading asset)
 
-## Burn Mechanics
+---
 
-The core innovation: every $RUSH prediction market burns 30% of the total pool.
+## What $RUSH Is Today
 
-```
-Total Pool (100% $RUSH bets)
-  |-- 70% -> Winners (proportional to bet size)
-  |-- 30% -> Burned forever (sent to 0x000...dEaD)
-```
+$RUSH is **not** used for active betting on the protocol. Bets are placed in ETH via the current `PredictionMarket` contract (see [CONTRACTS.md](CONTRACTS.md)).
 
-- **BURN_BPS** = 3000 (30%), hardcoded and immutable
-- **BURN_ADDRESS** = `0x000000000000000000000000000000000000dEaD`
-- Zero protocol fees on $RUSH markets (feeBps=0)
-- The burn is deflationary: every resolved market permanently reduces supply
+$RUSH functions as:
 
-## How It Works
+1. A tradeable asset on Flaunch and aggregators (DexScreener, etc.)
+2. A continuous fee source for RushTiles V1 holders -- every buy and sell of $RUSH on Flaunch generates creator fees that route back to tile holders
+3. A protocol-aligned speculative position for supporters who want exposure to Rush's activity
 
-1. Users approve $RUSH spending for the BurnMarket contract
-2. Users call `placeBetToken(rangeIndex, amount)` to bet
-3. Oracle counts vehicles and calls `resolveMarket(actualCount)`
-4. Contract identifies winning range
-5. 30% of totalPool is transferred to 0xdead (burned)
-6. Remaining 70% is distributed proportionally to winners
-7. `distributeAll()` auto-pays all winners
+---
 
-## Payout Formula
+## Flaunch Trading Fees → Tile Holders
+
+Flaunch collects creator fees on every swap of $RUSH. These fees are managed by the **DynamicAddressFeeSplitManager** at `0x9eA9EEEAC3Cf3420DCb298DB1b1C6CA77E9F7462` and routed to the RushTiles V1 contract.
+
+The V1 contract distributes all incoming ETH (including Flaunch fees) 100% to tile holders in proportion to tiles held:
 
 ```
-burnAmount = totalPool * 30%
-distributable = totalPool - burnAmount  (70%)
-userPayout = (userBet / winningRangePool) * distributable
+$RUSH trade on Flaunch
+         │
+         ▼
+Creator fee (Flaunch-managed)
+         │
+         ▼
+RushTiles V1 contract (receive())
+         │
+         ▼
+globalRewardPerShare += amount / totalActiveTiles
+         │
+         ▼
+Each tile holder can claimFees() their share
 ```
 
-**Example:** 10,000 $RUSH total pool, you bet 1,000 on the winning side (5,000 total on winning side)
+### Claim Mechanism
 
-- Burned: 3,000 $RUSH (gone forever)
-- Distributable: 7,000 $RUSH
-- Your payout: (1,000 / 5,000) * 7,000 = 1,400 $RUSH
-- Your profit: 400 $RUSH
+Two ways Flaunch fees can reach V1:
 
-## Deflationary Impact
+- **Direct `receive()`:** When Flaunch's fee manager sends ETH to the V1 address, it is distributed immediately.
+- **`claimFlaunchFees(feeEscrow)`:** V1 exposes an explicit helper that pulls accumulated fees from the Flaunch escrow. Anyone can call it; the ETH lands in V1 and is distributed the same way.
 
-- Every round burns tokens regardless of outcome
-- As volume grows, burn rate accelerates
-- Supply can only decrease, never increase
-- Contract tracks `totalBurned` per market for transparency
+---
 
 ## Trading
 
@@ -61,15 +60,10 @@ userPayout = (userBet / winningRangePool) * distributable
 - **DexScreener:** https://dexscreener.com/base/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b
 - **Basescan:** https://basescan.org/token/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b
 
-## Trading Fees & Tile Holders
+---
 
-- $RUSH was launched on Flaunch, which manages trading fee distribution
-- Trading fees are managed by the DynamicAddressFeeSplitManager at `0x9eA9EEEAC3Cf3420DCb298DB1b1C6CA77E9F7462`
-- Fee split is configured to distribute to RushTiles V1 holders proportionally
-- This means tile holders earn from both prediction market activity AND token trading
+## Historical: $RUSH Burn Markets (Archived)
 
-## Contract Reference
+An earlier market format (`BurnMarketFactory` + `BurnMarket` at `0xf3edae04...`) used $RUSH tokens for betting with a 70/30 winner/burn split. This format was archived when the protocol consolidated on ETH-denominated markets. The contracts remain verified on Basescan for historical reference but are no longer used for new rounds.
 
-- **BurnMarketFactory:** `0xf3edae04f632bc4cfde9a08e06f36a17bfaee83f`
-- **BurnMarket:** new instance per round (deployed by factory)
-- **Key functions:** `placeBetToken()`, `resolveMarket()`, `claimWinnings()`, `distributeAll()`
+No tokens are being actively burned by the protocol. $RUSH supply is whatever Flaunch manages.

@@ -455,9 +455,10 @@ export default function TransparencyPage() {
           <div style={S.sectionLabel}>VERIFIED CONTRACTS</div>
           <div className="flex flex-col gap-2">
             {[
-              { name: "MarketFactory (ETH)", addr: m.contracts.factory_eth, note: "Deprecated" },
-              { name: "BurnMarketFactory (RUSH)", addr: m.contracts.factory_burn, note: "Production" },
+              { name: "MarketFactory (ETH)", addr: m.contracts.factory_eth, note: "Production" },
+              { name: "RushTiles V2 (Series 2)", addr: m.contracts.tiles_v2, note: "Production" },
               { name: "RushTiles V1 (Series 1)", addr: m.contracts.tiles_v1, note: "Production" },
+              { name: "BurnMarketFactory (RUSH)", addr: m.contracts.factory_burn, note: "Archived" },
               { name: "Protocol Wallet", addr: m.contracts.dev_wallet, note: "Fee recipient" },
               { name: "Oracle Wallet", addr: m.contracts.oracle_wallet, note: "Market operator" },
             ].map((c, i) => (

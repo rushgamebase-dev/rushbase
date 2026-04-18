@@ -2,7 +2,11 @@
 
 **Data**: 2026-04-10
 **Git tag**: `video-smooth-ffmpeg-pipe`
-**Status**: validado visualmente pelo user em `peace-bridge` e `konya-turkey-19`
+**Status**: validado em produção nas câmeras Peace Bridge e Konya
+
+Este documento descreve correções estruturais no pipeline de vídeo do oracle. As
+mudanças estão no engine de detecção da `oracle/` e nos hooks de frontend;
+os caminhos e nomes de arquivo abaixo refletem o código realmente em produção.
 
 ## TL;DR
 
@@ -49,7 +53,7 @@ isso gerava long tasks de 100-200ms no main thread (medido com
 
 ### 1. `cv2.VideoCapture` → `subprocess.Popen(ffmpeg, rawvideo BGR24)`
 
-**Arquivo**: `oracle/stream_server.py` (função `process_video`)
+**Arquivo**: detection engine em `oracle/` (função `process_video`)
 
 ffmpeg subprocess com pipe de raw BGR24 tem buffer interno muito melhor
 que OpenCV com CAP_FFMPEG. Não trava no read() entre segments.
@@ -102,18 +106,19 @@ o caminho curto.
 
 ### 2. Modelo YOLO: `yolov8x.pt` → `yolo12s.pt`
 
-**Arquivo**: `oracle/stream_server.py:1070` (argparse `--model` default)
+**Arquivo**: detection engine em `oracle/` (argparse `--model` default)
 
 `yolov8x` (137MB) era ~40-150ms por frame na RTX 3090 com `imgsz=1280`.
 `yolo12s` (19MB) é consistentemente ~8-15ms. Acurácia de vehicle
 count é equivalente para o caso de uso (contar veículos cruzando linha).
 
-O modelo `yolo12s.pt` mora em `oracle/yolo12s.pt`. Se sumir, copiar de
-`solana_prediction_market/novaenginedestream/yolo12s.pt`.
+O modelo `yolo12s.pt` mora em `oracle/yolo12s.pt`. Se sumir, baixar de
+novo da distribuição oficial de weights do Ultralytics para o tamanho
+`s` (small) da linha YOLOv12.
 
 ### 3. Throttle no main loop = native HLS fps
 
-**Arquivo**: `oracle/stream_server.py` (dentro de `process_video`)
+**Arquivo**: detection engine em `oracle/` (dentro de `process_video`)
 
 Com `yolo12s`, o main loop rodava muito mais rápido que o fps nativo do
 stream. Resultado: **vídeo em fast-forward** (cliente via o vídeo em
@@ -200,8 +205,7 @@ causa React rerender em cascata do `page.tsx` inteiro.
 1. Primeiro verificar o fps nativo do stream (`ffprobe`). Se o
    throttle está errado (não casa com o fps), video vai ficar fast-forward
    ou lento demais.
-2. Verificar se `yolo12s.pt` existe em `oracle/`. Se não, copiar de
-   `solana_prediction_market/novaenginedestream/yolo12s.pt`.
+2. Verificar se `yolo12s.pt` existe em `oracle/`. Se não, baixar de novo.
 3. Verificar se o ffmpeg tem os flags conservadores (sem `-fflags
    nobuffer`, sem `-flags low_delay`, sem `discardcorrupt`). Se alguém
    tiver adicionado, remover.
@@ -209,7 +213,7 @@ causa React rerender em cascata do `page.tsx` inteiro.
    do `requestAnimationFrame` callback**, não direto no `onmessage`.
 5. Conferir que o reader usa `put(f, timeout=1)`, **não**
    `put_nowait` + drop-oldest.
-6. Rodar `pgrep -af stream_server` — só pode haver um processo.
+6. Confirmar que existe apenas uma instância do detection engine rodando.
 
 Se nada disso bater, `git checkout video-smooth-ffmpeg-pipe` e começar
 a bisseccionar.

@@ -1,6 +1,6 @@
 # Rush Protocol -- Architecture Overview
 
-Rush is a fully on-chain prediction market protocol on Base where AI observes live cameras and settles markets automatically. Users bet on real-world vehicle counts; an oracle powered by computer vision creates markets, watches the road, and resolves everything on-chain with cryptographic evidence.
+Rush is a fully on-chain prediction market protocol on Base where AI observes live cameras and settles markets automatically. Users bet ETH on real-world vehicle counts; an oracle powered by computer vision creates markets, watches the road, and resolves everything on-chain with evidence frames.
 
 ---
 
@@ -9,10 +9,10 @@ Rush is a fully on-chain prediction market protocol on Base where AI observes li
 Five subsystems work together:
 
 1. **Smart Contracts** (Base Mainnet) -- Market creation, betting, resolution, payout, tile economy
-2. **Oracle Engine** (Python) -- AI detection, vehicle counting, on-chain settlement
-3. **Frontend** (Next.js) -- User interface, wallet integration, real-time updates
+2. **Oracle Engine** (Python + GPU) -- AI detection, vehicle counting, on-chain settlement
+3. **Frontend** (Next.js 14) -- User interface, wallet integration, real-time updates
 4. **Real-Time Layer** -- WebSocket for live detection feed, Ably for market events
-5. **Data Layer** -- Market history, user profiles, platform stats
+5. **Data Layer** -- Market history, user profiles, platform stats, evidence frames
 
 ---
 
@@ -54,9 +54,9 @@ Five subsystems work together:
 
 Three contract systems coexist on Base Mainnet:
 
-- **$RUSH Markets** (BurnMarketFactory -> BurnMarket): Token betting with 30% burn on resolution. The primary market type.
-- **ETH Markets** (MarketFactory -> PredictionMarket): Legacy ETH betting with a 5% platform fee.
-- **Tile Economy** (RushTiles V1 + V2): Revenue-sharing tiles with Harberger tax mechanics. Tile owners earn a share of platform fees.
+- **ETH Markets** (MarketFactory -> PredictionMarket) -- Pari-mutuel ETH betting. **The production market system.** 5% of each pool is routed to RushTiles holders; 95% goes to winners.
+- **Tile Economy** (RushTiles V1 + V2) -- Two independent revenue-sharing grids with Harberger tax mechanics. Tile owners earn a share of platform fees and, for V1, Flaunch trading fees from the $RUSH token.
+- **Archived: $RUSH Markets** (BurnMarketFactory -> BurnMarket) -- Earlier market format that burned 30% of the pool on resolution. No longer used for new rounds; the contract remains verified on Basescan for historical reference.
 
 Dormant infrastructure is deployed and ready for future activation: OracleRegistry, DataAttestation, ConsensusEngine, DisputeManager.
 
@@ -85,8 +85,8 @@ Next.js 14 deployed on Vercel. Key features:
 - **wagmi v2** for wallet connection and contract interactions
 - **Real-time vehicle count** via WebSocket -- users see vehicles counted live
 - **Ably** for market lifecycle events pushed to all connected clients
-- **Pages**: main game (`/`), tiles (`/tiles`), series 2 (`/series2`), stats (`/stats`), profile (`/profile/[address]`), docs (`/docs`), admin (`/admin`)
-- **13 API endpoints** for market data, stats, chat, and profiles
+- **Pages**: main game (`/`), tiles (`/tiles`), series 2 (`/series2`), stats (`/stats`), profile (`/profile/[address]`), leaderboard (`/leaderboard`), docs (`/docs`), transparency (`/transparency`), admin (`/admin`)
+- **REST API** for market data, stats, chat, profiles, evidence
 
 See [API.md](API.md) for the endpoint reference.
 
@@ -103,14 +103,14 @@ Two independent channels serve different purposes:
 
 ## Data Flow -- Happy Path of a Round
 
-1. **Oracle creates market** on-chain -> Ably broadcasts `market_created`
-2. **Frontend shows market**, users place bets via wallet (wagmi -> contract)
+1. **Oracle creates market** on-chain via `MarketFactory.createMarket()` -> Ably broadcasts `market_created`
+2. **Frontend shows market**, users place ETH bets via wallet (wagmi -> `PredictionMarket.placeBet()`)
 3. **Oracle broadcasts live count** via WebSocket as vehicles are detected
 4. **Betting window closes** -> `lockMarket()` is called on-chain
 5. **Counting continues**, evidence frames are captured and hashed
-6. **Round ends** -> `resolveMarket(count)` is called -> 30% of the pot is burned, 70% goes to winners
+6. **Round ends** -> `resolveMarket(count)` is called -> 5% fee routed to RushTiles, 95% to winners
 7. **`distributeAll()`** auto-pays all winners -> Ably broadcasts `market_resolved`
-8. **Market data** is posted to the ledger API for history and stats
+8. **Market data** is posted to the ledger API for history and stats; evidence frames stored for audit
 
 ---
 
@@ -122,5 +122,5 @@ Two independent channels serve different purposes:
 | Contracts | Solidity 0.8.24, Foundry, OpenZeppelin |
 | Frontend | Next.js 14, TypeScript, wagmi v2, viem, Tailwind CSS, Framer Motion |
 | Real-time | Ably (market events), WebSocket (detection) |
-| Oracle | Python, Computer Vision |
+| Oracle | Python, Computer Vision, CUDA GPU |
 | Hosting | Vercel (frontend), Cloudflare (tunnel) |
