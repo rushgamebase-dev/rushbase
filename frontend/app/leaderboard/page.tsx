@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import { useLeaderboard, type LeaderboardSort, type LeaderboardRow } from "@/profile-kit/hooks/useLeaderboard";
+import { useMyProfile } from "@/profile-kit/hooks/useMyProfile";
+import { useRank } from "@/profile-kit/hooks/useRank";
 import { IdentityChip } from "@/profile-kit/components/identity/IdentityChip";
 import { formatVolume } from "@/profile-kit/lib/format";
 
@@ -46,6 +48,17 @@ function rankColor(rank: number): string {
 export default function LeaderboardPage() {
   const [sort, setSort] = useState<LeaderboardSort>("volume");
   const { data, isLoading, error } = useLeaderboard(sort, 50);
+  const { profile: me } = useMyProfile();
+  const { data: myRank } = useRank(me?.id);
+
+  const myWallet = me?.wallet?.toLowerCase();
+  const inTop50 = !!myWallet && data?.some((r) => r.wallet.toLowerCase() === myWallet);
+  const myRankForSort = myRank
+    ? sort === "volume" ? myRank.volume
+    : sort === "pnl" ? myRank.pnl
+    : sort === "wins" ? myRank.wins
+    : myRank.bets
+    : null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e0e0e0]">
@@ -107,42 +120,81 @@ export default function LeaderboardPage() {
         )}
 
         {data && data.length > 0 && (
-          <ol className="space-y-1">
-            {data.map((row) => (
-              <li
-                key={row.userId}
-                className="flex items-center gap-3 p-3 rounded-lg border border-[#1a1a1a] bg-[#0d0d0d] hover:border-[#333] transition-colors"
-              >
-                <div
-                  className="w-8 text-center font-mono font-black text-sm shrink-0"
-                  style={{ color: rankColor(row.rank) }}
+          <ol className="space-y-1 pb-24">
+            {data.map((row) => {
+              const isMe = !!myWallet && row.wallet.toLowerCase() === myWallet;
+              return (
+                <li
+                  key={row.userId}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                    isMe
+                      ? "border-[#00ff88]/50 bg-[#00ff88]/5 shadow-[0_0_18px_rgba(0,255,136,0.18)]"
+                      : "border-[#1a1a1a] bg-[#0d0d0d] hover:border-[#333]"
+                  }`}
                 >
-                  #{row.rank}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <IdentityChip address={row.wallet} size="sm" />
-                </div>
-                <div className="flex items-baseline gap-4 text-xs font-mono shrink-0">
-                  <div className="hidden sm:block text-right">
-                    <div className="text-[#666] text-[10px] uppercase tracking-[0.15em]">
-                      Win rate
+                  <div
+                    className="w-8 text-center font-mono font-black text-sm shrink-0"
+                    style={{ color: rankColor(row.rank) }}
+                  >
+                    #{row.rank}
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <IdentityChip address={row.wallet} size="sm" />
+                    {isMe && (
+                      <span className="text-[9px] font-mono font-black uppercase tracking-[0.15em] text-[#00ff88] px-1.5 py-0.5 rounded border border-[#00ff88]/40 bg-[#00ff88]/10">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-4 text-xs font-mono shrink-0">
+                    <div className="hidden sm:block text-right">
+                      <div className="text-[#666] text-[10px] uppercase tracking-[0.15em]">
+                        Win rate
+                      </div>
+                      <div className="text-[#aaa]">
+                        {(row.winRate * 100).toFixed(0)}%
+                      </div>
                     </div>
-                    <div className="text-[#aaa]">
-                      {(row.winRate * 100).toFixed(0)}%
+                    <div className="text-right min-w-[80px]">
+                      <div className="text-[#666] text-[10px] uppercase tracking-[0.15em]">
+                        {SORTS.find((s) => s.key === sort)?.label}
+                      </div>
+                      <StatValue sort={sort} row={row} />
                     </div>
                   </div>
-                  <div className="text-right min-w-[80px]">
-                    <div className="text-[#666] text-[10px] uppercase tracking-[0.15em]">
-                      {SORTS.find((s) => s.key === sort)?.label}
-                    </div>
-                    <StatValue sort={sort} row={row} />
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         )}
       </main>
+
+      {me && myRankForSort && !inTop50 && (
+        <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none px-4 pb-4">
+          <div className="max-w-3xl mx-auto pointer-events-auto">
+            <Link
+              href={`/profile/${me.wallet}`}
+              className="flex items-center gap-3 p-3 rounded-lg border border-[#00ff88]/50 bg-[#0a0a0a]/95 backdrop-blur shadow-[0_-6px_24px_rgba(0,0,0,0.6)] hover:border-[#00ff88] transition-colors"
+            >
+              <div className="w-8 text-center font-mono font-black text-sm shrink-0 text-[#00ff88]">
+                #{myRankForSort.rank}
+              </div>
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <IdentityChip address={me.wallet} size="sm" linkTo={false} />
+                <span className="text-[9px] font-mono font-black uppercase tracking-[0.15em] text-[#00ff88] px-1.5 py-0.5 rounded border border-[#00ff88]/40 bg-[#00ff88]/10">
+                  You
+                </span>
+              </div>
+              <div className="text-right text-xs font-mono shrink-0">
+                <div className="text-[#666] text-[10px] uppercase tracking-[0.15em]">
+                  Top {myRankForSort.percentile}%
+                </div>
+                <div className="text-[#00ff88] font-bold">#{myRankForSort.rank}</div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
