@@ -80,6 +80,7 @@ def main():
                 "w": wallet,
                 "m": to_int(p["markets"]),
                 "b": to_int(p["bets"]),
+                "wi": to_int(p.get("wins", 0)),
                 "wa": str(to_int(p["wagered"])),
                 "wo": str(to_int(p["won"])),
                 "r": str(to_int(p["refunded"])),
