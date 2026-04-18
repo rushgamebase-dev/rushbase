@@ -61,7 +61,13 @@ export default async function Image({ params }: { params: { address: string } })
 
   let profile: ProfileShape | null = null;
   try {
-    const res = await fetch(`${BACKEND}/users/address/${addr}`, { cache: 'no-store' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`${BACKEND}/users/address/${addr}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
     if (res.ok) profile = (await res.json()) as ProfileShape;
   } catch {
     /* fall through — render fallback card */
@@ -93,14 +99,13 @@ export default async function Image({ params }: { params: { address: string } })
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          background:
+          backgroundColor: '#0a0a0a',
+          backgroundImage:
             'radial-gradient(800px circle at 12% 8%, rgba(0,255,136,0.18), transparent 55%),' +
-            'radial-gradient(700px circle at 100% 100%, rgba(0,255,136,0.10), transparent 55%),' +
-            '#0a0a0a',
+            'radial-gradient(700px circle at 100% 100%, rgba(0,255,136,0.10), transparent 55%)',
           color: '#e0e0e0',
           fontFamily: 'ui-monospace, SFMono-Regular, monospace',
           padding: '56px 64px',
-          boxSizing: 'border-box',
         }}
       >
         {/* Header row */}
@@ -118,16 +123,17 @@ export default async function Image({ params }: { params: { address: string } })
           >
             <div
               style={{
+                display: 'flex',
                 width: 14,
                 height: 14,
-                borderRadius: '50%',
-                background: '#00ff88',
+                borderRadius: 7,
+                backgroundColor: '#00ff88',
                 boxShadow: '0 0 16px #00ff88',
               }}
             />
-            RUSH · PROFILE
+            <span>RUSH · PROFILE</span>
           </div>
-          <div style={{ fontSize: 24, color: '#666', letterSpacing: 4 }}>RUSHGAME.VIP</div>
+          <div style={{ display: 'flex', fontSize: 24, color: '#666', letterSpacing: 4 }}>RUSHGAME.VIP</div>
         </div>
 
         {/* Identity block */}
@@ -140,11 +146,10 @@ export default async function Image({ params }: { params: { address: string } })
             style={{
               width: 260,
               height: 260,
-              borderRadius: '50%',
+              borderRadius: 130,
               border: '6px solid #00ff88',
               boxShadow: '0 0 40px rgba(0,255,136,0.35)',
               objectFit: 'cover',
-              background: '#0a0a0a',
             }}
           />
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
@@ -174,19 +179,20 @@ export default async function Image({ params }: { params: { address: string } })
             >
               <div
                 style={{
+                  display: 'flex',
                   padding: '8px 18px',
                   borderRadius: 8,
                   color: '#00ff88',
-                  background: 'rgba(0,255,136,0.08)',
+                  backgroundColor: 'rgba(0,255,136,0.08)',
                   border: '2px solid rgba(0,255,136,0.4)',
                   fontWeight: 900,
                   letterSpacing: 2,
                 }}
               >
-                LV {level}
+                {`LV ${level}`}
               </div>
-              <div style={{ color: '#666' }}>·</div>
-              <div style={{ color: '#aaa' }}>{totalBets.toLocaleString()} bets</div>
+              <div style={{ display: 'flex', color: '#666' }}>·</div>
+              <div style={{ display: 'flex', color: '#aaa' }}>{`${totalBets.toLocaleString()} bets`}</div>
             </div>
           </div>
         </div>
@@ -223,20 +229,22 @@ function Stat({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div style={{ fontSize: 18, color: '#666', letterSpacing: 4, fontWeight: 700 }}>{label}</div>
+      <div style={{ display: 'flex', fontSize: 18, color: '#666', letterSpacing: 4, fontWeight: 700 }}>{label}</div>
       <div
         style={{
-          fontSize: 62,
+          display: 'flex',
+          fontSize: 56,
           fontWeight: 900,
           color,
           marginTop: 6,
           letterSpacing: -1,
           lineHeight: 1,
+          whiteSpace: 'nowrap',
         }}
       >
         {value}
       </div>
-      {sub.trim() && <div style={{ fontSize: 18, color: '#555', marginTop: 6 }}>{sub}</div>}
+      {sub.trim() && <div style={{ display: 'flex', fontSize: 18, color: '#555', marginTop: 6 }}>{sub}</div>}
     </div>
   );
 }
