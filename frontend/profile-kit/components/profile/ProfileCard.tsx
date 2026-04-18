@@ -115,19 +115,28 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="text-3xl md:text-4xl font-mono font-black text-[#e0e0e0] truncate leading-none">
-              {displayedName}
-            </h1>
+          <h1 className="text-3xl md:text-4xl font-mono font-black text-[#e0e0e0] truncate leading-none">
+            {displayedName}
+          </h1>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
             <span
               className="text-[11px] font-mono font-bold uppercase tracking-[0.18em]"
               style={{ color: tier.color }}
             >
               {tier.title}
             </span>
+            {userTitle && (
+              <>
+                <span className="text-[#333]">·</span>
+                <span className="text-[11px] font-mono text-[#aaa] flex items-center gap-1">
+                  <span>{userTitle.icon}</span>
+                  <span>{userTitle.title}</span>
+                </span>
+              </>
+            )}
             {bestRank && (
               <span
-                className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md ml-1"
                 style={{
                   color: '#ffd700',
                   background: 'rgba(255,215,0,0.08)',
@@ -140,13 +149,7 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
               </span>
             )}
           </div>
-          {userTitle && (
-            <div className="mt-1.5 text-[15px] font-mono text-[#d0d0d0]">
-              <span className="mr-1">{userTitle.icon}</span>
-              <span className="font-bold">{userTitle.title}</span>
-            </div>
-          )}
-          <div className="mt-1.5 text-[11px] font-mono text-[#666]">
+          <div className="mt-2 text-[11px] font-mono text-[#666]">
             <span>{shortenAddress(data.wallet, 6)}</span>
             <span className="mx-2 text-[#333]">·</span>
             <span>Joined {formatRelativeTime(data.joinedAt)}</span>
@@ -348,7 +351,7 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
                   <span>{data.bestStreak}</span>
                 </div>
                 <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em]" style={{ color: '#ff663399' }}>
-                  Streak
+                  Best Streak
                 </div>
               </>
             ) : (
@@ -360,15 +363,18 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
                 <div className="mt-1.5 text-[9px] font-mono uppercase tracking-[0.22em] text-[#555]">Streak</div>
               </>
             )}
+            {momentum && (
+              <div
+                className="mt-1.5 text-[9px] font-mono font-bold flex items-center justify-center gap-1"
+                style={{ color: momentum.color }}
+                title={momentum.label}
+              >
+                <span>{momentum.icon}</span>
+                <span className="truncate">{momentum.label}</span>
+              </div>
+            )}
           </div>
         </div>
-
-        {momentum && (
-          <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-mono font-bold" style={{ color: momentum.color }}>
-            <span>{momentum.icon}</span>
-            <span>{momentum.label}</span>
-          </div>
-        )}
       </div>
 
       {/* ─── BADGE RAIL — featured + collection ─── */}
