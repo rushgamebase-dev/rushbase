@@ -27,7 +27,7 @@ function levelForXp(xp: number): number {
   return Math.max(1, Math.floor(Math.pow(xp / 100, 2 / 3)));
 }
 
-function formatEth(v: any): string {
+function formatEth(v: unknown): string {
   const n = parseFloat(String(v ?? 0));
   if (!isFinite(n) || n === 0) return '0';
   if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
@@ -35,7 +35,7 @@ function formatEth(v: any): string {
   return n.toFixed(4);
 }
 
-function formatPnl(v: any): { text: string; color: string } {
+function formatPnl(v: unknown): { text: string; color: string } {
   const n = parseFloat(String(v ?? 0));
   if (!isFinite(n) || n === 0) return { text: '0 ETH', color: '#888' };
   const sign = n > 0 ? '+' : '−';
@@ -44,19 +44,31 @@ function formatPnl(v: any): { text: string; color: string } {
   return { text: `${sign}${short} ETH`, color: n > 0 ? '#00ff88' : '#ff4444' };
 }
 
+type ProfileShape = {
+  profile?: { handle?: string; displayName?: string; avatarUrl?: string };
+  stats?: {
+    xp?: number;
+    totalBets?: number;
+    totalWins?: number;
+    totalLosses?: number;
+    totalVolume?: string | number;
+    totalPnl?: string | number;
+  };
+};
+
 export default async function Image({ params }: { params: { address: string } }) {
   const addr = (params.address || '').toLowerCase();
 
-  let profile: any = null;
+  let profile: ProfileShape | null = null;
   try {
     const res = await fetch(`${BACKEND}/users/address/${addr}`, { cache: 'no-store' });
-    if (res.ok) profile = await res.json();
+    if (res.ok) profile = (await res.json()) as ProfileShape;
   } catch {
     /* fall through — render fallback card */
   }
 
-  const handle = profile?.profile?.handle as string | undefined;
-  const displayName = profile?.profile?.displayName as string | undefined;
+  const handle = profile?.profile?.handle;
+  const displayName = profile?.profile?.displayName;
   const name = displayName || (handle ? `@${handle}` : shortAddr(addr));
   const tagline = displayName && handle ? `@${handle}` : shortAddr(addr);
 
@@ -69,7 +81,7 @@ export default async function Image({ params }: { params: { address: string } })
   const totalVolume = profile?.stats?.totalVolume ?? '0';
   const totalPnl = profile?.stats?.totalPnl ?? '0';
 
-  const avatar = (profile?.profile?.avatarUrl as string | undefined) || defaultAvatar(addr);
+  const avatar = profile?.profile?.avatarUrl || defaultAvatar(addr);
   const wrColor = totalBets === 0 ? '#666' : winRate >= 0.6 ? '#00ff88' : winRate >= 0.4 ? '#e0e0e0' : '#ff4444';
   const pnl = formatPnl(totalPnl);
 
@@ -120,6 +132,7 @@ export default async function Image({ params }: { params: { address: string } })
 
         {/* Identity block */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 56, marginTop: 54, flex: 1 }}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element */}
           <img
             src={avatar}
             width={260}

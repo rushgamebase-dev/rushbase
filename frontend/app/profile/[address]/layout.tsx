@@ -13,16 +13,20 @@ export async function generateMetadata({
   params: { address: string };
 }): Promise<Metadata> {
   const addr = (params.address || '').toLowerCase();
-  let profile: any = null;
+  type ProfileShape = {
+    profile?: { handle?: string; displayName?: string };
+    stats?: { totalBets?: number; totalWins?: number; totalLosses?: number };
+  };
+  let profile: ProfileShape | null = null;
   try {
     const res = await fetch(`${BACKEND}/users/address/${addr}`, { cache: 'no-store' });
-    if (res.ok) profile = await res.json();
+    if (res.ok) profile = (await res.json()) as ProfileShape;
   } catch {
     /* silent fallback to anonymous card */
   }
 
-  const handle = profile?.profile?.handle as string | undefined;
-  const displayName = profile?.profile?.displayName as string | undefined;
+  const handle = profile?.profile?.handle;
+  const displayName = profile?.profile?.displayName;
   const shown = displayName || (handle ? `@${handle}` : shortAddr(addr));
   const bets = Number(profile?.stats?.totalBets ?? 0);
   const wins = Number(profile?.stats?.totalWins ?? 0);
