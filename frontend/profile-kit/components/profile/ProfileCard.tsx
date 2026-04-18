@@ -374,22 +374,45 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
       {/* ─── BADGE RAIL — featured + collection ─── */}
       <div className="border-t border-[#1a1a1a] p-5">
         <div className="flex items-baseline justify-between mb-3">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Badges</span>
-            {earnedBadges.length > 0 && (
-              <span className="text-[10px] font-mono text-[#aaa]">
-                <span style={{ color: tier.color }}>{earnedBadges.length}</span>
-                <span className="text-[#333]"> / </span>
-                <span>{(badges ?? []).length || 18}</span>
-              </span>
-            )}
-          </div>
+          {onBadgesClick ? (
+            <button
+              onClick={onBadgesClick}
+              className="flex items-baseline gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+              title="View full collection"
+            >
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Badges</span>
+              {earnedBadges.length > 0 && (
+                <span className="text-[10px] font-mono text-[#aaa]">
+                  <span style={{ color: tier.color }}>{earnedBadges.length}</span>
+                  <span className="text-[#333]"> / </span>
+                  <span>{(badges ?? []).length || 18}</span>
+                </span>
+              )}
+              <span className="text-[10px] font-mono text-[#555]">→</span>
+            </button>
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#666]">Badges</span>
+              {earnedBadges.length > 0 && (
+                <span className="text-[10px] font-mono text-[#aaa]">
+                  <span style={{ color: tier.color }}>{earnedBadges.length}</span>
+                  <span className="text-[#333]"> / </span>
+                  <span>{(badges ?? []).length || 18}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {earnedBadges.length > 0 ? (
           <div className="flex items-stretch gap-4">
             {featured && (
-              <div className="shrink-0 flex flex-col items-center gap-1.5 pr-4 border-r border-[#1a1a1a] min-w-[84px]">
+              <button
+                onClick={onBadgesClick}
+                disabled={!onBadgesClick}
+                className="shrink-0 flex flex-col items-center gap-1.5 pr-4 border-r border-[#1a1a1a] min-w-[84px] enabled:cursor-pointer enabled:hover:opacity-90 transition-opacity disabled:cursor-default"
+                title={onBadgesClick ? "View full collection" : undefined}
+              >
                 <div className="text-[8px] font-mono font-black uppercase tracking-[0.2em]" style={{ color: tier.color }}>
                   ★ Featured
                 </div>
@@ -397,7 +420,7 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
                 <div className="text-center text-[9px] font-mono font-bold truncate w-full" style={{ color: tier.color }}>
                   {featured.name}
                 </div>
-              </div>
+              </button>
             )}
 
             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
