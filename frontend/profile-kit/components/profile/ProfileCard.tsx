@@ -17,6 +17,7 @@ interface ProfileCardProps {
   badges?: BadgeEarned[];
   isOwnProfile?: boolean;
   onEditClick?: () => void;
+  onBadgesClick?: () => void;
 }
 
 const BADGE_ICONS: Record<string, string> = {
@@ -37,7 +38,7 @@ const BADGE_UNLOCK: Record<string, string> = {
   'verified': 'Manual verify', 'founder': 'Manual grant',
 };
 
-export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditClick }: ProfileCardProps) {
+export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditClick, onBadgesClick }: ProfileCardProps) {
   const tier = getLevelTier(data.level);
   const userTitle = getUserTitle(stats ?? null);
   const progress = getLevelProgress(data.xp, data.level);
@@ -401,9 +402,19 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
 
             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
               {otherBadges.length > 0 && (
-                <div className="text-[8px] font-mono font-black uppercase tracking-[0.2em] text-[#555]">
-                  Collection ({otherBadges.length})
-                </div>
+                onBadgesClick ? (
+                  <button
+                    onClick={onBadgesClick}
+                    className="text-[8px] font-mono font-black uppercase tracking-[0.2em] text-[#555] hover:text-[#00ff88] transition-colors text-left cursor-pointer w-fit"
+                    title="View full collection"
+                  >
+                    Collection ({otherBadges.length}) →
+                  </button>
+                ) : (
+                  <div className="text-[8px] font-mono font-black uppercase tracking-[0.2em] text-[#555]">
+                    Collection ({otherBadges.length})
+                  </div>
+                )
               )}
               <div className="flex gap-2 overflow-x-auto scrollbar-none -my-1 py-1">
                 {otherBadges.length > 0 ? (
