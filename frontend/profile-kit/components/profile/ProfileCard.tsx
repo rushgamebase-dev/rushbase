@@ -98,20 +98,13 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
 
       {/* ─── IDENTITY BLOCK ─── */}
       <div className="p-5 md:p-7 flex flex-col md:flex-row md:items-center gap-5">
-        <div className="relative shrink-0">
-          <Avatar address={data.wallet} avatarUrl={data.avatarUrl} size={96} />
-          <div
-            className="absolute -bottom-2 -right-2 flex items-center gap-1 text-xs font-mono font-black px-2 py-0.5 rounded-lg"
-            style={{
-              background: '#0a0a0a',
-              color: tier.color,
-              border: `2px solid ${tier.color}`,
-              boxShadow: `0 0 12px ${tier.color}66`,
-            }}
-          >
-            <span>{tier.icon}</span>
-            <span>Lv {data.level}</span>
-          </div>
+        <div className="shrink-0">
+          <Avatar
+            address={data.wallet}
+            avatarUrl={data.avatarUrl}
+            size={96}
+            className={`ring-2 ring-offset-2 ring-offset-[#0c0c0c]`}
+          />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -120,23 +113,20 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
           </h1>
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <span
-              className="text-[11px] font-mono font-bold uppercase tracking-[0.18em]"
-              style={{ color: tier.color }}
+              className="text-[10px] font-mono font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded"
+              style={{ color: tier.color, background: `${tier.color}12`, border: `1px solid ${tier.color}40` }}
             >
-              {tier.title}
+              {tier.icon} Lv {data.level} · {tier.title}
             </span>
             {userTitle && (
-              <>
-                <span className="text-[#333]">·</span>
-                <span className="text-[11px] font-mono text-[#aaa] flex items-center gap-1">
-                  <span>{userTitle.icon}</span>
-                  <span>{userTitle.title}</span>
-                </span>
-              </>
+              <span className="text-[11px] font-mono text-[#aaa] flex items-center gap-1">
+                <span>{userTitle.icon}</span>
+                <span>{userTitle.title}</span>
+              </span>
             )}
             {bestRank && (
               <span
-                className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md ml-1"
+                className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
                 style={{
                   color: '#ffd700',
                   background: 'rgba(255,215,0,0.08)',
@@ -244,7 +234,7 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
             )}
           </div>
           <div className="mt-1.5 flex items-baseline gap-3">
-            <div className="text-4xl md:text-5xl font-mono font-black leading-none" style={{ color: wrColor }}>
+            <div className="text-3xl md:text-4xl font-mono font-black leading-none" style={{ color: wrColor }}>
               {formatWinRate(data.winRate)}
             </div>
             {stats && (data.totalBets > 0) && (
@@ -269,7 +259,7 @@ export function ProfileCard({ data, stats, rank, badges, isOwnProfile, onEditCli
           {roi ? (
             <>
               <div
-                className="mt-1.5 text-[2.5rem] md:text-[2.75rem] font-mono font-black leading-none tracking-tight"
+                className="mt-1.5 text-3xl md:text-4xl font-mono font-black leading-none tracking-tight"
                 style={{ color: roiColor }}
               >
                 {roi.percentText}
