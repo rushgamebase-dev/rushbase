@@ -87,7 +87,18 @@ export default async function Image({ params }: { params: { address: string } })
   const totalVolume = profile?.stats?.totalVolume ?? '0';
   const totalPnl = profile?.stats?.totalPnl ?? '0';
 
-  const avatar = profile?.profile?.avatarUrl || defaultAvatar(addr);
+  // Avatar initials — Satori + WebP is unreliable, so we draw a solid
+  // monogram circle instead of fetching the user's image.
+  const initials = (
+    displayName
+      ? displayName.slice(0, 2)
+      : handle
+        ? handle.slice(0, 2)
+        : addr.slice(2, 4)
+  ).toUpperCase();
+  const hue = seed8(addr) % 360;
+  const avatarBg = `hsl(${hue}, 60%, 35%)`;
+
   const wrColor = totalBets === 0 ? '#666' : winRate >= 0.6 ? '#00ff88' : winRate >= 0.4 ? '#e0e0e0' : '#ff4444';
   const pnl = formatPnl(totalPnl);
 
@@ -128,7 +139,6 @@ export default async function Image({ params }: { params: { address: string } })
                 height: 14,
                 borderRadius: 7,
                 backgroundColor: '#00ff88',
-                boxShadow: '0 0 16px #00ff88',
               }}
             />
             <span>RUSH · PROFILE</span>
@@ -138,20 +148,24 @@ export default async function Image({ params }: { params: { address: string } })
 
         {/* Identity block */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 56, marginTop: 54, flex: 1 }}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element */}
-          <img
-            src={avatar}
-            width={260}
-            height={260}
+          <div
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               width: 260,
               height: 260,
               borderRadius: 130,
               border: '6px solid #00ff88',
-              boxShadow: '0 0 40px rgba(0,255,136,0.35)',
-              objectFit: 'cover',
+              backgroundColor: avatarBg,
+              color: '#ffffff',
+              fontSize: 110,
+              fontWeight: 900,
+              letterSpacing: -4,
             }}
-          />
+          >
+            {initials}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
             <div
               style={{
