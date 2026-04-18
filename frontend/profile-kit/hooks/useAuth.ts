@@ -7,8 +7,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, setJwt, getJwt } from '../lib/api';
 import { queryKeys } from '../lib/query-keys';
 
-const SIWE_DOMAIN = (process.env.NEXT_PUBLIC_SIWE_DOMAIN || 'localhost').trim();
-const SIWE_ORIGIN = (process.env.NEXT_PUBLIC_SIWE_ORIGIN || 'http://localhost:3000').trim();
+// Env fallbacks used only if window isn't available (SSR). In the browser we
+// always read the current location so SIWE domain/uri match wherever the page
+// is actually served — prevents MetaMask "domain mismatch" warning when the
+// site redirects between rushgame.vip / www.rushgame.vip / preview domains.
+const SIWE_DOMAIN_FALLBACK = (process.env.NEXT_PUBLIC_SIWE_DOMAIN || 'localhost').trim();
+const SIWE_ORIGIN_FALLBACK = (process.env.NEXT_PUBLIC_SIWE_ORIGIN || 'http://localhost:3000').trim();
 
 interface AuthState { isAuthenticated: boolean; jwt: string | null; userId: string | null; }
 
@@ -24,9 +28,12 @@ export function useAuth() {
     setIsSigningIn(true);
     try {
       const { nonce } = await api.post<{ nonce: string }>('/auth/nonce', { wallet: address });
+      // Read live from window so we always match the page the user is actually on
+      const domain = typeof window !== 'undefined' ? window.location.host : SIWE_DOMAIN_FALLBACK;
+      const uri = typeof window !== 'undefined' ? window.location.origin : SIWE_ORIGIN_FALLBACK;
       const message = new SiweMessage({
-        domain: SIWE_DOMAIN, address, statement: 'Sign in to Rush',
-        uri: SIWE_ORIGIN, version: '1', chainId: 8453, nonce,
+        domain, address, statement: 'Sign in to Rush',
+        uri, version: '1', chainId: 8453, nonce,
       });
       const messageStr = message.prepareMessage();
       const signature = await signMessageAsync({ message: messageStr });
