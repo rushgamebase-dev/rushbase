@@ -268,6 +268,10 @@ class Config:
             "LEDGER_URL", "https://www.rushgame.vip/api/ledger"
         )
         self.ledger_api_key: str = os.environ.get("LEDGER_API_KEY", "")
+        self.profile_api_url: str = os.environ.get(
+            "PROFILE_API_URL", "https://rush-profiles.onrender.com"
+        )
+        self.webhook_api_key: str = os.environ.get("WEBHOOK_API_KEY", "")
 
     @staticmethod
     def _require(name: str) -> str:
@@ -892,6 +896,35 @@ class RushRoundManager:
         except Exception as exc:
             log.warning("Ledger POST failed (non-fatal): %s", exc)
 
+    def _post_webhook(self, market_address: str, winning_idx: int, description: str) -> None:
+        """Notify rush-profiles backend that a market resolved — triggers immediate
+        Neon populate instead of waiting up to 5 min for the next cron tick.
+        Best-effort; never blocks the loop."""
+        if not self.cfg.webhook_api_key:
+            return
+        try:
+            url = f"{self.cfg.profile_api_url.rstrip('/')}/webhooks/market-resolved"
+            data = json.dumps({
+                "marketAddress": market_address,
+                "winningRangeIndex": winning_idx,
+                "description": description,
+                "bets": [],
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": self.cfg.webhook_api_key,
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                body = resp.read().decode()
+                log.info("Webhook POST OK: %s", body)
+        except Exception as exc:
+            log.warning("Webhook POST failed (non-fatal): %s", exc)
+
     # ── Ably publish ──────────────────────────────────────────────────────────
 
     def _publish_ably(self, event: str, data: dict) -> None:
@@ -1168,6 +1201,11 @@ class RushRoundManager:
             total_pool, pool_under, pool_over, result,
             winning_label=winning_label, winning_idx=winning_idx,
         ))
+
+        # Notify rush-profiles backend so populate runs within seconds
+        if resolve_tx:
+            self._post_webhook(market_address, winning_idx, description)
+
         self._persist_state("resolved", market_address, count, camera_id=camera["id"])
 
     def _build_ledger(
