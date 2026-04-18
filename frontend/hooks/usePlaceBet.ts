@@ -6,10 +6,11 @@ import { parseEther, parseUnits } from "viem";
 import { MARKET_ABI } from "@/lib/contracts";
 
 /**
- * Places a bet on a PredictionMarket or BurnMarket.
+ * Places a bet on a PredictionMarket.
  *
- * ETH mode:   placeBet(rangeIndex) with msg.value
- * Token mode: placeBetToken(rangeIndex, amountWei) — requires prior approval
+ * ETH mode:   placeBet(rangeIndex) with msg.value — the production path.
+ * Token mode: placeBetToken(rangeIndex, amountWei) — retained for historical
+ *             BurnMarket rounds; not used for new markets.
  */
 export function usePlaceBet(
   marketAddress: `0x${string}` | null,

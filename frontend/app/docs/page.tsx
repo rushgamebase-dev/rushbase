@@ -159,11 +159,11 @@ export default function DocsPage() {
                        ├── 95% -> Winners (proportional to bet)
                        └── 5%  -> Series 1 tile holders`}</pre>
 
-        <h3 style={S.h3}>$RUSH Markets <span style={S.tagLegacy}>legacy</span></h3>
+        <h3 style={S.h3}>$RUSH Token <span style={S.tagLegacy}>archived markets</span></h3>
         <p style={S.p}>
-          Earlier format used $RUSH tokens with a 30% burn per round. Archived.
-          The $RUSH token itself continues to trade on Flaunch and remains a revenue
-          asset for holders via Flaunch trading fees.
+          The original $RUSH market format is archived. The $RUSH token continues
+          to trade on Flaunch and remains a revenue asset for tile holders via
+          Flaunch trading fees.
         </p>
 
         {/* ─── Payout Stats ─── */}
@@ -187,6 +187,133 @@ export default function DocsPage() {
             <span style={{ fontSize: "0.75rem", color: "#666" }}>PROTOCOL TAKE</span>
           </div>
         </div>
+
+        {/* ─── Oracle & AI ─── */}
+        <h2 style={S.h2}>Oracle & AI System</h2>
+        <p style={S.p}>
+          The Rush oracle is the bridge between the physical world and the blockchain.
+          A computer-vision pipeline runs 24/7 on a GPU, watching a live traffic camera
+          and counting every vehicle that crosses a calibrated line. When a round ends,
+          the final count is submitted on-chain, the contract picks the winning range,
+          and winners are paid automatically.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          {[
+            { label: "Real-time Detection", desc: "YOLO object detection + multi-object tracking. Frame-by-frame vehicle identification." },
+            { label: "Line-Crossing Count", desc: "Per-camera calibrated counting line + ROI mask. Dedup window prevents double-counting." },
+            { label: "Multi-class", desc: "Cars, trucks, buses and motorcycles are all counted." },
+            { label: "Live Stream", desc: "Annotated frames broadcast via WebSocket so users see the count update as it happens." },
+          ].map(({ label, desc }) => (
+            <div key={label} style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 6, padding: "0.75rem 1rem" }}>
+              <strong style={{ color: "#e0e0e0", fontSize: "0.85rem", display: "block", marginBottom: "0.25rem" }}>{label}</strong>
+              <span style={{ color: "#666", fontSize: "0.78rem", lineHeight: 1.4 }}>{desc}</span>
+            </div>
+          ))}
+        </div>
+
+        <h3 style={S.h3}>Evidence & Attestation</h3>
+        <p style={S.p}>
+          Every resolved round carries a verifiable trail. During the counting window,
+          the oracle saves annotated JPEG frames every 30 seconds plus a final frame at
+          round close. Each frame is hashed with <strong style={{ color: "#ffd700" }}>SHA-256</strong>
+          and stored alongside the market record. Anyone can fetch them via the public
+          endpoint <code>/api/evidence/[market]</code> and recompute the hashes to confirm
+          nothing was swapped after the fact.
+        </p>
+        <p style={S.p}>
+          The oracle operates under a single trusted signer today (the oracle wallet
+          below). A multi-oracle stack — stake &amp; slashing, commit-reveal, median
+          consensus, disputes — is already deployed on-chain as
+          <em> dormant</em> infrastructure (<code>OracleRegistry</code>,
+          <code>DataAttestation</code>, <code>ConsensusEngine</code>,
+          <code>DisputeManager</code>). It is wired to be activated without a
+          redeploy when the protocol moves past a single operator.
+        </p>
+
+        {/* ─── Round Lifecycle ─── */}
+        <h2 style={S.h2}>Round Lifecycle</h2>
+        <p style={S.p}>
+          Every round lasts <strong style={{ color: "#ffd700" }}>5 minutes</strong>.
+          The betting window is short on purpose: pools fill fast, the outcome is close
+          to the bet, and the next round starts almost immediately.
+        </p>
+        <table style={S.table}>
+          <thead><tr><th style={S.th}>Phase</th><th style={S.th}>Duration</th><th style={S.th}>What Happens</th></tr></thead>
+          <tbody>
+            <tr><td style={S.td}>Betting</td><td style={S.td}>2:30</td><td style={S.td}>Market is <code>OPEN</code>. Place <code>placeBet(side)</code> with ETH. Live count is already streaming.</td></tr>
+            <tr><td style={S.td}>Locked</td><td style={S.td}>0:00</td><td style={S.td}><code>lockMarket()</code> is called on-chain. <code>lockTime</code> was set at creation — no new bets accepted.</td></tr>
+            <tr><td style={S.td}>Counting</td><td style={S.td}>2:30</td><td style={S.td}>Oracle keeps counting. Evidence frames captured every 30s and hashed.</td></tr>
+            <tr><td style={S.td}>Resolved</td><td style={S.td}>—</td><td style={S.td}><code>resolveMarket(count)</code>. 5% fee leaves the pool, 95% becomes the prize pool.</td></tr>
+            <tr><td style={S.td}>Distributed</td><td style={S.td}>—</td><td style={S.td}><code>distributeAll()</code> sweeps payouts to every winner in one tx — no manual claim.</td></tr>
+          </tbody>
+        </table>
+        <p style={S.p}>
+          If a round has no bets on one side, the oracle cancels it via
+          <code>cancelMarket()</code> and <code>refundAll()</code> returns every wei.
+          Nobody can win a one-sided pool; nobody loses gas to a broken market.
+        </p>
+
+        {/* ─── Autonomous Agents ─── */}
+        <h2 style={S.h2}>Autonomous Agents</h2>
+        <p style={S.p}>
+          Rush is not just a set of contracts — it is a set of long-running bots that
+          keep the protocol live and balanced. All three operate from known wallets and
+          every action they take is an on-chain transaction you can inspect on Basescan.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 8, padding: "1rem 1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+              <strong style={{ color: "#e0e0e0", fontSize: "0.95rem" }}>Oracle</strong>
+              <span style={S.tagCurrent}>production</span>
+            </div>
+            <p style={{ ...S.p, marginBottom: "0.5rem" }}>
+              Creates each round, watches the camera, submits the count, and auto-pays winners.
+              Operates the lifecycle functions on <code>MarketFactory</code> and every deployed
+              <code> PredictionMarket</code> — <code>createMarket</code>, <code>lockMarket</code>,
+              <code>resolveMarket</code>, <code>distributeAll</code>, <code>cancelMarket</code>.
+            </p>
+            <span style={{ fontSize: "0.72rem", color: "#666", fontFamily: "monospace" }}>
+              Wallet: <a href="https://basescan.org/address/0x4c385830c2E241EfeEd070Eb92606B6AedeDA277" target="_blank" rel="noopener noreferrer" style={{ color: "#00aaff" }}>0x4c38…A277</a>
+            </span>
+          </div>
+
+          <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 8, padding: "1rem 1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+              <strong style={{ color: "#e0e0e0", fontSize: "0.95rem" }}>Housebot</strong>
+              <span style={S.tagCurrent}>production</span>
+            </div>
+            <p style={{ ...S.p, marginBottom: "0.5rem" }}>
+              Provides two-sided liquidity so pools never resolve one-sided. Places small
+              bets on whichever side is thinner, then lets real bettors set the odds.
+              Funded by the protocol and <strong>operates at a loss on purpose</strong> —
+              its P&amp;L is public on the Transparency page and the deficit is the cost
+              of keeping markets tradeable.
+            </p>
+            <p style={{ ...S.p, marginBottom: 0, color: "#888" }}>
+              Every wager the housebot places is an on-chain <code>placeBet</code> tx
+              from a dedicated wallet. No hidden matching — what you see in the pool is
+              what is actually bet.
+            </p>
+          </div>
+
+          <div style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 8, padding: "1rem 1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+              <strong style={{ color: "#e0e0e0", fontSize: "0.95rem" }}>Watchdog</strong>
+              <span style={S.tagCurrent}>production</span>
+            </div>
+            <p style={{ ...S.p, marginBottom: 0 }}>
+              Supervises the oracle and the detection engine. Heartbeat every 30s,
+              exponential-backoff restart on crash, alerts on rapid restarts, and
+              orphan-market recovery on boot — if a crash left a market <code>OPEN</code>
+              or <code>LOCKED</code> without a resolution, watchdog cancels it so bettors
+              get refunded instead of stuck.
+            </p>
+          </div>
+        </div>
+        <p style={{ ...S.p, color: "#888" }}>
+          Full, audited activity for all three bots (bets, fees, net P&amp;L, foreclosures)
+          is published on the <a href="/transparency" style={{ color: "#00aaff", textDecoration: "underline" }}>Transparency</a> page.
+        </p>
 
         {/* ─── Founder Tiles ─── */}
         <h2 style={S.h2}>Founder Tiles <span style={{ color: "#ffd700", fontSize: "0.8rem" }}>Series 2</span></h2>
@@ -349,12 +476,76 @@ export default function DocsPage() {
           ))}
         </div>
 
+        {/* ─── FAQ ─── */}
+        <h2 style={S.h2}>FAQ</h2>
+        <div style={{ display: "grid", gap: "0.5rem", marginBottom: "1.5rem" }}>
+          {[
+            {
+              q: "What am I actually betting on?",
+              a: "Whether the total number of vehicles crossing the counting line in 5 minutes will be OVER or UNDER a threshold set at the start of the round. The threshold adapts automatically based on recent traffic so pools stay balanced.",
+            },
+            {
+              q: "Where do winnings come from?",
+              a: "From the other side of the pool. 95% of the total pool is distributed to the winning side in proportion to bet size. There is no house: the protocol takes zero of your stake — the 5% fee that is subtracted from the pool is paid out to tile holders, not to a house book.",
+            },
+            {
+              q: "Do I need to claim my winnings?",
+              a: "No. After the oracle calls resolveMarket(), a separate distributeAll() call pushes payouts to every winner in the same transaction. Your ETH arrives automatically; there is no manual claim button.",
+            },
+            {
+              q: "What if the oracle is wrong?",
+              a: "Every round stores SHA-256 hashes of annotated frames in the ledger (see /api/evidence/[market]). You can pull those frames, recompute the hashes, and check the count yourself. The multi-oracle + commit-reveal + dispute stack is deployed on-chain and can be activated without redeploying the factory.",
+            },
+            {
+              q: "What happens if a stream dies mid-round?",
+              a: "The oracle cancels the market and refundAll() returns every wei to every bettor. You lose nothing but gas on your original bet.",
+            },
+            {
+              q: "How does the Housebot affect my odds?",
+              a: "It adds liquidity to the thin side, which narrows the gap between sides. It does not set odds directly — you still set them by betting. Its bets are visible on Basescan and on the Transparency page.",
+            },
+            {
+              q: "What about $RUSH? Do I bet it?",
+              a: "No. $RUSH is a trading asset on Flaunch. Buying and selling $RUSH generates creator fees that flow to RushTiles V1 holders. It is a revenue stream for tile holders, not a betting currency.",
+            },
+            {
+              q: "Why two tile series?",
+              a: "V1 (100 tiles, 1 share each, Flaunch fees) shipped first. V2 (100 tiles, Founder 5 shares / Normal 1 share, buyout-immune Founders) is the newer generation with a rebalanced fee split. They are independent contracts with separate treasuries.",
+            },
+            {
+              q: "Can my tile really be bought out?",
+              a: "V1 and V2 Normal tiles: yes, at your declared price, any time. V2 Founder tiles: no — buyoutTile reverts. Founders can only change hands through voluntary abandon or foreclosure.",
+            },
+            {
+              q: "What is pokeTax and should I worry about it?",
+              a: "It is a permissionless function any wallet can call on any tile. If you have let the Harberger tax eat through your deposit, calling pokeTax foreclosures your tile instantly — you lose ownership and any dust in the deposit. Keep 2–3 weeks of tax on deposit and call addDeposit monthly and you will never be foreclosed.",
+            },
+          ].map(({ q, a }, i) => (
+            <div key={i} style={{ background: "#0d0d0d", border: "1px solid #1a1a1a", borderRadius: 6, padding: "0.75rem 1rem" }}>
+              <strong style={{ color: "#e0e0e0", fontSize: "0.85rem", display: "block", marginBottom: "0.35rem" }}>{q}</strong>
+              <span style={{ color: "#888", fontSize: "0.82rem", lineHeight: 1.55 }}>{a}</span>
+            </div>
+          ))}
+        </div>
+
         {/* ─── Links ─── */}
         <h2 style={S.h2}>Links</h2>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <a href="https://rushgame.vip"
             style={{ ...S.badge, background: "#1a1a1a", color: "#ffd700", border: "1px solid #ffd70033" }}>
             rushgame.vip
+          </a>
+          <a href="/transparency"
+            style={{ ...S.badge, background: "#1a1a1a", color: "#00ff88", border: "1px solid #00ff8833" }}>
+            Transparency
+          </a>
+          <a href="/stats"
+            style={{ ...S.badge, background: "#1a1a1a", color: "#88aaff", border: "1px solid #88aaff33" }}>
+            Stats
+          </a>
+          <a href="/leaderboard"
+            style={{ ...S.badge, background: "#1a1a1a", color: "#ffaa00", border: "1px solid #ffaa0033" }}>
+            Leaderboard
           </a>
           <a href={`https://basescan.org/address/${FACTORY_ADDRESS}`} target="_blank" rel="noopener noreferrer"
             style={{ ...S.badge, background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
@@ -371,6 +562,10 @@ export default function DocsPage() {
           <a href="https://x.com/rushgamebase" target="_blank" rel="noopener noreferrer"
             style={{ ...S.badge, background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
             Twitter
+          </a>
+          <a href="https://github.com/rushgamebase-dev/rushbase" target="_blank" rel="noopener noreferrer"
+            style={{ ...S.badge, background: "#1a1a1a", color: "#aaa", border: "1px solid #333" }}>
+            GitHub
           </a>
         </div>
 

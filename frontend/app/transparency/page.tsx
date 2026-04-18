@@ -438,7 +438,7 @@ export default function TransparencyPage() {
               { v: weiShort(m.devFeesClaimedWei) + " ETH", l: "PROTOCOL FEES CLAIMED (V1)" },
               { v: m.totalForeclosures, l: "FORECLOSURES" },
               { v: m.tilesV1Events + m.tilesV2Events, l: "TILE EVENTS" },
-              { v: weiShort(m.totalBurnVolumeWei) + " RUSH", l: "RUSH VOLUME" },
+              { v: weiShort(m.totalBurnVolumeWei) + " RUSH", l: "RUSH VOLUME (ARCHIVED)" },
             ].map((stat, i) => (
               <motion.div key={i} style={S.card}
                           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -576,7 +576,10 @@ export default function TransparencyPage() {
           />
 
           {data.burnBetting.length > 0 && <>
-            <div style={{ ...S.sectionLabel, marginTop: "1.5rem" }}>RUSH BURN MARKETS</div>
+            <div style={{ ...S.sectionLabel, marginTop: "1.5rem", opacity: 0.6 }}>RUSH BURN MARKETS (ARCHIVED)</div>
+            <p style={{ color: "#555", fontSize: "0.72rem", fontFamily: "monospace", marginBottom: "0.75rem" }}>
+              Historical $RUSH-denominated markets (BurnMarketFactory). No longer used for new rounds; shown for on-chain transparency.
+            </p>
             <PaginatedTable
               data={data.burnBetting}
               headers={["WALLET", "MARKETS", "BETS", "WAGERED (RUSH)", "WON (RUSH)", "REFUNDED (RUSH)", "NET P&L (RUSH)"]}
@@ -644,8 +647,8 @@ export default function TransparencyPage() {
               { v: wei(hb.ethNet) + " ETH", l: "NET P&L", c: pnlColor(hb.ethNet) },
               { v: hb.ethMarkets.toLocaleString(), l: "ETH MARKETS" },
               { v: hb.ethBets.toLocaleString(), l: "ETH BETS" },
-              { v: hb.burnMarkets.toLocaleString(), l: "RUSH MARKETS" },
-              { v: hb.burnBets.toLocaleString(), l: "RUSH BETS" },
+              { v: hb.burnMarkets.toLocaleString(), l: "RUSH MARKETS (ARCHIVED)" },
+              { v: hb.burnBets.toLocaleString(), l: "RUSH BETS (ARCHIVED)" },
             ].map((stat: { v: string; l: string; c?: string }, i: number) => (
               <div key={i} style={S.card}>
                 <div style={{ ...S.metricValue, fontSize: "1rem", color: stat.c || "#e0e0e0" }}>
