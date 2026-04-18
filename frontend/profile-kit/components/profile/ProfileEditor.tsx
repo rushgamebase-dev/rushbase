@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import type { UserProfileFull, ProfileUpdatePayload } from '../../types/profile';
 import { useHandleAvailability } from '../../hooks/useHandleAvailability';
 import { uploadFile } from '../../lib/api';
+import { getDefaultAvatar } from '../../lib/avatar';
 
 interface ProfileEditorProps { profile: UserProfileFull; onSave: (updates: ProfileUpdatePayload) => Promise<void>; isSaving: boolean; }
 
@@ -51,24 +52,37 @@ export function ProfileEditor({ profile, onSave, isSaving }: ProfileEditorProps)
   const isHandleChanged = handle !== (profile.profile?.handle || '');
   const handleStatus = !isHandleChanged ? null : !isHandleValid ? 'invalid' : isChecking ? 'checking' : isAvailable ? 'available' : 'taken';
 
-  const preview = avatarUrl || undefined;
+  const hasCustom = !!avatarUrl;
+  const preview = avatarUrl || getDefaultAvatar(profile.wallet);
+  const [showUrlField, setShowUrlField] = useState(false);
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-6">
       <div>
-        <label className="block text-xs font-mono uppercase tracking-wider text-[#666666] mb-2">Avatar</label>
-        <div className="flex items-center gap-4">
-          <div
-            className="w-20 h-20 rounded-full bg-[#0a0a0a] border border-[#1a1a1a] overflow-hidden shrink-0 flex items-center justify-center"
-            style={{
-              backgroundImage: preview ? `url(${preview})` : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
+        <label className="block text-xs font-mono uppercase tracking-wider text-[#666666] mb-3">Avatar</label>
+        <div className="flex items-start gap-5">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="group relative shrink-0 disabled:cursor-wait"
+            title="Click to upload"
           >
-            {!preview && <span className="text-[10px] font-mono text-[#555]">NO AVATAR</span>}
-          </div>
-          <div className="flex-1 space-y-2">
+            <div
+              className="w-24 h-24 rounded-full overflow-hidden bg-[#0a0a0a] ring-2 ring-[#1a1a1a] group-hover:ring-[#00ff88]/60 transition-all"
+              style={{
+                backgroundImage: `url(${preview})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+            <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#00ff88]">
+                {uploading ? '…' : 'Change'}
+              </span>
+            </div>
+          </button>
+          <div className="flex-1 min-w-0 pt-1">
             <input
               ref={fileRef}
               type="file"
@@ -80,35 +94,48 @@ export function ProfileEditor({ profile, onSave, isSaving }: ProfileEditorProps)
               }}
               className="hidden"
             />
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
-                className="text-xs font-mono px-3 py-1.5 bg-[#111] border border-[#1a1a1a] hover:border-[#00ff88]/50 rounded-md text-[#e0e0e0] disabled:opacity-50 transition-colors"
+                className="text-xs font-mono font-bold uppercase tracking-[0.1em] px-3.5 py-2 bg-[#00ff88]/10 border border-[#00ff88]/40 hover:bg-[#00ff88]/20 hover:border-[#00ff88] rounded-md text-[#00ff88] disabled:opacity-50 transition-colors"
               >
-                {uploading ? 'Uploading…' : 'Upload image'}
+                {uploading ? 'Uploading…' : 'Upload'}
               </button>
-              {avatarUrl && (
+              {hasCustom && (
                 <button
                   type="button"
                   onClick={() => setAvatarUrl('')}
-                  className="text-xs font-mono px-3 py-1.5 text-[#666] hover:text-[#ff4444] transition-colors"
+                  className="text-[11px] font-mono text-[#666] hover:text-[#ff4444] transition-colors"
                 >
-                  Clear
+                  Remove
                 </button>
               )}
             </div>
-            <p className="text-[10px] font-mono text-[#666666]">PNG, JPG, WebP, GIF · up to 2 MB</p>
+            <p className="text-[10px] font-mono text-[#555] mt-2 leading-tight">
+              PNG · JPG · WebP · GIF<br />up to 2 MB
+            </p>
+            {!showUrlField ? (
+              <button
+                type="button"
+                onClick={() => setShowUrlField(true)}
+                className="text-[10px] font-mono text-[#555] hover:text-[#888] mt-2 transition-colors"
+              >
+                or paste a URL →
+              </button>
+            ) : (
+              <input
+                type="url"
+                value={avatarUrl}
+                autoFocus
+                onChange={(e) => setAvatarUrl(e.target.value.slice(0, 500))}
+                placeholder="https://…"
+                className="w-full mt-2 bg-[#0a0a0a] border border-[#1a1a1a] rounded px-2 py-1.5 text-[11px] font-mono text-[#e0e0e0] placeholder:text-[#444] focus:border-[#00ff88]/50 focus:outline-none transition-colors"
+              />
+            )}
           </div>
         </div>
-        <input
-          type="url"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value.slice(0, 500))}
-          placeholder="…or paste a URL (https://)"
-          className="w-full mt-3 bg-[#111111] border border-[#1a1a1a] rounded-lg px-3 py-2 text-sm font-mono text-[#e0e0e0] placeholder:text-[#666666] focus:border-[#00ff88]/50 focus:outline-none transition-colors"
-        />
       </div>
       <div>
         <label className="block text-xs font-mono uppercase tracking-wider text-[#666666] mb-1">Username</label>
