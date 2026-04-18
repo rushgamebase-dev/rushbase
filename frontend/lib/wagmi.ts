@@ -29,8 +29,10 @@ export const wagmiConfig = createConfig({
       metadata: {
         name: "Rush",
         description: "On-chain prediction market on Base",
-        url: "https://rushgame.vip",
-        icons: ["https://rushgame.vip/logo.png"],
+        // rushgame.vip redirects to www. → match the final URL so WC metadata
+        // doesn't mismatch the actual page origin (emits console warning).
+        url: "https://www.rushgame.vip",
+        icons: ["https://www.rushgame.vip/logo.png"],
       },
       showQrModal: true, // native WC modal — QR for desktop, deep-links for mobile
     }),
