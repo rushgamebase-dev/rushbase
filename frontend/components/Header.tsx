@@ -109,6 +109,16 @@ export default function Header() {
           </Link>
 
           <Link
+            href="/leaderboard"
+            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
+            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
+            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
+          >
+            RANKS
+          </Link>
+
+          <Link
             href="/stats"
             className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
             style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
