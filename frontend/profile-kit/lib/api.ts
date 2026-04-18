@@ -47,3 +47,16 @@ export const api = {
   patch: <T>(path: string, body: unknown) => apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
 };
+
+export async function uploadFile<T>(path: string, file: File, field = 'file'): Promise<T> {
+  const form = new FormData();
+  form.append(field, file);
+  const headers: Record<string, string> = {};
+  if (_jwt) headers['Authorization'] = `Bearer ${_jwt}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', body: form, headers });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }));
+    throw new ApiError(res.status, body.message || res.statusText);
+  }
+  return res.json();
+}
