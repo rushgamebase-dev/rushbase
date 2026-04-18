@@ -7,7 +7,6 @@ export const contentType = 'image/png';
 
 const BACKEND =
   process.env.NEXT_PUBLIC_PROFILE_API_URL || 'https://rush-profiles.onrender.com';
-const SITE = 'https://www.rushgame.vip';
 
 function shortAddr(a: string) {
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -16,10 +15,6 @@ function shortAddr(a: string) {
 function seed8(address: string): number {
   const hex = (address || '0x00000000').slice(2, 10);
   return parseInt(hex, 16) || 0;
-}
-
-function defaultAvatar(address: string): string {
-  return `${SITE}/avatars/rush-${seed8(address) % 8}.webp`;
 }
 
 function levelForXp(xp: number): number {
@@ -262,4 +257,3 @@ function Stat({
     </div>
   );
 }
-// rebuild: 1776547901
