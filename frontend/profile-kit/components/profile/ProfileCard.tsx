@@ -2,6 +2,7 @@
 
 import type { ProfileCardData, UserStats, BadgeEarned, UserRank } from '../../types/profile';
 import { Avatar } from './Avatar';
+import { BadgeMedia } from './BadgeMedia';
 import { shortenAddress, formatVolume, formatWinRate, formatNumber, formatRelativeTime, formatRoi } from '../../lib/format';
 import {
   getLevelTier, getUserTitle, getLevelProgress,
@@ -452,7 +453,7 @@ function BadgeTile({ badge, size, tierColor }: { badge: BadgeEarned; size: 'sm' 
         }}
       >
         {badge.imageUrl ? (
-          <img src={badge.imageUrl} alt={badge.name} className={size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'} />
+          <BadgeMedia url={badge.imageUrl} alt={badge.name} className={size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'} />
         ) : (
           BADGE_ICONS[badge.slug] || '🏷️'
         )}

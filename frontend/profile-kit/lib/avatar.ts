@@ -14,3 +14,7 @@ export function getAvatarSrc(avatarUrl: string | null | undefined): string | nul
   if (avatarUrl && avatarUrl.startsWith('http')) return avatarUrl;
   return null;
 }
+
+export function getDefaultAvatar(address: string): string {
+  return `/avatars/rush-${jazziconSeed(address || '0x00000000') % 8}.webp`;
+}

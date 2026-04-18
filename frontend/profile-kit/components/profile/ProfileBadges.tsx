@@ -1,6 +1,7 @@
 'use client';
 
 import type { BadgeEarned } from '../../types/profile';
+import { BadgeMedia } from './BadgeMedia';
 
 const BADGE_ICONS: Record<string, string> = {
   'first-bet': '🎯', 'ten-bets': '🎲', 'fifty-bets': '📊', 'hundred-bets': '💯',
@@ -50,7 +51,7 @@ export function ProfileBadges({ badges, layout = 'grid', maxVisible, showLocked 
               title={`${badge.name}${isLocked ? ' — locked' : ''}`}
             >
               {badge.imageUrl
-                ? <img src={badge.imageUrl} alt={badge.name} className="w-4 h-4" />
+                ? <BadgeMedia url={badge.imageUrl} alt={badge.name} className="w-4 h-4" />
                 : <span className="text-xs">{BADGE_ICONS[badge.slug] || '🏷️'}</span>
               }
             </div>
@@ -134,7 +135,7 @@ function BadgeTile({ badge, state }: { badge: BadgeEarned; state: 'earned' | 'lo
         }}
       >
         {badge.imageUrl
-          ? <img src={badge.imageUrl} alt={badge.name} className="w-10 h-10" />
+          ? <BadgeMedia url={badge.imageUrl} alt={badge.name} className="w-10 h-10" />
           : icon
         }
       </div>
