@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
+import { IdentityChip } from "@/profile-kit/components/identity/IdentityChip";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,18 @@ const AddrLink = ({ addr }: { addr: string }) => (
      style={{ color: "#00aaff", fontFamily: "monospace", fontSize: "0.8rem" }}>
     {shortAddr(addr)}
   </a>
+);
+
+// Rich wallet identity (avatar + handle/level) linking to /profile. Contract
+// addresses keep using AddrLink above since they don't have a profile.
+const WalletLink = ({ addr }: { addr: string }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <IdentityChip address={addr} size="xs" />
+    <a href={`${BASESCAN}/address/${addr}`} target="_blank" rel="noopener noreferrer"
+       style={{ color: "#444" }} title="View on Basescan">
+      <ExternalLink size={10} />
+    </a>
+  </span>
 );
 
 const TxLink = ({ hash }: { hash: string }) => hash ? (
@@ -550,7 +563,7 @@ export default function TransparencyPage() {
             searchField={(r) => r.w}
             renderRow={(r, i) => (
               <tr key={i} style={{ background: i % 2 === 0 ? "#0e0e0e" : "#111" }}>
-                <td style={S.td}><AddrLink addr={r.w} /></td>
+                <td style={S.td}><WalletLink addr={r.w} /></td>
                 <td style={S.td}>{r.m}</td>
                 <td style={S.td}>{r.b}</td>
                 <td style={S.td}>{wei(r.wa)}</td>
@@ -569,7 +582,7 @@ export default function TransparencyPage() {
               pageSize={100}
               renderRow={(r, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? "#0e0e0e" : "#111" }}>
-                  <td style={S.td}><AddrLink addr={r.w} /></td>
+                  <td style={S.td}><WalletLink addr={r.w} /></td>
                   <td style={S.td}>{r.m}</td>
                   <td style={S.td}>{r.b}</td>
                   <td style={S.td}>{wei(r.wa)}</td>
@@ -600,7 +613,7 @@ export default function TransparencyPage() {
                 searchField={(r) => r.w}
                 renderRow={(r, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? "#0e0e0e" : "#111" }}>
-                    <td style={S.td}><AddrLink addr={r.w} /></td>
+                    <td style={S.td}><WalletLink addr={r.w} /></td>
                     <td style={S.td}>{wei(r.di)}</td>
                     <td style={S.td}>{wei(r.do)}</td>
                     <td style={S.td}>{wei(r.cf)}</td>
@@ -644,7 +657,7 @@ export default function TransparencyPage() {
           <div style={{ ...S.card, borderColor: "#1a1a1a" }}>
             <div className="flex items-center gap-2 mb-2">
               <span style={{ fontSize: "0.7rem", fontFamily: "monospace", color: "#555", fontWeight: 700 }}>WALLET</span>
-              <AddrLink addr={data.housebot.address} />
+              <WalletLink addr={data.housebot.address} />
             </div>
             <p style={{ color: "#555", fontSize: "0.75rem", fontFamily: "monospace", lineHeight: 1.7 }}>
               The housebot accounts for {Number(m.totalEthVolumeWei) > 0 ? ((Number(data.housebot.ethWagered) / Number(m.totalEthVolumeWei)) * 100).toFixed(1) : "0"}% of
@@ -764,7 +777,7 @@ export default function TransparencyPage() {
                     <td style={{ ...S.td, color: "#777" }}>{f.t.replace(" UTC", "")}</td>
                     <td style={S.td}>{f.c}</td>
                     <td style={S.td}>#{f.ti}</td>
-                    <td style={S.td}><AddrLink addr={f.o} /></td>
+                    <td style={S.td}><WalletLink addr={f.o} /></td>
                     <td style={S.td}><TxLink hash={f.tx} /></td>
                   </tr>
                 ))}

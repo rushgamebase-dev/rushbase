@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Bet } from "@/lib/mock";
+import { IdentityChip } from "@/profile-kit/components/identity/IdentityChip";
 
 interface BetToastProps {
   bets: Bet[];
@@ -82,7 +83,7 @@ export default function BetToast({ bets }: BetToastProps) {
                   {isOver ? "\u25B2 OVER" : "\u25BC UNDER"} +{bet.amount.toFixed(3)} ETH
                 </span>
                 <span className="text-xs" style={{ color: "#888", fontFamily: "monospace" }}>
-                  {bet.shortWallet}
+                  <IdentityChip address={bet.wallet} size="xs" showLevel={false} />
                 </span>
               </div>
 

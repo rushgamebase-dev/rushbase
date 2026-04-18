@@ -5,6 +5,7 @@ import { MessageSquare, X, Send, ChevronRight, ChevronLeft } from "lucide-react"
 import { useAccount } from "wagmi";
 import { useChat } from "@/lib/chat";
 import type { ChatMessage } from "@/lib/chat";
+import { IdentityChip } from "@/profile-kit/components/identity/IdentityChip";
 
 const EMOJIS = ["🔥", "🚗", "💰", "📈", "📉", "👀", "🎯", "💎", "🤑"];
 const RATE_LIMIT_MS = 2000;
@@ -123,9 +124,13 @@ export default function Chat({ onCollapse }: ChatProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1, padding: own ? "0 6px 0 0" : "0 0 0 6px" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: msg.color, fontFamily: "monospace" }}>
-            {msg.username}
-          </span>
+          {msg.address ? (
+            <IdentityChip address={msg.address} size="xs" showLevel={false} />
+          ) : (
+            <span style={{ fontSize: 10, fontWeight: 700, color: msg.color, fontFamily: "monospace" }}>
+              {msg.username}
+            </span>
+          )}
           <span style={{ fontSize: 9, color: "#333", fontFamily: "monospace" }}>
             {timeAgo(msg.timestamp)}
           </span>
