@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ExternalLink, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
-import TilesGrid, { CLOSED_TILE_IDS } from "@/components/TilesGrid";
+import TilesGrid, { CLOSED_TILE_IDS, RESERVED_TILE_IDS } from "@/components/TilesGrid";
 import { useTilesContract } from "@/hooks/useTilesContract";
 import { useAccount } from "wagmi";
 import { formatEther } from "viem";
@@ -799,8 +799,8 @@ export default function TilesPage() {
 
   async function handleAction(action?: string) {
     if (!selectedTile) return;
-    // Safety: block claim/buyout on permanently closed tiles
-    if (CLOSED_TILE_IDS.has(selectedTile.id) && (action === "claim" || action === "buyout")) {
+    // Safety: block claim/buyout on closed or reserved tiles
+    if ((CLOSED_TILE_IDS.has(selectedTile.id) || RESERVED_TILE_IDS.has(selectedTile.id)) && (action === "claim" || action === "buyout")) {
       setSelectedTile(null);
       return;
     }

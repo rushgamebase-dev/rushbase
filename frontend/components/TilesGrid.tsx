@@ -33,6 +33,14 @@ export const CLOSED_TILE_IDS = new Set<number>([
   10,
 ]);
 
+/**
+ * Tiles reserved — sale not authorized via UI.
+ * These tiles are owned but buyout is blocked until further notice.
+ */
+export const RESERVED_TILE_IDS = new Set<number>([
+  2, 4, 9, 20, 21, 22, 26, 57, 60, 62, 63, 64, 72, 73, 75, 85, 91, 95, 96, 97,
+]);
+
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
 
@@ -121,6 +129,9 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         .closed-tile {
           filter: grayscale(0.3) brightness(0.75);
         }
+        .reserved-tile {
+          filter: grayscale(0.15) brightness(0.8);
+        }
       `}</style>
       <div
         className="grid gap-[3px] rounded-lg p-1"
@@ -129,7 +140,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         aria-label="Tiles grid 10 by 10"
       >
       {(() => {
-        const ownedPrices = tiles.filter(t => t.isActive && !t.isMine && !CLOSED_TILE_IDS.has(t.id)).map(t => t.price);
+        const ownedPrices = tiles.filter(t => t.isActive && !t.isMine && !CLOSED_TILE_IDS.has(t.id) && !RESERVED_TILE_IDS.has(t.id)).map(t => t.price);
         const floorPrice = ownedPrices.length > 0 ? Math.min(...ownedPrices) : 0;
         return tiles.map((tile) => {
         const isHovered = hoveredId === tile.id;
@@ -138,7 +149,9 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         const col = tile.id % 10;
         const sweepDelay = ((row + col) / 18) * 5;
         const isClosed = CLOSED_TILE_IDS.has(tile.id);
-        const isCheapest = !isClosed && tile.isActive && !tile.isMine && tile.price === floorPrice && floorPrice > 0;
+        const isReserved = RESERVED_TILE_IDS.has(tile.id);
+        const isBlocked = isClosed || isReserved;
+        const isCheapest = !isBlocked && tile.isActive && !tile.isMine && tile.price === floorPrice && floorPrice > 0;
 
         let borderColor = "#222";
         let shadow = "none";
@@ -147,6 +160,9 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         if (isClosed) {
           borderColor = "rgba(180,40,40,0.55)";
           shadow = "inset 0 0 8px rgba(0,0,0,0.6)";
+        } else if (isReserved) {
+          borderColor = "rgba(255,140,0,0.5)";
+          shadow = "inset 0 0 6px rgba(0,0,0,0.4)";
         } else if (isCheapest) {
           borderColor = "rgba(255,215,0,0.5)";
           shadow = "0 0 10px rgba(255,215,0,0.3)";
@@ -160,7 +176,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
           borderColor = `hsla(${hue}, 60%, 50%, 0.3)`;
         }
 
-        if (isHovered && !isClosed) {
+        if (isHovered && !isBlocked) {
           borderColor = tile.isMine ? "rgba(0,255,136,1)" : "#666";
           shadow = "0 0 12px rgba(255,255,255,0.15)";
         }
@@ -168,7 +184,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
         return (
           <button
             key={tile.id}
-            className={`relative flex flex-col items-start justify-between rounded-sm overflow-hidden${isClosed ? " closed-tile" : ""}`}
+            className={`relative flex flex-col items-start justify-between rounded-sm overflow-hidden${isClosed ? " closed-tile" : ""}${isReserved ? " reserved-tile" : ""}`}
             style={{
               background: isClosed
                 ? `url(/tiles/foreclosed.png) center/cover`
@@ -178,20 +194,22 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               border: `2px solid ${borderColor}`,
               boxShadow: shadow,
               transition: "transform 0.15s, border-color 0.2s",
-              cursor: isClosed ? "not-allowed" : "pointer",
-              transform: isHovered && !isClosed ? "scale(1.18)" : "scale(1)",
+              cursor: isBlocked ? "not-allowed" : "pointer",
+              transform: isHovered && !isBlocked ? "scale(1.18)" : "scale(1)",
               zIndex: isHovered ? 10 : 1,
               aspectRatio: "1",
               animation: animStyle,
-              opacity: isClosed ? 0.85 : 1,
+              opacity: isBlocked ? 0.85 : 1,
             }}
             onMouseEnter={() => setHoveredId(tile.id)}
             onMouseLeave={() => setHoveredId(null)}
-            onClick={() => { if (!isClosed) onTileClick(tile); }}
-            disabled={isClosed}
+            onClick={() => { if (!isBlocked) onTileClick(tile); }}
+            disabled={isBlocked}
             aria-label={
               isClosed
                 ? `Tile ${tile.id + 1} — not for sale`
+                : isReserved
+                ? `Tile ${tile.id + 1} — reserved`
                 : `Tile ${tile.id + 1} — ${tile.isMine ? "yours" : tile.isActive ? "owned" : "empty"}, ${tile.price.toFixed(4)} ETH`
             }
             role="gridcell"
@@ -259,6 +277,35 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               </>
             )}
 
+            {/* Reserved tile marker */}
+            {isReserved && (
+              <>
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 100%)",
+                    zIndex: 2,
+                  }}
+                />
+                <span
+                  className="absolute bottom-0 left-0 right-0 text-center"
+                  style={{
+                    background: "rgba(140,80,0,0.92)",
+                    color: "#ffcc66",
+                    fontFamily: "monospace",
+                    fontSize: 6,
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    padding: "1px 0",
+                    zIndex: 3,
+                    borderTop: "1px solid rgba(255,180,0,0.5)",
+                  }}
+                >
+                  RESERVED
+                </span>
+              </>
+            )}
+
             {/* Number top-left */}
             <span
               style={{
@@ -266,7 +313,7 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
                 lineHeight: 1,
                 fontFamily: "monospace",
                 fontWeight: 800,
-                color: isClosed ? "#ff8080" : tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
+                color: isClosed ? "#ff8080" : isReserved ? "#ffcc66" : tile.isMine ? "#00ff88" : tile.isActive ? "#fff" : "#333",
                 userSelect: "none",
                 textShadow: tile.isActive || isClosed ? "0 1px 4px rgba(0,0,0,1)" : "none",
                 position: "relative",
@@ -277,8 +324,8 @@ export default function TilesGrid({ tiles, onTileClick }: TilesGridProps) {
               {tile.id + 1}
             </span>
 
-            {/* Price bottom-right — hidden for closed tiles */}
-            {!isClosed && (
+            {/* Price bottom-right — hidden for closed/reserved tiles */}
+            {!isBlocked && (
               <span
                 style={{
                   fontSize: 9,
