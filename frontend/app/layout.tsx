@@ -1,5 +1,6 @@
 import "./globals.css";
 import Providers from "./providers";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   metadataBase: new URL("https://rushgame.vip"),
@@ -50,6 +51,7 @@ export default function RootLayout({
     <html lang="en" style={{ colorScheme: "dark" }} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
