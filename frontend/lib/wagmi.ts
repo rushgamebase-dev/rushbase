@@ -10,6 +10,9 @@ const RPC_URL =
 const transport = http(RPC_URL, {
   retryCount: 3,
   retryDelay: 1000,
+  // Consolidate simultaneous reads into a single Multicall3 eth_call.
+  // Keeps client-side RPC usage below Chainstack RPS quota.
+  batch: { batchSize: 32, wait: 16 },
 });
 
 // WalletConnect Cloud projectId — get yours free at https://cloud.walletconnect.com

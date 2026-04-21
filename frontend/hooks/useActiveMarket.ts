@@ -1,16 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { usePublicClient, useReadContract, useWatchContractEvent } from "wagmi";
+import { usePublicClient, useReadContract } from "wagmi";
 import type { PublicClient } from "viem";
 import { FACTORY_ABI, FACTORY_ADDRESS, MARKET_ABI } from "@/lib/contracts";
 
-// How far back to scan for the latest MarketCreated event.
-// One round = ~5 min ≈ 150 blocks on Base (2s/block). 500 covers >3 rounds
-// which is always enough — the active market is, by definition, the most
-// recent MarketCreated that hasn't been Resolved/Cancelled yet.
-const BLOCKS_LOOKBACK = BigInt(500);
-const ZERO_BLOCK = BigInt(0);
 const REFETCH_INTERVAL_MS = 15_000;
 
 // PredictionMarket state enum:
@@ -20,29 +14,36 @@ const REFETCH_INTERVAL_MS = 15_000;
 //   3 = Cancelled
 const INACTIVE_STATES = new Set([2, 3]);
 
+// Walk back at most this many markets if the latest one is already resolved —
+// covers the 15s gap between rounds without ever re-entering O(n) territory.
+const LOOKBACK_STEPS = 3;
+
 async function fetchLatestActiveMarket(
   client: PublicClient,
 ): Promise<`0x${string}` | null> {
-  const latest = await client.getBlockNumber();
-  const fromBlock =
-    latest > BLOCKS_LOOKBACK ? latest - BLOCKS_LOOKBACK : ZERO_BLOCK;
-
-  const logs = await client.getContractEvents({
+  const count = (await client.readContract({
     address: FACTORY_ADDRESS,
     abi: FACTORY_ABI,
-    eventName: "MarketCreated",
-    fromBlock,
-    toBlock: latest,
-  });
+    functionName: "getMarketCount",
+  })) as bigint;
 
-  if (logs.length === 0) return null;
+  if (count === BigInt(0)) return null;
 
-  // Walk backwards — most recent market first. Return the first one whose
-  // on-chain state is still "active" (not Resolved/Cancelled).
-  for (let i = logs.length - 1; i >= 0; i--) {
-    const log = logs[i] as { args?: { marketAddress?: `0x${string}` } };
-    const mkt = log.args?.marketAddress;
-    if (!mkt) continue;
+  for (let step = 0; step < LOOKBACK_STEPS; step++) {
+    const idx = count - BigInt(1 + step);
+    if (idx < BigInt(0)) break;
+
+    let mkt: `0x${string}`;
+    try {
+      mkt = (await client.readContract({
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: "markets",
+        args: [idx],
+      })) as `0x${string}`;
+    } catch {
+      break;
+    }
 
     try {
       const state = (await client.readContract({
@@ -53,8 +54,6 @@ async function fetchLatestActiveMarket(
 
       if (!INACTIVE_STATES.has(Number(state))) return mkt;
     } catch {
-      // If the per-market call fails, assume live and return it; the
-      // downstream hook can still validate against the WS oracle state.
       return mkt;
     }
   }
@@ -115,18 +114,9 @@ export function useActiveMarket() {
     };
   }, [client, enabled, refetch]);
 
-  // Instant on-chain push — no wait for next poll
-  useWatchContractEvent({
-    address: FACTORY_ADDRESS || undefined,
-    abi: FACTORY_ABI,
-    eventName: "MarketCreated",
-    enabled,
-    onLogs: (logs) => {
-      const last = logs[logs.length - 1] as { args?: { marketAddress?: `0x${string}` } };
-      const mkt = last?.args?.marketAddress;
-      if (mkt) setMarketAddress(mkt);
-    },
-  });
+  // NOTE: instant push via useWatchContractEvent is disabled — Chainstack's
+  // current plan returns 403 on eth_getLogs (Archive tier required). Ably
+  // (useMarketStream) is the real-time channel; 15s poll covers resync.
 
   // marketCount still useful for UI ("Round #N"); it's a single SLOAD — cheap.
   const { data: marketCountData } = useReadContract({
