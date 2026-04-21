@@ -47,11 +47,11 @@ interface OracleMsg {
 // ── Constants ───────────────────────────────────────────────────────────────
 
 // Strip accidental whitespace/newlines from env var (Vercel env vars have had
-// trailing \n bugs in the past)
-const STATIC_ORACLE_WS_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? "").trim()
-    : "";
+// trailing \n bugs in the past).
+// NEXT_PUBLIC_* is build-time replaced on both SSR and client — no window guard needed.
+// The previous typeof window guard returned "" during SSR and useState locked that in,
+// making the client-side fall back to the volatile /api/oracle-url KV forever.
+const STATIC_ORACLE_WS_URL = (process.env.NEXT_PUBLIC_ORACLE_WS_URL ?? "").trim();
 
 const MAX_RETRIES = 10;
 
