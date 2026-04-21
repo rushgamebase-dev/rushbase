@@ -1,16 +1,20 @@
-import { http, createConfig } from "wagmi";
+import { http, createConfig, fallback } from "wagmi";
 import { base } from "wagmi/chains";
 import { injected, coinbaseWallet, walletConnect } from "wagmi/connectors";
 
-// Alchemy RPC — public Base RPC was also hitting 429 rate limits.
-const RPC_URL =
+// TEMPORARY: Chainstack rejects getActiveMarkets() — 50M eth_call gas limit.
+// Factory has 4838+ markets and the O(n) call needs ~50.6M gas. Primary is now
+// Base official (higher limit) with Chainstack as fallback for all other reads.
+// Proper fix: migrate frontend bootstrap to eth_getLogs/events, not polling.
+const PRIMARY_RPC = "https://mainnet.base.org";
+const FALLBACK_RPC =
   process.env.NEXT_PUBLIC_RPC_URL ||
   "https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236";
 
-const transport = http(RPC_URL, {
-  retryCount: 3,
-  retryDelay: 1000,
-});
+const transport = fallback([
+  http(PRIMARY_RPC, { retryCount: 2, retryDelay: 500 }),
+  http(FALLBACK_RPC, { retryCount: 3, retryDelay: 1000 }),
+]);
 
 // WalletConnect Cloud projectId — get yours free at https://cloud.walletconnect.com
 const WC_PROJECT_ID =
