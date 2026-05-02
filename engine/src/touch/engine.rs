@@ -134,7 +134,12 @@ impl TouchEngine {
                         multiplier_cfg
                             .empirical_cells
                             .iter()
-                            .map(|c| ((c.distance_bps, c.duration_ms), c.p_touch))
+                            .map(|c| {
+                                (
+                                    (c.distance_bps, c.duration_ms, c.window_start_offset_ms),
+                                    c.p_touch,
+                                )
+                            })
                             .collect(),
                     )
                 },

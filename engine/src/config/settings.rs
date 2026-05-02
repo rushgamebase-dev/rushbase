@@ -314,14 +314,21 @@ fn default_empirical_safety_factor() -> f64 {
 /// One entry of the empirical p_touch table. The TOML form is:
 /// ```toml
 /// [[multiplier.empirical_cells]]
-/// distance_bps = 4
-/// duration_ms = 30000
-/// p_touch = 0.0910
+/// distance_bps = 40
+/// duration_ms = 9000
+/// window_start_offset_ms = 6000  # col 3 of the UX grid
+/// p_touch = 0.582
 /// ```
+///
+/// `window_start_offset_ms` defaults to `0` so older configs that
+/// only calibrated col 1 of the grid keep working. New calibrations
+/// (`bin/calibrate_vrf`) emit the field explicitly for every cell.
 #[derive(Debug, Clone, Deserialize)]
 pub struct EmpiricalCell {
     pub distance_bps: u32,
     pub duration_ms: u64,
+    #[serde(default)]
+    pub window_start_offset_ms: u64,
     pub p_touch: f64,
 }
 

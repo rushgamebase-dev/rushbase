@@ -86,6 +86,10 @@ pub struct MultiplierConfigResponse {
 pub struct EmpiricalCellDto {
     pub distance_bps: u32,
     pub duration_ms: u64,
+    /// Future-column offset in ms (col 1 = 0, col N = (N-1) × duration).
+    /// The empirical lookup is keyed on this triple, so the same
+    /// distance/duration appears once per offset the calibrator swept.
+    pub window_start_offset_ms: u64,
     pub p_touch: f64,
 }
 

@@ -309,9 +309,10 @@ pub async fn multiplier_config(
         .map(|table| {
             let mut v: Vec<EmpiricalCellDto> = table
                 .iter()
-                .map(|((d, dur), p)| EmpiricalCellDto {
+                .map(|((d, dur, off), p)| EmpiricalCellDto {
                     distance_bps: *d,
                     duration_ms: *dur,
+                    window_start_offset_ms: *off,
                     p_touch: *p,
                 })
                 .collect();
@@ -320,6 +321,7 @@ pub async fn multiplier_config(
             v.sort_by(|a, b| {
                 a.distance_bps
                     .cmp(&b.distance_bps)
+                    .then(a.window_start_offset_ms.cmp(&b.window_start_offset_ms))
                     .then(a.duration_ms.cmp(&b.duration_ms))
             });
             v

@@ -86,12 +86,18 @@ fn touch_cfg() -> TouchConfig {
 fn mult_cfg() -> MultiplierConfig {
     use rush_engine::config::settings::EmpiricalCell;
     let empirical_cells = vec![
-        EmpiricalCell { distance_bps: 40, duration_ms: 3_000, p_touch: 0.4495 },
-        EmpiricalCell { distance_bps: 40, duration_ms: 6_000, p_touch: 0.6990 },
-        EmpiricalCell { distance_bps: 80, duration_ms: 3_000, p_touch: 0.0667 },
-        EmpiricalCell { distance_bps: 80, duration_ms: 6_000, p_touch: 0.1687 },
-        EmpiricalCell { distance_bps: 120, duration_ms: 3_000, p_touch: 0.0024 },
-        EmpiricalCell { distance_bps: 120, duration_ms: 6_000, p_touch: 0.0120 },
+        EmpiricalCell {
+            distance_bps: 40, duration_ms: 3_000,
+            window_start_offset_ms: 0, p_touch: 0.4436,
+        },
+        EmpiricalCell {
+            distance_bps: 80, duration_ms: 3_000,
+            window_start_offset_ms: 0, p_touch: 0.0669,
+        },
+        EmpiricalCell {
+            distance_bps: 120, duration_ms: 3_000,
+            window_start_offset_ms: 0, p_touch: 0.0032,
+        },
     ];
     MultiplierConfig {
         house_edge_bps: 500,

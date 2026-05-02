@@ -21,13 +21,18 @@ fn main() -> anyhow::Result<()> {
     let settings = Settings::new()?;
     let m = &settings.multiplier;
 
-    let table: Option<HashMap<(u32, u64), f64>> = if m.empirical_cells.is_empty() {
+    let table: Option<HashMap<(u32, u64, u64), f64>> = if m.empirical_cells.is_empty() {
         None
     } else {
         Some(
             m.empirical_cells
                 .iter()
-                .map(|c| ((c.distance_bps, c.duration_ms), c.p_touch))
+                .map(|c| {
+                    (
+                        (c.distance_bps, c.duration_ms, c.window_start_offset_ms),
+                        c.p_touch,
+                    )
+                })
                 .collect(),
         )
     };

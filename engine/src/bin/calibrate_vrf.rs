@@ -88,6 +88,14 @@ const DISTANCES_BPS: &[u32] = &[40, 80, 120];
 /// quotable; calibrating them would be dead weight in the table.
 const DURATIONS_MS: &[u64] = &[3_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_000];
 
+/// Window-start offsets in ms. Col N of the UX grid translates to
+/// offset `(N-1) × COLUMN_MS` (the standalone repo's
+/// `RushArenaTradePage` uses `COLUMN_MS = 3000`). Calibrating offset
+/// 0 only — as we did initially — leaves all future-column cells
+/// to a Bachelier fallback that systematically under-prices wide
+/// bands → vault drain. Sweeping 5 offsets covers cols 1..5.
+const OFFSETS_MS: &[u64] = &[0, 3_000, 6_000, 9_000, 12_000];
+
 /// Samples per cell. 4096 is a balance between calibration time
 /// (~1 min on 8 cores release) and standard error
 /// (1/√4096 ≈ 1.6 % at p = 0.5, ≈ 0.5 % at p = 0.05). Bump if you
@@ -95,12 +103,15 @@ const DURATIONS_MS: &[u64] = &[3_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_0
 const SAMPLES_PER_CELL: usize = 4_096;
 
 fn main() {
+    let total_cells = DISTANCES_BPS.len() * DURATIONS_MS.len() * OFFSETS_MS.len();
     eprintln!(
-        "Calibrating VRF arena multiplier table ({} distances × {} durations × {} samples = {} paths)…",
+        "Calibrating VRF arena multiplier table \
+         ({} distances × {} durations × {} offsets × {} samples = {} paths)…",
         DISTANCES_BPS.len(),
         DURATIONS_MS.len(),
+        OFFSETS_MS.len(),
         SAMPLES_PER_CELL,
-        DISTANCES_BPS.len() * DURATIONS_MS.len() * SAMPLES_PER_CELL,
+        total_cells * SAMPLES_PER_CELL,
     );
     eprintln!("path_config_version = {}", PATH_CONFIG_VERSION);
     let started = Instant::now();
@@ -109,18 +120,18 @@ fn main() {
     // cell, samples are also independent but Monte Carlo over 4k
     // samples fits well in a single thread; parallelising at the
     // cell level keeps the per-task work uniform.
-    let mut grid: Vec<(u32, u64, f64)> = DISTANCES_BPS
+    let mut grid: Vec<(u32, u64, u64, f64)> = DISTANCES_BPS
         .par_iter()
         .flat_map(|&d| {
-            DURATIONS_MS
-                .par_iter()
-                .map(move |&dur| {
-                    let p = monte_carlo_p_touch(d, dur);
-                    (d, dur, p)
+            DURATIONS_MS.par_iter().flat_map(move |&dur| {
+                OFFSETS_MS.par_iter().map(move |&off| {
+                    let p = monte_carlo_p_touch(d, dur, off);
+                    (d, dur, off, p)
                 })
+            })
         })
         .collect();
-    grid.sort_by_key(|(d, dur, _)| (*d, *dur));
+    grid.sort_by_key(|(d, dur, off, _)| (*d, *off, *dur));
 
     let elapsed = started.elapsed();
     eprintln!("Done in {:.2}s.", elapsed.as_secs_f64());
@@ -135,54 +146,66 @@ fn main() {
     println!("# volatility_bps      = {}", VOLATILITY_BPS);
     println!("# bound_bps           = {}", BOUND_BPS);
     println!("#");
-    println!("# Paste under [multiplier] and bump empirical_safety_factor to ≥ 2.0.");
+    println!("# Paste under [multiplier]. Re-run after bumping the");
+    println!("# generator config (PATH_CONFIG_VERSION).");
     println!();
-    for (d, dur, p) in &grid {
+    for (d, dur, off, p) in &grid {
         println!("[[multiplier.empirical_cells]]");
-        println!("distance_bps = {}", d);
-        println!("duration_ms  = {}", dur);
-        println!("p_touch      = {:.4}", p);
+        println!("distance_bps          = {}", d);
+        println!("duration_ms           = {}", dur);
+        println!("window_start_offset_ms = {}", off);
+        println!("p_touch               = {:.4}", p);
         println!();
     }
 
-    // ── stderr: human-friendly grid ───────────────────────────
-    eprintln!();
-    eprintln!("Empirical p_touch grid (rows = distance_bps, cols = duration_ms):");
-    eprint!("{:>8} |", "");
-    for dur in DURATIONS_MS {
-        eprint!(" {:>7}", dur);
-    }
-    eprintln!();
-    eprintln!("{:->8}-+{:->1$}", "", DURATIONS_MS.len() * 8 + 1);
-    for d in DISTANCES_BPS {
-        eprint!("{:>8} |", d);
+    // ── stderr: human-friendly grids, one per offset ─────────
+    for off in OFFSETS_MS {
+        eprintln!();
+        eprintln!(
+            "Empirical p_touch grid @ offset_ms = {} \
+             (rows = distance_bps, cols = duration_ms):",
+            off
+        );
+        eprint!("{:>8} |", "");
         for dur in DURATIONS_MS {
-            let p = grid
-                .iter()
-                .find(|(dd, ddur, _)| dd == d && ddur == dur)
-                .map(|(_, _, p)| *p)
-                .unwrap_or(0.0);
-            eprint!(" {:>7.4}", p);
+            eprint!(" {:>7}", dur);
         }
         eprintln!();
+        eprintln!("{:->8}-+{:->1$}", "", DURATIONS_MS.len() * 8 + 1);
+        for d in DISTANCES_BPS {
+            eprint!("{:>8} |", d);
+            for dur in DURATIONS_MS {
+                let p = grid
+                    .iter()
+                    .find(|(dd, ddur, ooff, _)| dd == d && ddur == dur && ooff == off)
+                    .map(|(_, _, _, p)| *p)
+                    .unwrap_or(0.0);
+                eprint!(" {:>7.4}", p);
+            }
+            eprintln!();
+        }
     }
 }
 
-fn monte_carlo_p_touch(distance_bps: u32, duration_ms: u64) -> f64 {
+fn monte_carlo_p_touch(distance_bps: u32, duration_ms: u64, offset_ms: u64) -> f64 {
     let p_min = START_PRICE * (1.0 + distance_bps as f64 / 10_000.0);
     let p_max =
         START_PRICE * (1.0 + (distance_bps + BAND_WIDTH_BPS) as f64 / 10_000.0);
 
-    let window_start_ms: i64 = 0;
-    let window_end_ms: i64 = duration_ms as i64;
+    // The path runs from t=0 (start_price + start of the seed) to
+    // window_end. The bet's window opens at `offset_ms` and closes
+    // at `offset_ms + duration_ms`. first_touch_ms restricts hit
+    // detection to that interval.
+    let window_start_ms: i64 = offset_ms as i64;
+    let window_end_ms: i64 = (offset_ms + duration_ms) as i64;
 
     // SAMPLES_PER_CELL Monte Carlo iterations, each independent.
     let hits: usize = (0..SAMPLES_PER_CELL)
         .into_par_iter()
         .filter(|i| {
             let seed = format!(
-                "calibrate-vrf:{}:{}:{}:{}",
-                PATH_CONFIG_VERSION, distance_bps, duration_ms, i
+                "calibrate-vrf:{}:{}:{}:{}:{}",
+                PATH_CONFIG_VERSION, distance_bps, duration_ms, offset_ms, i
             );
             let path = generate_vrf_path(VrfPathInput {
                 seed,

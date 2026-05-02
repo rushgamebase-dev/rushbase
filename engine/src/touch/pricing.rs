@@ -17,11 +17,14 @@ use crate::models::touch_bet::TouchDirection;
 use serde::Serialize;
 use std::collections::HashMap;
 
-/// Empirical (distance_bps, duration_ms) → realised p_touch lookup.
-/// Keyed by `(distance_bps, duration_ms)` because the same physical cell
-/// (e.g. 8bp / 30s) shows up across many entries; we want exact equality
-/// without floating-point ambiguity.
-pub type EmpiricalPTouchTable = HashMap<(u32, u64), f64>;
+/// Empirical `(distance_bps, duration_ms, window_start_offset_ms)` →
+/// realised p_touch lookup. The third axis matters because cells in
+/// future columns of the UX grid (col 2 = offset 3000 ms, col 3 =
+/// offset 6000 ms, …) have first-passage probability that depends on
+/// when the window opens, not just its duration. Earlier calibration
+/// covered offset=0 only and let Bachelier price the rest, which
+/// under-priced wide-band cells against the VRF generator.
+pub type EmpiricalPTouchTable = HashMap<(u32, u64, u64), f64>;
 
 /// Complementary error function via Abramowitz & Stegun 7.1.26.
 /// Max absolute error ≈ 1.5e-7 across the entire real line.
@@ -175,22 +178,23 @@ impl MultiplierCalculator {
         let p_by_end = bachelier_p_touch_by(distance_bps, t_end_sec, self.cfg.vol_bps_per_sqrt_sec);
         let bachelier_diff = (p_by_end - p_by_start).max(0.0);
 
-        // Empirical lookup is keyed on duration only — it does NOT
-        // know how to first-passage shift by `window_start_offset_ms`.
-        // Apply it only when the window starts immediately (col 1 of
-        // the grid), where the keying is exact.
-        let (raw_p, from_empirical) = if window_start_offset_ms == 0 {
-            if let Some(table) = &self.cfg.empirical_p_touch_table {
-                if let Some(&empirical_p) = table.get(&(distance_bps_round, window_duration_ms)) {
-                    let padded = empirical_p * self.cfg.empirical_safety_factor;
-                    // Cap padded p at 0.95: we still want a positive
-                    // house edge even on the "easiest" cell; a
-                    // target_p > 0.95 would price below 1.0× before
-                    // house_edge is applied.
-                    (padded.min(0.95), true)
-                } else {
-                    (bachelier_diff, false)
-                }
+        // Empirical lookup is keyed on `(distance, duration, offset)`.
+        // The offset axis covers UX future columns (col N → offset
+        // (N-1) × duration). Cells outside the calibrated grid fall
+        // back to Bachelier and are refused by the engine's gate —
+        // see `touch::engine::open_bet`.
+        let (raw_p, from_empirical) = if let Some(table) = &self.cfg.empirical_p_touch_table {
+            if let Some(&empirical_p) = table.get(&(
+                distance_bps_round,
+                window_duration_ms,
+                window_start_offset_ms,
+            )) {
+                let padded = empirical_p * self.cfg.empirical_safety_factor;
+                // Cap padded p at 0.95: we still want a positive
+                // house edge even on the "easiest" cell; a
+                // target_p > 0.95 would price below 1.0× before
+                // house_edge is applied.
+                (padded.min(0.95), true)
             } else {
                 (bachelier_diff, false)
             }
@@ -356,7 +360,7 @@ mod tests {
         // engine must quote the empirical-driven value when the cell is
         // present in the lookup table.
         let mut table = EmpiricalPTouchTable::new();
-        table.insert((4, 30_000), 0.091033);
+        table.insert((4, 30_000, 0), 0.091033);
         let cfg = MultiplierConfig {
             house_edge_bps: 500,
             min_multiplier_bps: 11_000,
@@ -393,7 +397,7 @@ mod tests {
         // Cell not in the table → engine falls back to Bachelier and
         // surfaces `from_empirical = false`.
         let mut table = EmpiricalPTouchTable::new();
-        table.insert((4, 30_000), 0.091033);
+        table.insert((4, 30_000, 0), 0.091033);
         let cfg = MultiplierConfig {
             empirical_p_touch_table: Some(table),
             empirical_safety_factor: 1.5,
@@ -422,7 +426,7 @@ mod tests {
         // a 58 % move above the calibration. That margin is the whole
         // point of `empirical_safety_factor`.
         let mut table = EmpiricalPTouchTable::new();
-        table.insert((2, 60_000), 0.348597);
+        table.insert((2, 60_000, 0), 0.348597);
         let cfg = MultiplierConfig {
             empirical_p_touch_table: Some(table),
             empirical_safety_factor: 1.5,
