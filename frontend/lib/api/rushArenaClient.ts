@@ -142,8 +142,16 @@ export type RushBetVerification = {
 };
 
 type BackendWsMessage =
-  | { type: "PriceUpdate"; payload: { symbol: string; price: string | number; timestamp: number } }
-  | { type: "PricesSnapshot"; payload: { prices: Array<{ symbol: string; price: string | number; timestamp: number }> } }
+  | {
+      type: "PriceUpdate";
+      payload: { symbol: string; price_q8: string | number; timestamp: number };
+    }
+  | {
+      type: "PricesSnapshot";
+      payload: {
+        prices: Array<{ symbol: string; price_q8: string | number; timestamp: number }>;
+      };
+    }
   | { type: string; payload?: unknown };
 
 type RequestQuoteParams = {
@@ -502,8 +510,13 @@ export const rushArenaClient = {
 
   async getActiveBets(): Promise<RushArenaBet[]> {
     if (isRushArenaMockMode()) return [];
-    const response = await requestJson<BackendRushArenaBet[]>("/trade/bets");
-    return response.map((bet) => normalizeBackendBet(bet));
+    // Engine wraps the list as `{ bets, total }`. We only need the
+    // array — `total` is also `bets.length`.
+    const response = await requestJson<{
+      bets: BackendRushArenaBet[];
+      total: number;
+    }>("/trade/bets");
+    return response.bets.map((bet) => normalizeBackendBet(bet));
   },
 
   async verifyBet(id: string): Promise<RushBetVerification> {
@@ -603,7 +616,10 @@ export const rushArenaClient = {
     };
   },
 
-  async requestQuote({ cell, stakeAmountWei }: RequestQuoteParams): Promise<RushQuote> {
+  async requestQuote({
+    cell,
+    stakeAmountWei: _stakeAmountWei,
+  }: RequestQuoteParams): Promise<RushQuote> {
     if (isRushArenaMockMode()) {
       await new Promise((resolve) => setTimeout(resolve, 90));
       return {
@@ -614,37 +630,49 @@ export const rushArenaClient = {
       };
     }
 
+    // Pick UP/DOWN from the band's centre relative to the live
+    // price baked into the cell. Same heuristic the quote-grid
+    // call uses; needed here because the engine's QuoteRequest
+    // requires `direction` and validates the band geometry against
+    // it.
+    const bandMid = (cell.pMin + cell.pMax) / 2;
+    // `cell.price0` is set by the canvas to the live RUSH_INDEX
+    // price at the moment the cell is rendered; fall back to the
+    // band centre so mock-mode interactions don't crash.
+    const livePrice = (cell as TapGridCell & { livePrice?: number }).livePrice ?? bandMid;
+    const direction: "UP" | "DOWN" = bandMid >= livePrice ? "UP" : "DOWN";
+
     const response = await requestJson<{
-      multiplier_bps?: number;
-      multiplier?: number;
+      symbol: string;
+      direction: string;
+      entry_price_q8: string;
+      target_row_min_q8: string;
+      target_row_max_q8: string;
+      window_duration_ms: number;
+      window_start_offset_ms: number;
+      distance_bps: number;
+      implied_p_touch_bps: number;
+      multiplier_bps: number;
+      server_time_ms: number;
+      from_empirical: boolean;
       quote_token: string;
-      expires_at?: string;
-      quote_expires_at_ms?: number;
+      quote_expires_at_ms: number;
     }>("/trade/quote", {
       method: "POST",
       body: JSON.stringify({
-        market: RUSH_MARKET,
         symbol: RUSH_MARKET,
-        stake_amount_wei: stakeAmountWei,
-        p_min: cell.pMin,
-        p_max: cell.pMax,
-        distance_bps: cell.distanceBps,
-        window_start_ms: cell.windowStartMs,
-        window_end_ms: cell.windowEndMs,
-        window_start_offset_ms: cell.windowStartOffsetMs,
+        direction,
+        target_row_min_q8: BigInt(Math.round(cell.pMin * 1e8)).toString(),
+        target_row_max_q8: BigInt(Math.round(cell.pMax * 1e8)).toString(),
         window_duration_ms: cell.windowDurationMs,
+        window_start_offset_ms: Math.max(0, cell.windowStartOffsetMs),
       }),
     });
-    const multiplier =
-      response.multiplier ??
-      ((response.multiplier_bps ?? cell.multiplierBps) / 10_000);
     return {
-      multiplierBps: response.multiplier_bps ?? Math.round(multiplier * 10_000),
-      multiplier,
+      multiplierBps: response.multiplier_bps,
+      multiplier: response.multiplier_bps / 10_000,
       quoteToken: response.quote_token,
-      expiresAt:
-        response.expires_at ??
-        new Date(response.quote_expires_at_ms ?? Date.now() + 2_000).toISOString(),
+      expiresAt: new Date(response.quote_expires_at_ms).toISOString(),
     };
   },
 
@@ -676,26 +704,29 @@ export const rushArenaClient = {
       };
     }
 
+    // Direction must match what was signed into the quote token —
+    // recompute the same way as `requestQuote` above.
+    const bandMid = (cell.pMin + cell.pMax) / 2;
+    const livePrice = (cell as TapGridCell & { livePrice?: number }).livePrice
+      ?? price0
+      ?? bandMid;
+    const direction: "UP" | "DOWN" = bandMid >= livePrice ? "UP" : "DOWN";
+
     const response = await requestJson<BackendRushArenaBet>("/trade/bets", {
       method: "POST",
       headers: {
         "Idempotency-Key": id,
       },
       body: JSON.stringify({
-        quote_token: quote.quoteToken,
-        market: RUSH_MARKET,
         symbol: RUSH_MARKET,
-        stake_amount_wei: stakeAmountWei,
-        cell_id: cell.id,
-        row: cell.row,
-        col: cell.col,
-        distance_bps: cell.distanceBps,
-        p_min: cell.pMin,
-        p_max: cell.pMax,
+        direction,
+        stake_wei: stakeAmountWei,
+        target_row_min_q8: BigInt(Math.round(cell.pMin * 1e8)).toString(),
+        target_row_max_q8: BigInt(Math.round(cell.pMax * 1e8)).toString(),
         window_start_ms: cell.windowStartMs,
         window_end_ms: cell.windowEndMs,
-        multiplier_bps: quote.multiplierBps,
-        idempotency_key: id,
+        expected_multiplier_bps: quote.multiplierBps,
+        quote_token: quote.quoteToken,
       }),
     });
 
@@ -714,42 +745,44 @@ export const rushArenaClient = {
     });
   },
 
+  /// "Round" is a logical concept the standalone repo carried over
+  /// from the legacy paper trade UI. The VRF arena has no rounds —
+  /// the Rush Index is a single continuous stream and per-bet VRF
+  /// paths handle the resolution. This shim builds a RushRound
+  /// shape so the canvas, which still reads `currentPrice` and
+  /// `serverSeedHash`, keeps working until it's refactored to
+  /// consume the index directly.
   async getSynthRound(): Promise<RushRound> {
     if (isRushArenaMockMode()) return currentRound();
     const data = await requestJson<{
-      round_id: string;
-      market: typeof RUSH_MARKET;
-      display_name: typeof RUSH_DISPLAY;
-      started_at: number;
-      ends_at: number;
-      tick_ms: number;
-      total_ticks: number;
-      current_tick: number;
-      initial_price: number;
-      current_price: number;
-      volatility: number;
+      symbol: string;
+      price_q8: string;
+      timestamp: number;
       server_seed_hash: string;
-      revealed_seed: string | null;
-      status: "active" | "ended";
-    }>("/synth/round");
+    }>(`/prices/${RUSH_MARKET}`);
+    const currentPrice = Number(data.price_q8) / 1e8;
     return {
-      roundId: data.round_id,
-      market: data.market,
-      displayName: data.display_name,
-      startedAt: data.started_at,
-      endsAt: data.ends_at,
-      tickMs: data.tick_ms,
-      totalTicks: data.total_ticks,
-      currentTick: data.current_tick,
-      initialPrice: data.initial_price,
-      currentPrice: data.current_price,
-      volatility: data.volatility,
+      roundId: `rush-index-${data.server_seed_hash.slice(0, 12)}`,
+      market: RUSH_MARKET,
+      displayName: RUSH_DISPLAY,
+      startedAt: 0,
+      endsAt: Number.MAX_SAFE_INTEGER,
+      tickMs: 150,
+      totalTicks: Number.MAX_SAFE_INTEGER,
+      currentTick: 0,
+      initialPrice: currentPrice,
+      currentPrice,
+      volatility: 0.001,
       serverSeedHash: data.server_seed_hash,
-      revealedSeed: data.revealed_seed,
-      status: data.status,
+      revealedSeed: null,
+      status: "active",
     };
   },
 
+  /// No historical-tick endpoint on the engine — the canvas
+  /// bootstraps from an empty trail and the live WS stream fills
+  /// it. Mock mode keeps a synthetic tick generator for the
+  /// `/preview` sandbox.
   async getSynthTicks(from = mockTick - 180, to = mockTick): Promise<RushTick[]> {
     if (isRushArenaMockMode()) {
       syncMockClock();
@@ -774,37 +807,33 @@ export const rushArenaClient = {
       }
       return ticks.slice(-220);
     }
-    const data = await requestJson<{
-      ticks: { tick: number; timestamp_ms: number; price: number }[];
-    }>(`/synth/ticks?from=${from}&to=${to}`);
-    return data.ticks.map((tick) => ({
-      tick: tick.tick,
-      timestampMs: tick.timestamp_ms,
-      price: tick.price,
-    }));
+    return [];
   },
 
+  /// Provably-fair state for the Rush Index. The engine publishes
+  /// the seed hash that drives the index trajectory; per-bet
+  /// commit/reveal lives separately on each bet's `/verify`
+  /// endpoint.
   async getProvablyFair(): Promise<ProvablyFairState> {
     if (isRushArenaMockMode()) return provablyFair();
     const data = await requestJson<{
-      round_id: string;
-      algorithm: string;
+      symbol: string;
+      price_q8: string;
+      timestamp: number;
       server_seed_hash: string;
-      revealed_seed: string | null;
-      tick_ms: number;
-      volatility: number;
-      initial_price: number;
-      next_seed_reveal_at: number;
-    }>("/synth/provably-fair");
+    }>(`/prices/${RUSH_MARKET}`);
     return {
-      roundId: data.round_id,
-      algorithm: data.algorithm,
+      roundId: `rush-index-${data.server_seed_hash.slice(0, 12)}`,
+      algorithm: "VRF arena: SHA256(seed||counter) → uniform → regime + path",
       serverSeedHash: data.server_seed_hash,
-      revealedSeed: data.revealed_seed,
-      tickMs: data.tick_ms,
-      volatility: data.volatility,
-      initialPrice: data.initial_price,
-      nextSeedRevealAt: data.next_seed_reveal_at,
+      revealedSeed: null,
+      tickMs: 150,
+      volatility: 0.001,
+      initialPrice: Number(data.price_q8) / 1e8,
+      // The Rush Index seed isn't time-rotated yet (single hash for
+      // the engine process lifetime). Set far in the future to
+      // mean "no scheduled reveal".
+      nextSeedRevealAt: Number.MAX_SAFE_INTEGER,
     };
   },
 
@@ -824,10 +853,18 @@ export const rushArenaClient = {
     let retryTimer: number | null = null;
     let tick = 0;
 
-    const emitBackendPrice = (priceData: { symbol: string; price: string | number; timestamp: number }) => {
+    // Engine emits `price_q8` (uint256-as-string) per the
+    // ServerMessage::PriceUpdate shape; the canvas wants a decimal
+    // number. Divide by 1e8 here, once.
+    const emitBackendPrice = (priceData: {
+      symbol: string;
+      price_q8: string | number;
+      timestamp: number;
+    }) => {
       if (priceData.symbol !== RUSH_MARKET) return;
-      const price = Number(priceData.price);
-      if (!Number.isFinite(price) || price <= 0) return;
+      const q8 = Number(priceData.price_q8);
+      if (!Number.isFinite(q8) || q8 <= 0) return;
+      const price = q8 / 1e8;
       tick += 1;
       onEvent({
         type: "PriceUpdate",
@@ -842,21 +879,39 @@ export const rushArenaClient = {
     const connect = () => {
       socket = new WebSocket(WS_URL);
       socket.onopen = () => {
-        socket?.send(JSON.stringify({
-          type: "SubscribePrices",
-          payload: { symbols: [RUSH_MARKET] },
-        }));
+        // Engine subscription protocol: `SubscribePrices` with the
+        // list of symbols (we only have RUSH_INDEX). `GetPrices`
+        // forces an immediate snapshot so the canvas doesn't show
+        // an empty trail until the next tick fires.
+        socket?.send(
+          JSON.stringify({
+            type: "SubscribePrices",
+            payload: { symbols: [RUSH_MARKET] },
+          })
+        );
         socket?.send(JSON.stringify({ type: "GetPrices" }));
       };
       socket.onmessage = (message) => {
         try {
           const event = JSON.parse(message.data) as BackendWsMessage;
           if (event.type === "PriceUpdate") {
-            emitBackendPrice(event.payload as { symbol: string; price: string | number; timestamp: number });
+            emitBackendPrice(
+              event.payload as {
+                symbol: string;
+                price_q8: string | number;
+                timestamp: number;
+              }
+            );
             return;
           }
           if (event.type === "PricesSnapshot") {
-            const payload = event.payload as { prices?: Array<{ symbol: string; price: string | number; timestamp: number }> };
+            const payload = event.payload as {
+              prices?: Array<{
+                symbol: string;
+                price_q8: string | number;
+                timestamp: number;
+              }>;
+            };
             payload.prices?.forEach(emitBackendPrice);
             return;
           }

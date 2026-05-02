@@ -36,6 +36,8 @@ import {
   type TapGridCell,
 } from "@/lib/taptrade/grid";
 import { useHaptic } from "@/hooks";
+import { useTapTradeAuth } from "@/hooks/use-taptrade-auth";
+import { useRouter } from "next/navigation";
 
 const GRID_ROWS = 9;
 // Future cells visible at any time. New cells are appended to the
@@ -46,8 +48,12 @@ const GRID_PAST_COLS = 16;
 const ACTIVATION_DELAY_MS = 3_000;
 const COLUMN_MS = 3_000;
 const PRICE_STEP_BPS = 40;
-const STARTING_BALANCE = 2_450.75;
-const STAKE_PRESETS = [10, 25, 75, 250];
+// Stake presets are in milli-ETH (0.001 / 0.005 / 0.025 / 0.1 ETH)
+// matching the engine's `[touch] min_stake_wei = 0.001 ETH /
+// max_stake_wei = 1 ETH` bounds. Display layer divides by 1_000 to
+// show ETH; the canvas treats `stakeAmount` as a unitless number
+// for layout, so any consistent scale works.
+const STAKE_PRESETS = [1, 5, 25, 100];
 
 function stakeWei(amount: number) {
   return (BigInt(Math.round(amount * 100)) * BigInt("10000000000000000")).toString();
@@ -109,14 +115,47 @@ function betPathEndTime(bet: RushArenaBet) {
 }
 
 export default function RushArenaTradePage() {
+  const router = useRouter();
+  const {
+    isAuthenticated,
+    freeBalanceWei,
+    refreshBalance,
+  } = useTapTradeAuth();
+
+  // Auth gate: send unauthenticated visitors to /trade/connect.
+  // Done in `useEffect` so SSR rendering doesn't crash on
+  // `useRouter().replace`.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace("/trade/connect");
+    }
+  }, [isAuthenticated, router]);
+
   const [round, setRound] = useState<RushRound | null>(null);
   const [fair, setFair] = useState<ProvablyFairState | null>(null);
   const [ticks, setTicks] = useState<RushTick[]>([]);
   const [currentPrice, setCurrentPrice] = useState(1_245.73);
   const [nowTime, setNowTime] = useState(() => Date.now());
   const [bets, setBets] = useState<RushArenaBet[]>([]);
-  const [stakeAmount, setStakeAmount] = useState(75);
-  const [balance, setBalance] = useState(STARTING_BALANCE);
+  const [stakeAmount, setStakeAmount] = useState(5);
+  // Real free balance in milli-ETH (matches the stake preset scale).
+  // The canvas reads this to decide if a bet is affordable; the
+  // header reads it for display. `setBalance` was previously local
+  // optimistic state; we now refresh from the engine after every
+  // place / resolve event instead.
+  const balance = useMemo(
+    () => Number(freeBalanceWei) / 1e15, // wei → milli-ETH
+    [freeBalanceWei]
+  );
+  const setBalance = useCallback(
+    (_: number | ((prev: number) => number)) => {
+      // Optimistic deltas are dropped; the engine is the source of
+      // truth. Fire-and-forget refresh to update the display from
+      // /user/balance after the next event loop turn.
+      void refreshBalance();
+    },
+    [refreshBalance]
+  );
   const lastTickRef = useRef<RushTick | null>(null);
   const particlesRef = useRef<ParticleSystemRef | null>(null);
   const handledResolutionRef = useRef<Set<string>>(new Set());
