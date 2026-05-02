@@ -1,0 +1,17 @@
+# Build artifacts
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Local secrets — never commit. The .env.example is the template.
+.env
+.env.local
+.env.*.local
+
+# Local config overrides (dev-only).
+config/local.toml
+config/development.toml
+
+# Calibration outputs (regenerated on demand by `bin/calibrate_vrf`).
+/tmp/empirical*.toml
+/empirical_*.toml

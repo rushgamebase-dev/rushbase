@@ -1,0 +1,46 @@
+[package]
+name = "rush-engine-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[features]
+default = []
+# When the parent crate is built with `--features aws-kms`, signer_kms
+# helpers become public — fuzzing them needs the same flag here.
+aws-kms = ["rush-engine/aws-kms"]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.rush-engine]
+path = ".."
+
+[[bin]]
+name = "fuzz_quote_token"
+path = "fuzz_targets/fuzz_quote_token.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_der_signature"
+path = "fuzz_targets/fuzz_der_signature.rs"
+test = false
+doc = false
+required-features = ["aws-kms"]
+
+[[bin]]
+name = "fuzz_spki"
+path = "fuzz_targets/fuzz_spki.rs"
+test = false
+doc = false
+required-features = ["aws-kms"]
+
+[[bin]]
+name = "fuzz_bigdecimal_to_u256"
+path = "fuzz_targets/fuzz_bigdecimal_to_u256.rs"
+test = false
+doc = false

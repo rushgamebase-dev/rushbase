@@ -13,10 +13,19 @@ const config: Config = {
         surface: "#111111",
         "border-color": "#1a1a1a",
         primary: "#00ff88",
+        // Alias for the TapTrade arena UX. Same green as `primary`;
+        // kept under a distinct name because the components ported
+        // from the standalone repo address it as `text-neon`/`bg-neon`.
+        neon: "#00ff88",
+        "neon-dim": "rgba(0, 255, 136, 0.55)",
         danger: "#ff4444",
         gold: "#ffd700",
         "text-color": "#e0e0e0",
         muted: "#666666",
+      },
+      boxShadow: {
+        "neon-sm": "0 0 4px rgba(0, 255, 136, 0.6)",
+        "neon-md": "0 0 8px rgba(0, 255, 136, 0.7), 0 0 16px rgba(0, 255, 136, 0.4)",
       },
       fontFamily: {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],

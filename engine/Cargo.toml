@@ -1,0 +1,173 @@
+[package]
+name = "rush-engine"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rush Protocol"]
+description = "Rush Trading Engine — custodial off-chain matching with on-chain ETH settlement on Base"
+
+[dependencies]
+# Web Framework
+actix = "0.13"
+actix-web = "4.9"
+actix-rt = "2.10"
+actix-ws = "0.3"
+actix-cors = "0.7"
+actix-web-httpauth = "0.8"
+actix-web-actors = "4.3"
+
+# Async Runtime
+tokio = { version = "1.41", features = ["full", "sync", "time", "macros", "rt-multi-thread"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+futures = "0.3"
+futures-util = "0.3"
+async-trait = "0.1"
+async-channel = "2.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+
+# Database
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "rust_decimal",
+    "bigdecimal",
+    "migrate"
+]}
+bigdecimal = { version = "0.4", features = ["serde"] }
+
+# Redis
+deadpool-redis = "0.18"
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# Authentication
+jsonwebtoken = "9.3"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# SIWE (Sign-In with Ethereum) — siwe re-uses the `time` crate for timestamps
+siwe = "0.6"
+time = "0.3"
+
+# On-chain (alloy stack — async, modular). Force rustls everywhere to avoid
+# pulling openssl-sys via reqwest's default native-tls features.
+alloy = { version = "0.8", default-features = false, features = [
+    "providers",
+    "provider-ws",
+    "signers",
+    "signer-local",
+    "rpc-types-eth",
+    "sol-types",
+    "contract",
+    "transport-http",
+    "transport-ws",
+    "pubsub",
+    "network",
+    "consensus",
+    "json",
+    "reqwest-rustls-tls",
+] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Decimal / U256 precision (positions, prices). Wei amounts use alloy U256.
+rust_decimal = { version = "1.36", features = ["serde", "serde-with-str"] }
+rust_decimal_macros = "1.36"
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-actix-web = "0.7"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+
+# Concurrent data structures
+dashmap = "6.1"
+parking_lot = "0.12"
+
+# Parallel processing
+rayon = "1.10"
+
+# URL parsing
+url = "2.5"
+
+# Random generation
+rand = "0.8"
+
+# HTTP client (used for direct JSON-RPC calls in chain::vault_balance)
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Rate limiting (per-IP token bucket via the governor crate).
+actix-governor = "0.8"
+
+# Quote token signing: HMAC-SHA256 over a serde payload, base64url-encoded.
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+
+# VRF seed encryption at rest (AES-256-GCM with a server-held key). The
+# raw seed is generated at place_bet, encrypted before any DB write,
+# and only decrypted by the resolver after `window_end_ms`.
+aes-gcm = "0.10"
+
+# AWS KMS-backed withdraw signer. Optional — only pulled with the
+# `aws-kms` feature.
+#
+# NOTE: the current `aws-smithy-*` family requires rustc 1.91+. Builds
+# with the feature enabled will fail on older toolchains; the default
+# build (no feature) is unaffected. Production deploy pipelines should
+# pin Rust 1.91+ in their toolchain file.
+aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "rustls", "rt-tokio"], optional = true }
+aws-sdk-kms = { version = "1", default-features = false, features = ["behavior-version-latest", "rustls", "rt-tokio"], optional = true }
+
+# OpenAPI spec generation. `utoipa` derives the schema from Rust types,
+# `utoipa-actix-web` wires it into actix-web routing if we ever want
+# Swagger UI; for now we just expose the raw `openapi.json`.
+utoipa = { version = "5.4", features = ["actix_extras", "uuid", "chrono"] }
+
+# Prometheus metrics endpoint and per-handler instrumentation.
+actix-web-prom = "0.10"
+prometheus = { version = "0.14", default-features = false }
+
+[features]
+# Expose mocks (e.g. `MockVaultBalanceProvider`) to integration crates.
+# Always enabled for `cargo test` of this crate; opt-in for downstreams.
+test-helpers = []
+
+# AWS KMS-backed withdraw signer. When enabled at build time, setting
+# `APP_CHAIN__SIGNER_KMS_KEY_ID` swaps the in-process hex key for the
+# KMS key. Pulls aws-config + aws-sdk-kms (~200 transitive deps); kept
+# off by default so dev builds stay light.
+aws-kms = ["dep:aws-config", "dep:aws-sdk-kms"]
+
+[dev-dependencies]
+actix-rt = "2.10"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+fake = { version = "3.0", features = ["derive"] }
+once_cell = "1.20"
+# Integration tests spin a fresh Postgres + Redis per file via testcontainers.
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis"] }
+# Property-based fuzz: explores random inputs against invariants we care
+# about (parsers never panic, sign/verify round-trips, bounds enforced).
+# Stable-Rust alternative to cargo-fuzz; complementary, not a replacement.
+proptest = "1.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
