@@ -178,17 +178,57 @@ impl MultiplierCalculator {
         let p_by_end = bachelier_p_touch_by(distance_bps, t_end_sec, self.cfg.vol_bps_per_sqrt_sec);
         let bachelier_diff = (p_by_end - p_by_start).max(0.0);
 
-        // Empirical lookup is keyed on `(distance, duration, offset)`.
-        // The offset axis covers UX future columns (col N → offset
-        // (N-1) × duration). Cells outside the calibrated grid fall
-        // back to Bachelier and are refused by the engine's gate —
-        // see `touch::engine::open_bet`.
+        // Empirical lookup keyed on `(distance, duration, offset)`.
+        //
+        // Tolerance: the client renders bands aligned to its last
+        // observed `entry_q8`, but by the time the request reaches
+        // the engine the in-process Rush Index has moved a few bps.
+        // A strict equality lookup misses those — same cell on
+        // screen, different `distance_bps_round`. So we scan the
+        // table for the nearest entry whose duration matches and
+        // whose `(distance, offset)` are within tolerance of the
+        // request, and refuse only if nothing fits.
+        //
+        // Tolerance budgets:
+        //  - 5 bps on distance: the Rush Index drifts ≤ ~3 bps over
+        //    the 100-200 ms RTT of a quote-grid call; a 5 bps
+        //    cushion absorbs that noise without crossing into
+        //    neighbouring catalogued cells (catalog is spaced
+        //    every 40 bps).
+        //  - 250 ms on offset: same idea on the time axis. Catalog
+        //    is spaced 3000 ms apart so 250 ms is well clear.
+        // Tolerance widened to absorb realistic client/server drift:
+        // the client anchors cells once and they stay fixed in
+        // absolute price, so as time progresses the engine sees
+        // distance_bps drift relative to the calibrated grid by up
+        // to ~20 bps within a single round. 20 bps is half the cell
+        // band width (PRICE_STEP_BPS=40) so we never snap across a
+        // visual cell. Worst-case p_touch inflation at 20 bps is
+        // ~1.3× — comfortably under the empirical_safety_factor of
+        // 1.5× (see empirical_safety_pad_protects_against_player_positive).
+        // OFFSET_TOL_MS=750 covers tick-quantization (~150 ms) plus
+        // schedule jitter when the client polls quote-grid every 250 ms.
+        const DIST_TOL_BPS: u32 = 20;
+        const OFFSET_TOL_MS: u64 = 750;
         let (raw_p, from_empirical) = if let Some(table) = &self.cfg.empirical_p_touch_table {
-            if let Some(&empirical_p) = table.get(&(
-                distance_bps_round,
-                window_duration_ms,
-                window_start_offset_ms,
-            )) {
+            let mut best: Option<(u32, u64, f64)> = None;
+            for (&(d, dur, off), &p) in table {
+                if dur != window_duration_ms {
+                    continue;
+                }
+                let dist_diff =
+                    (d as i64 - distance_bps_round as i64).unsigned_abs() as u32;
+                let off_diff =
+                    (off as i64 - window_start_offset_ms as i64).unsigned_abs() as u64;
+                if dist_diff > DIST_TOL_BPS || off_diff > OFFSET_TOL_MS {
+                    continue;
+                }
+                let score = dist_diff + (off_diff / 100) as u32;
+                if best.map_or(true, |(b_score, _, _)| score < b_score) {
+                    best = Some((score, dist_diff as u64 + off_diff, p));
+                }
+            }
+            if let Some((_, _, empirical_p)) = best {
                 let padded = empirical_p * self.cfg.empirical_safety_factor;
                 // Cap padded p at 0.95: we still want a positive
                 // house edge even on the "easiest" cell; a
@@ -394,17 +434,21 @@ mod tests {
 
     #[test]
     fn empirical_miss_falls_back_to_bachelier() {
-        // Cell not in the table → engine falls back to Bachelier and
-        // surfaces `from_empirical = false`.
+        // Cell not in (or near) the table → engine falls back to
+        // Bachelier and surfaces `from_empirical = false`. Tolerance
+        // is DIST_TOL_BPS=20 / OFFSET_TOL_MS=750, so we use a
+        // duration mismatch (15s table entry vs 30s query) — that's
+        // the cleanest miss because durations must match exactly.
         let mut table = EmpiricalPTouchTable::new();
-        table.insert((4, 30_000, 0), 0.091033);
+        table.insert((4, 15_000, 0), 0.091033);
         let cfg = MultiplierConfig {
             empirical_p_touch_table: Some(table),
             empirical_safety_factor: 1.5,
             ..Default::default()
         };
         let calc = MultiplierCalculator::new(cfg);
-        // 6bp/30s — not in the (single-entry) table.
+        // 6bp/30s — duration mismatch with the (single) 15s entry,
+        // so the tolerant lookup discards it.
         let q = calc.quote(
             50_000_00000000,
             50_030_00000000,

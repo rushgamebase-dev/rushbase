@@ -56,13 +56,15 @@ allowed_window_ms = [3000, 6000, 9000, 12000, 18000, 30000, 60000]
 # turns positive at the floor multiplier. Quote-grid disables them
 # pre-quote.
 min_distance_bps = 2
-# Cap matches the calibrated grid (distances 40/80/120 bps). Cells
-# beyond this fall outside `empirical_cells` and the engine refuses
-# to quote them — Bachelier fallback systematically under-prices
-# wide bands and is not safe to ship. Re-run `bin/calibrate_vrf`
-# with extended `DISTANCES_BPS` and bump this knob in lock-step if
-# the UX adds rows beyond the current ±3 layout.
-max_distance_bps = 120
+# Cap matches the calibrated grid. Distances are calibrated at
+# 20-bps spacing from 20 to 200 bps and the lookup tolerates ±20 bps,
+# so bands up to 220 bps from current price still resolve to a
+# calibrated cell. We refuse anything beyond `max_distance_bps`
+# outright with TOO_RISKY because Bachelier fallback systematically
+# under-prices wide bands against the VRF generator's regime
+# library. Bumping requires re-running `bin/calibrate_vrf` with
+# extended `DISTANCES_BPS`.
+max_distance_bps = 200
 resolution_check_interval_ms = 100
 min_activation_delay_ms = 1000                  # anti-snipe: window must start ≥1s in the future
 
@@ -118,6 +120,384 @@ empirical_safety_factor = 1.5
 # generator config (PATH_CONFIG_VERSION).
 
 [[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.7390
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.9097
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.9519
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.9600
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.9893
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.9988
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.8557
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.9211
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.9482
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.9744
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.9922
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.9995
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.8188
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.9109
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.9355
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.9731
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.9929
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.9985
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.7383
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.8325
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.9136
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.9587
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.9856
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.9973
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.6106
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.7432
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.9155
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.9563
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.9851
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.9988
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.4592
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.7341
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.9084
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.9641
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.9895
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.9980
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.4021
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.7812
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.9233
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.9587
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.9863
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.9993
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.5344
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.8335
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.9331
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.9585
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.9836
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.9993
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.7085
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.8850
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.9478
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.9648
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.9915
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.9993
+
+[[multiplier.empirical_cells]]
+distance_bps          = 20
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 1.0000
+
+[[multiplier.empirical_cells]]
 distance_bps          = 40
 duration_ms           = 3000
 window_start_offset_ms = 0
@@ -158,6 +538,48 @@ distance_bps          = 40
 duration_ms           = 60000
 window_start_offset_ms = 0
 p_touch               = 0.9966
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.6331
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.7192
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.7664
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.8179
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.9075
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.9688
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.9954
 
 [[multiplier.empirical_cells]]
 distance_bps          = 40
@@ -204,6 +626,48 @@ p_touch               = 0.9961
 [[multiplier.empirical_cells]]
 distance_bps          = 40
 duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.4976
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.5500
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.6829
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.8042
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.8828
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.9512
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.9963
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 3000
 window_start_offset_ms = 6000
 p_touch               = 0.3503
 
@@ -242,6 +706,48 @@ distance_bps          = 40
 duration_ms           = 60000
 window_start_offset_ms = 6000
 p_touch               = 0.9971
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.2136
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.4104
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.6863
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.8044
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.8909
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.9651
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.9966
 
 [[multiplier.empirical_cells]]
 distance_bps          = 40
@@ -288,6 +794,48 @@ p_touch               = 0.9956
 [[multiplier.empirical_cells]]
 distance_bps          = 40
 duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.2842
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.5955
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.7466
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.7847
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.8796
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.9517
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.9966
+
+[[multiplier.empirical_cells]]
+distance_bps          = 40
+duration_ms           = 3000
 window_start_offset_ms = 12000
 p_touch               = 0.4282
 
@@ -326,6 +874,384 @@ distance_bps          = 40
 duration_ms           = 60000
 window_start_offset_ms = 12000
 p_touch               = 0.9971
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.1892
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.4087
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.4419
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.4675
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.6443
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.7744
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.9036
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.3474
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.4087
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.4429
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.4939
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.6670
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.7703
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.9138
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.3489
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.3987
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.4268
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.5188
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.6511
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.7661
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.9004
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.2444
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.2910
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.3552
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.4973
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.6021
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.7468
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.9060
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.1313
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.1719
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.3181
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.4709
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.5720
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.7422
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.9019
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0662
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.1648
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.3574
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.4917
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.5676
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.7527
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.9031
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0554
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.2234
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.4023
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.4851
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.5803
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.7576
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.8979
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.1028
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.3115
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.4412
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.4778
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.6138
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.7615
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.8933
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.1943
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.3887
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.4563
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.4941
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.6184
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.7588
+
+[[multiplier.empirical_cells]]
+distance_bps          = 60
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.9033
 
 [[multiplier.empirical_cells]]
 distance_bps          = 80
@@ -372,6 +1298,48 @@ p_touch               = 0.6140
 [[multiplier.empirical_cells]]
 distance_bps          = 80
 duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.1311
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.1807
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.1890
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.2058
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.3301
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.4246
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.6213
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 3000
 window_start_offset_ms = 3000
 p_touch               = 0.1519
 
@@ -410,6 +1378,48 @@ distance_bps          = 80
 duration_ms           = 60000
 window_start_offset_ms = 3000
 p_touch               = 0.6111
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.1040
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.1052
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.1343
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.2156
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.2725
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.4092
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.5959
 
 [[multiplier.empirical_cells]]
 distance_bps          = 80
@@ -456,6 +1466,48 @@ p_touch               = 0.5918
 [[multiplier.empirical_cells]]
 distance_bps          = 80
 duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0149
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0454
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.1272
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.1997
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.2532
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.3989
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.5798
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 3000
 window_start_offset_ms = 9000
 p_touch               = 0.0095
 
@@ -498,6 +1550,48 @@ p_touch               = 0.6021
 [[multiplier.empirical_cells]]
 distance_bps          = 80
 duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0286
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.1194
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.1904
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.1995
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.2844
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.4109
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.5894
+
+[[multiplier.empirical_cells]]
+distance_bps          = 80
+duration_ms           = 3000
 window_start_offset_ms = 12000
 p_touch               = 0.0691
 
@@ -536,6 +1630,384 @@ distance_bps          = 80
 duration_ms           = 60000
 window_start_offset_ms = 12000
 p_touch               = 0.6182
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.0164
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.0498
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.0557
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.0574
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.1003
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.1401
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.2627
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0391
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0566
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0598
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0632
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.1199
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.1440
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.2759
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.0496
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.0483
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.0618
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.0735
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.1074
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.1692
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.2759
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0310
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0334
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0361
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0598
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0857
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.1465
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.2610
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.0093
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.0142
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.0266
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.0515
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.0769
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.1277
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.2476
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0083
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0322
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0559
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0771
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.1416
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.2439
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0012
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.0212
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.0496
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.0654
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.0803
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.1448
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.2461
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0054
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0291
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0554
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0615
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0837
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.1345
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.2441
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.0149
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.0491
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.0608
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.0652
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.0972
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.1357
+
+[[multiplier.empirical_cells]]
+distance_bps          = 100
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.2559
 
 [[multiplier.empirical_cells]]
 distance_bps          = 120
@@ -582,6 +2054,48 @@ p_touch               = 0.0642
 [[multiplier.empirical_cells]]
 distance_bps          = 120
 duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0068
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0132
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0127
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0154
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.0203
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.0337
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.0686
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 3000
 window_start_offset_ms = 3000
 p_touch               = 0.0132
 
@@ -620,6 +2134,48 @@ distance_bps          = 120
 duration_ms           = 60000
 window_start_offset_ms = 3000
 p_touch               = 0.0684
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0078
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0071
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0105
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0151
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0198
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.0403
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.0642
 
 [[multiplier.empirical_cells]]
 distance_bps          = 120
@@ -666,6 +2222,48 @@ p_touch               = 0.0601
 [[multiplier.empirical_cells]]
 distance_bps          = 120
 duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0017
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0073
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0142
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0166
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.0327
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.0630
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 3000
 window_start_offset_ms = 9000
 p_touch               = 0.0000
 
@@ -708,6 +2306,48 @@ p_touch               = 0.0559
 [[multiplier.empirical_cells]]
 distance_bps          = 120
 duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0049
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0151
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0149
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0208
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.0349
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.0613
+
+[[multiplier.empirical_cells]]
+distance_bps          = 120
+duration_ms           = 3000
 window_start_offset_ms = 12000
 p_touch               = 0.0029
 
@@ -746,6 +2386,1518 @@ distance_bps          = 120
 duration_ms           = 60000
 window_start_offset_ms = 12000
 p_touch               = 0.0681
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.0017
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.0012
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.0024
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.0032
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.0034
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.0159
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0027
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.0051
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.0076
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.0125
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.0029
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.0027
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.0034
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.0059
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.0127
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0046
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.0051
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.0107
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.0037
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.0056
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.0112
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0046
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0027
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.0056
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.0117
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.0044
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.0129
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0012
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0032
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0037
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.0042
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.0098
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.0034
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.0022
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.0020
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.0032
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.0066
+
+[[multiplier.empirical_cells]]
+distance_bps          = 140
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.0103
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.0017
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.0015
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.0017
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.0027
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.0012
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.0010
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 160
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.0012
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.0007
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.0002
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.0005
+
+[[multiplier.empirical_cells]]
+distance_bps          = 180
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 0
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 1500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 3000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 4500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 6000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 7500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 9000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 10500
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 3000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 6000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 9000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 12000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 18000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 30000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
+
+[[multiplier.empirical_cells]]
+distance_bps          = 200
+duration_ms           = 60000
+window_start_offset_ms = 12000
+p_touch               = 0.0000
 
 [quote]
 # HMAC-SHA256 secret for signing quote tokens. Must be ≥32 bytes.

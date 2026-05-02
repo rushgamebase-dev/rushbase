@@ -78,10 +78,21 @@ const BOUND_BPS: f64 = 190.0;
 /// have `distance ∈ {40, 80, 120}` (rows beyond 160 cross the
 /// `max_distance_bps = 180` cordon and are refused as TOO_RISKY).
 ///
-/// We calibrate exactly those distances. Off-grid distances
-/// (e.g. 25, 60) are not part of the production catalog; if a
-/// future UX adds them, this table needs another row.
-const DISTANCES_BPS: &[u32] = &[40, 80, 120];
+/// We calibrate the union of:
+///  - on-grid UX distances (40, 80, 120) — what the player sees
+///    when their anchor matches the engine's current price
+///  - drift-coverage distances (20, 60, 100, 140, 160, 180, 200) —
+///    where on-screen cells land *after* current drifts away from
+///    the client's anchor. The Rush Index soft band is ±150 bps and
+///    the client may anchor anywhere inside it, so distances up to
+///    ~300 bps from anchor are reachable; we cover up to 200 and
+///    let the rest fall to UNCALIBRATED (those cells are TOO_RISKY
+///    by `max_distance_bps = 200` anyway).
+/// 20-bps step keeps the lookup tolerance (DIST_TOL_BPS=20)
+/// reaching every neighbour without crossing two cells.
+const DISTANCES_BPS: &[u32] = &[
+    20, 40, 60, 80, 100, 120, 140, 160, 180, 200,
+];
 
 /// Window durations in ms — must match `[touch] allowed_window_ms`
 /// in `config/default.toml`. Cells outside this list are not
@@ -93,8 +104,12 @@ const DURATIONS_MS: &[u64] = &[3_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_0
 /// `RushArenaTradePage` uses `COLUMN_MS = 3000`). Calibrating offset
 /// 0 only — as we did initially — leaves all future-column cells
 /// to a Bachelier fallback that systematically under-prices wide
-/// bands → vault drain. Sweeping 5 offsets covers cols 1..5.
-const OFFSETS_MS: &[u64] = &[0, 3_000, 6_000, 9_000, 12_000];
+/// bands → vault drain. Sweeping 9 offsets at 1.5 s spacing covers
+/// every column up to 12 s with 750 ms tolerance on either side
+/// (matches `OFFSET_TOL_MS` in pricing).
+const OFFSETS_MS: &[u64] = &[
+    0, 1_500, 3_000, 4_500, 6_000, 7_500, 9_000, 10_500, 12_000,
+];
 
 /// Samples per cell. 4096 is a balance between calibration time
 /// (~1 min on 8 cores release) and standard error

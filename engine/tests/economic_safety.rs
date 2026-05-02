@@ -374,27 +374,35 @@ fn off_table_cells_are_refused() {
     // Geometry not present in the 3D calibration grid MUST be
     // refused. Bachelier fallback under-prices wide bands against
     // the VRF generator and lets a player drain the vault.
+    //
+    // The calibrated grid is `distances ∈ {20,40,…,200}` ×
+    // `durations ∈ {3,6,9,12,18,30,60} s` × `offsets ∈ {0,1.5,…,12} s`,
+    // with lookup tolerances DIST_TOL_BPS=20 / OFFSET_TOL_MS=750.
+    // Anything outside those windows must miss the empirical table.
     let calc = build_calc();
     let entry_q8 = (START_PRICE * 1e8) as u128;
 
-    // 1) Off-grid distance: 60 bps falls between 40 and 80.
-    let band_min = entry_q8 + (entry_q8 * 60u128) / 10_000;
-    let band_max = entry_q8 + (entry_q8 * 100u128) / 10_000;
+    // 1) Off-grid duration: 7500 ms is not in DURATIONS_MS, and the
+    // lookup requires an exact duration match (no tolerance on the
+    // duration axis).
+    let band_min = entry_q8 + (entry_q8 * 80u128) / 10_000;
+    let band_max = entry_q8 + (entry_q8 * 120u128) / 10_000;
     let q = calc.quote(
         entry_q8,
         band_min,
         band_max,
         TouchDirection::Up,
         0,
-        3_000,
+        7_500, // not in DURATIONS_MS
     );
     assert!(
         !q.from_empirical,
-        "off-grid distance must NOT match empirical table"
+        "off-grid duration must NOT match empirical table"
     );
 
-    // 2) Calibrated distance but offset > max calibrated (15000 ms,
-    // beyond col 5 = 12000 ms). Falls outside the 3D grid.
+    // 2) Calibrated distance + duration but offset way past the
+    // max calibrated (15000 ms vs 12000 ms cap, diff 3000 ms > 750 ms
+    // tolerance). Falls outside the 3D grid.
     let band_min_40 = entry_q8 + (entry_q8 * 40u128) / 10_000;
     let band_max_40 = entry_q8 + (entry_q8 * 80u128) / 10_000;
     let q = calc.quote(
@@ -402,7 +410,7 @@ fn off_table_cells_are_refused() {
         band_min_40,
         band_max_40,
         TouchDirection::Up,
-        15_000, // beyond OFFSETS_MS in calibrate_vrf
+        15_000, // beyond OFFSETS_MS + tolerance
         3_000,
     );
     assert!(
