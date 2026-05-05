@@ -919,12 +919,13 @@ function TopHeader({
   const { enabled: soundEnabled, toggleSound } = useSoundManager();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 overflow-hidden border-b border-[#10251d] bg-[#02070b] px-3 shadow-[0_1px_0_rgba(255,255,255,0.03)] sm:h-[72px] sm:gap-5 sm:px-5">
+    <header className="flex h-14 shrink-0 items-center gap-2 overflow-hidden border-b border-[#10251d] bg-[#02070b] px-2 shadow-[0_1px_0_rgba(255,255,255,0.03)] sm:h-[72px] sm:gap-5 sm:px-5">
+      {/* Logo — compact on phone, full on desktop */}
       <div className="flex min-w-0 shrink-0 items-center gap-2 sm:min-w-[210px] sm:gap-3">
         <div
           role="img"
           aria-label="Rush logo"
-          className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[#1aff84]/35 bg-[#858585] shadow-[0_0_24px_rgba(0,255,102,0.22)] sm:h-11 sm:w-11"
+          className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-[#1aff84]/35 bg-[#858585] shadow-[0_0_24px_rgba(0,255,102,0.22)] sm:h-11 sm:w-11"
           style={{
             backgroundImage: "url('/logo.png')",
             backgroundPosition: "50% 31%",
@@ -932,38 +933,47 @@ function TopHeader({
             backgroundSize: "184%",
           }}
         />
-        <div>
-          <div className="font-sans text-2xl font-black leading-5 text-white sm:text-3xl sm:leading-6">RUSH</div>
-          <div className="hidden font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66] sm:block">TapTrading</div>
+        {/* RUSH text + TapTrading subtitle — desktop only.
+            Mobile gets just the logo to save horizontal space for
+            price + balance which the player actually needs. */}
+        <div className="hidden sm:block">
+          <div className="font-sans text-3xl font-black leading-6 text-white">RUSH</div>
+          <div className="font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66]">TapTrading</div>
         </div>
       </div>
 
-      <button className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[#1d3327] bg-[#040b0f] px-3 font-mono text-sm font-black text-white transition hover:border-[#00ff66]/60 sm:h-11 sm:gap-3 sm:px-4 sm:text-lg">
+      {/* Symbol pill — compact on phone (no chevron, no R-circle, smaller font) */}
+      <button className="flex h-9 min-w-0 shrink-0 items-center gap-1.5 rounded-md border border-[#1d3327] bg-[#040b0f] px-2 font-mono text-[12px] font-black text-white transition hover:border-[#00ff66]/60 sm:h-11 sm:gap-3 sm:rounded-lg sm:px-4 sm:text-lg">
         <span className="hidden h-5 w-5 place-items-center rounded-full bg-[#00ff66] text-xs text-[#02260f] sm:grid">R</span>
         {symbol}
-        <ChevronDown className="h-4 w-4 text-[#7b9186]" />
+        <ChevronDown className="hidden h-4 w-4 text-[#7b9186] sm:block" />
       </button>
 
-      <div className="hidden items-baseline gap-3 md:flex">
+      {/* Price + pct — now visible on mobile too (compact). Was
+          desktop-only before; mobile players had no live price text
+          outside of the canvas itself. */}
+      <div className="flex min-w-0 items-baseline gap-1.5 sm:gap-3">
         <span
-          className={`font-mono text-2xl font-black ${pctMove >= 0 ? "text-[#00ff66]" : "text-[#ff3b4d]"}`}
+          className={`truncate font-mono text-base font-black sm:text-2xl ${pctMove >= 0 ? "text-[#00ff66]" : "text-[#ff3b4d]"}`}
           style={{ textShadow: pctMove >= 0 ? "0 0 16px rgba(0,255,102,0.34)" : "none" }}
         >
           {price > 0 ? price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
         </span>
-        <span className={`font-mono text-sm font-bold ${pctMove >= 0 ? "text-[#00ff66]" : "text-[#ff3b4d]"}`}>
+        <span className={`font-mono text-[10px] font-bold sm:text-sm ${pctMove >= 0 ? "text-[#00ff66]" : "text-[#ff3b4d]"}`}>
           {formatPct(pctMove)}
         </span>
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
         <div className="hidden h-10 items-center gap-2 rounded-lg border border-[#1d3327] bg-[#040b0f] px-4 font-mono text-xs font-black uppercase text-[#00ff66] lg:flex">
           <span className="h-2 w-2 rounded-full bg-[#00ff66] shadow-[0_0_10px_rgba(0,255,102,0.85)]" />
           Live
         </div>
+        {/* Sound + Settings hidden on phone — non-essential and
+            crowd the header. Reachable from a future menu if needed. */}
         <button
           onClick={toggleSound}
-          className={`grid h-10 w-10 place-items-center rounded-lg border bg-[#040b0f] transition hover:border-[#00ff66]/60 hover:text-[#00ff66] ${
+          className={`hidden h-10 w-10 place-items-center rounded-lg border bg-[#040b0f] transition hover:border-[#00ff66]/60 hover:text-[#00ff66] sm:grid ${
             soundEnabled ? "border-[#1d3327] text-[#b8c7d9]" : "border-[#33211d] text-[#ff7d65]"
           }`}
           aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
@@ -1149,9 +1159,13 @@ function MobileStakeStrip({
   setStakeAmount: (value: number) => void;
   balance: number;
 }) {
+  // Touch-target ergonomics: Apple HIG + Material both recommend
+  // ≥44 px tap surface. The previous 36 px buttons were misclick-prone
+  // on phones, especially during fast play. Bumped to 48 px.
+  const cheapestRatio = stakeAmount > 0 ? Math.min(1, stakeAmount / Math.max(balance, 0.0001)) : 0;
   return (
-    <div className="flex h-14 shrink-0 items-center gap-3 border-t border-[#10251d] bg-[#02070b] px-3 xl:hidden">
-      <label className="flex h-9 w-32 items-center rounded-md border border-[#1d3327] bg-[#06100f] px-3">
+    <div className="flex h-16 shrink-0 items-center gap-2 border-t border-[#10251d] bg-[#02070b] px-2 xl:hidden">
+      <label className="flex h-12 w-28 shrink-0 items-center rounded-lg border border-[#1d3327] bg-[#06100f] px-2.5 sm:w-32 sm:px-3">
         <input
           value={stakeAmount}
           onChange={(event) => {
@@ -1159,28 +1173,45 @@ function MobileStakeStrip({
             setStakeAmount(Number.isFinite(next) && next > 0 ? next : 0.001);
           }}
           inputMode="decimal"
-          className="min-w-0 flex-1 bg-transparent font-mono text-sm font-black text-white outline-none"
+          aria-label="Bet stake (ETH)"
+          className="min-w-0 flex-1 bg-transparent font-mono text-base font-black text-white outline-none"
         />
         <span className="font-mono text-[10px] font-bold text-[#8aa393]">ETH</span>
       </label>
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
-        {STAKE_PRESETS.map((preset) => (
-          <button
-            key={preset}
-            onClick={() => setStakeAmount(preset)}
-            className={`h-9 w-14 shrink-0 rounded-md border font-mono text-[10px] font-black transition ${
-              stakeAmount === preset
-                ? "border-[#00ff66] bg-[#00ff66]/18 text-[#00ff66]"
-                : "border-[#1d3327] bg-[#06100f] text-[#b8c7d9]"
-            }`}
-          >
-            {preset}
-          </button>
-        ))}
+      <div
+        className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {STAKE_PRESETS.map((preset) => {
+          const isSelected = stakeAmount === preset;
+          const overBalance = preset > balance;
+          return (
+            <button
+              key={preset}
+              onClick={() => setStakeAmount(preset)}
+              disabled={overBalance}
+              className={`flex h-12 w-16 shrink-0 flex-col items-center justify-center rounded-lg border font-mono text-xs font-black transition active:scale-95 ${
+                overBalance
+                  ? "cursor-not-allowed border-[#1a1a1a] bg-[#0a0a0a] text-[#3a3a3a]"
+                  : isSelected
+                    ? "border-[#00ff66] bg-[#00ff66]/18 text-[#00ff66] shadow-[0_0_18px_rgba(0,255,102,0.3)]"
+                    : "border-[#1d3327] bg-[#06100f] text-[#b8c7d9] hover:border-[#00ff66]/40"
+              }`}
+            >
+              {preset}
+            </button>
+          );
+        })}
       </div>
-      <div className="hidden font-mono text-xs sm:block">
-        <span className="text-[#708a7c]">Balance </span>
-        <span className="font-black text-white">{formatEth(balance, 4)}</span>
+      {/* Stake-to-balance bar — visual cue when stake nears bankroll
+          so the player notices before clicking and getting an
+          InsufficientFreeMargin reject. Keeps the visible balance in
+          the strip so they don't have to look up at the header. */}
+      <div className="hidden flex-col items-end gap-1 font-mono sm:flex">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a8068]">Balance</span>
+        <span className={`text-sm font-black ${cheapestRatio > 0.8 ? "text-[#ff7d65]" : "text-white"}`}>
+          {formatEth(balance, 4)}
+        </span>
       </div>
     </div>
   );
