@@ -50,6 +50,11 @@ export interface SiweVerifyResponse {
 }
 
 export interface UserBalance {
+  /** Lowercased 0x-prefixed wallet of the JWT subject. The engine
+   *  ships this on every balance response so the client can detect
+   *  wallet-switch scenarios (MetaMask account swap) and force a
+   *  fresh SIWE under the new identity. */
+  wallet_address: string;
   deposited_wei: string;
   withdrawn_wei: string;
   realized_pnl_wei: string;
