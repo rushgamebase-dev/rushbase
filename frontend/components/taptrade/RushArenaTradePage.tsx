@@ -26,6 +26,7 @@ import {
 import { RushArenaCanvas } from "@/components/taptrade/RushArenaCanvas";
 import { WalletDrawer } from "@/components/taptrade/WalletDrawer";
 import { WinFloater } from "@/components/taptrade/WinFloater";
+import { WalletButton } from "@/components/WalletButton";
 import {
   RUSH_MARKET,
   rushArenaClient,
@@ -1001,9 +1002,11 @@ function TopHeader({
             <Plus className="h-5 w-5" />
           </button>
         </div>
-        <div className="hidden h-11 w-11 place-items-center rounded-full border border-[#1aff84]/35 bg-[#06361b] font-sans text-2xl font-black text-[#00ff66] shadow-[inset_0_0_14px_rgba(0,255,102,0.22)] md:grid">
-          R
-        </div>
+        {/* Wallet connect/disconnect/switch — same RainbowKit-style
+            component the global Rush header uses. Without this the
+            user is stuck with whatever account MetaMask defaults to
+            and can't switch identities mid-session. */}
+        <WalletButton />
       </div>
     </header>
   );
