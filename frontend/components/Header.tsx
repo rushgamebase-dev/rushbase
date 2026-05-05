@@ -108,6 +108,34 @@ export default function Header() {
             </span>
           </Link>
 
+          {/* TRADE — touch-betting arena (TapTrading). Highlighted in
+              the same neon-cyan palette as the in-game canvas accents
+              so the menu surface matches what the player sees once
+              they land on /trade. */}
+          <Link
+            href="/trade"
+            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
+            style={{ color: "#00ff66", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#5dffaa")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#00ff66")}
+          >
+            TRADE
+            <span
+              className="px-1 py-0.5 rounded text-center"
+              style={{
+                fontSize: 10,
+                background: "rgba(0,255,102,0.12)",
+                border: "1px solid rgba(0,255,102,0.3)",
+                color: "#00ff66",
+                fontFamily: "monospace",
+                letterSpacing: "0.06em",
+                lineHeight: 1,
+              }}
+            >
+              NEW
+            </span>
+          </Link>
+
           <Link
             href="/leaderboard"
             className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"

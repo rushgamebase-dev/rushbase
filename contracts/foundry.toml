@@ -8,10 +8,17 @@ optimizer = true
 optimizer_runs = 200
 evm_version = "cancun"
 
+# RPC + verifier credentials — pulled from `.env` (auto-loaded by
+# `forge` when present in cwd) so secrets never live in the repo. The
+# `${VAR}` syntax requires foundry ≥ v0.2.0 (always-on for current
+# stable). If a variable is absent, `forge` falls back to the public
+# Base RPC and `--verify` will skip without a key.
 [rpc_endpoints]
-base = "https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236"
+base = "${BASE_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
 
 [etherscan]
-base = { key = "7KEG96T5NCZQ88X2QQFTB5Z3YB815HMJHU", url = "https://api.basescan.org/api" }
+base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
+base_sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

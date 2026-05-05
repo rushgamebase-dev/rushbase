@@ -479,6 +479,341 @@ contract TradingVaultTest is Test {
         vault.withdraw(amount, nonce, sig);
         assertEq(vault.lastNonce(alice), nonce);
     }
+
+    // ─── window rate-limit ───────────────────────────────────────────────
+
+    event WithdrawWindowSet(uint256 maxAmount, uint256 windowSecs);
+    event WithdrawWindowReset(uint256 newWindowStart);
+
+    function test_setWithdrawWindow_onlyOwner() public {
+        vm.prank(alice);
+        vm.expectRevert();
+        vault.setWithdrawWindow(1 ether, 300);
+    }
+
+    function test_setWithdrawWindow_emitsEvent() public {
+        vm.prank(owner);
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit WithdrawWindowSet(1 ether, 300);
+        vault.setWithdrawWindow(1 ether, 300);
+        assertEq(vault.maxWindowWithdraw(), 1 ether);
+        assertEq(vault.withdrawWindowSecs(), 300);
+    }
+
+    function test_setWithdrawWindow_zeroMaxDisables() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(0, 0);
+        assertEq(vault.maxWindowWithdraw(), 0);
+        assertEq(vault.withdrawWindowSecs(), 0);
+    }
+
+    function test_setWithdrawWindow_rejectsZeroSecsWhenCapped() public {
+        vm.prank(owner);
+        // maxAmount > 0 with windowSecs == 0 would mean unlimited
+        // resets per block — refused with the dedicated typed error
+        // so off-chain tooling can route the alert correctly.
+        vm.expectRevert(TradingVault.ZeroWindowSecs.selector);
+        vault.setWithdrawWindow(1 ether, 0);
+    }
+
+    function test_window_disabled_allowsAnyVolume() public {
+        // Default state: maxWindowWithdraw = 0, the limit is off.
+        _depositAlice(10 ether);
+        bytes memory sig1 = _signWithdraw(alice, 1 ether, 1, signerKey);
+        bytes memory sig2 = _signWithdraw(alice, 2 ether, 2, signerKey);
+        vm.prank(alice);
+        vault.withdraw(1 ether, 1, sig1);
+        vm.prank(alice);
+        vault.withdraw(2 ether, 2, sig2);
+        // No revert: limit disabled.
+    }
+
+    function test_window_blocksOverCap() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(10 ether);
+
+        bytes memory sig1 = _signWithdraw(alice, 0.6 ether, 1, signerKey);
+        bytes memory sig2 = _signWithdraw(alice, 0.5 ether, 2, signerKey);
+
+        vm.prank(alice);
+        vault.withdraw(0.6 ether, 1, sig1);
+
+        // Second withdraw would push window volume to 1.1 ETH > 1.
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TradingVault.WindowVolumeExceeded.selector,
+                0.5 ether,
+                0.4 ether // 1 - 0.6
+            )
+        );
+        vault.withdraw(0.5 ether, 2, sig2);
+
+        // Sanity: nonce wasn't bumped on the failed call.
+        assertEq(vault.lastNonce(alice), 1);
+    }
+
+    function test_window_resetsAfterDeadline() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(10 ether);
+
+        bytes memory sig1 = _signWithdraw(alice, 0.9 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.9 ether, 1, sig1);
+        assertEq(vault.currentWindowVolume(), 0.9 ether);
+
+        // Jump past the window.
+        vm.warp(block.timestamp + 301);
+
+        bytes memory sig2 = _signWithdraw(alice, 0.9 ether, 2, signerKey);
+        vm.expectEmit(false, false, false, true, address(vault));
+        emit WithdrawWindowReset(block.timestamp);
+        vm.prank(alice);
+        vault.withdraw(0.9 ether, 2, sig2);
+        // Counter restarted from this new withdraw, not from prior leftovers.
+        assertEq(vault.currentWindowVolume(), 0.9 ether);
+    }
+
+    function test_window_aggregatesAcrossUsers() public {
+        // Cap is global, not per-user — a coordinated drain across
+        // wallets gets the same brake.
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+        vm.prank(bob);
+        vault.deposit{value: 5 ether}();
+
+        bytes memory aliceSig = _signWithdraw(alice, 0.7 ether, 1, signerKey);
+        bytes memory bobSig = _signWithdraw(bob, 0.5 ether, 1, signerKey);
+
+        vm.prank(alice);
+        vault.withdraw(0.7 ether, 1, aliceSig);
+
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TradingVault.WindowVolumeExceeded.selector,
+                0.5 ether,
+                0.3 ether
+            )
+        );
+        vault.withdraw(0.5 ether, 1, bobSig);
+    }
+
+    function test_window_signatureCheckedFirst() public {
+        // A forged sig must not even bump the window counter — the
+        // sig check runs before the rate-limit math.
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory badSig = _signWithdraw(alice, 0.5 ether, 1, 0xBAD);
+        vm.prank(alice);
+        vm.expectRevert(TradingVault.InvalidSignature.selector);
+        vault.withdraw(0.5 ether, 1, badSig);
+        assertEq(vault.currentWindowVolume(), 0);
+        assertEq(vault.currentWindowStart(), 0);
+    }
+
+    function test_window_pausesStillWork() public {
+        // The rate limit must not interfere with the emergency brake.
+        vm.prank(owner);
+        vault.setWithdrawWindow(10 ether, 300);
+        _depositAlice(5 ether);
+
+        vm.prank(owner);
+        vault.setWithdrawsPaused(true);
+
+        bytes memory sig = _signWithdraw(alice, 1 ether, 1, signerKey);
+        vm.prank(alice);
+        vm.expectRevert(TradingVault.WithdrawsArePaused.selector);
+        vault.withdraw(1 ether, 1, sig);
+    }
+
+    function test_window_reconfigurePreservesCounter() public {
+        // Owner cannot wipe the counter mid-incident just by calling
+        // the setter. They must hit `setWithdrawsPaused` instead.
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory sig = _signWithdraw(alice, 0.6 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.6 ether, 1, sig);
+        assertEq(vault.currentWindowVolume(), 0.6 ether);
+
+        // Reconfigure — still 1 ETH cap, but new window length.
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 60);
+        assertEq(vault.currentWindowVolume(), 0.6 ether);
+        assertEq(vault.maxWindowWithdraw(), 1 ether);
+        assertEq(vault.withdrawWindowSecs(), 60);
+    }
+
+    function test_setWithdrawWindow_zeroSecsRevertsTypedError() public {
+        // Pre-fix this used the generic `ZeroAmount` selector. Ops
+        // tooling that filters by error selector needs the dedicated
+        // `ZeroWindowSecs` so the alert routes to "fix the window
+        // duration", not "fix the amount".
+        vm.prank(owner);
+        vm.expectRevert(TradingVault.ZeroWindowSecs.selector);
+        vault.setWithdrawWindow(1 ether, 0);
+    }
+
+    function test_window_shrinkBelowVolumeReportsZeroRemaining() public {
+        // Audit finding: shrinking the cap below the in-flight volume
+        // used to underflow the `windowRemaining` math and revert with
+        // a generic Panic. Now the error saturates at 0 so off-chain
+        // tools can decode it cleanly.
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory sig = _signWithdraw(alice, 0.6 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.6 ether, 1, sig);
+
+        // Owner shrinks the cap below the volume already withdrawn.
+        vm.prank(owner);
+        vault.setWithdrawWindow(0.4 ether, 300);
+
+        bytes memory sig2 = _signWithdraw(alice, 0.1 ether, 2, signerKey);
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TradingVault.WindowVolumeExceeded.selector,
+                0.1 ether,
+                uint256(0) // saturated, no underflow
+            )
+        );
+        vault.withdraw(0.1 ether, 2, sig2);
+    }
+
+    function test_windowRemaining_disabled_returnsMax() public {
+        // No rate limit configured → unbounded.
+        assertEq(vault.windowRemaining(), type(uint256).max);
+    }
+
+    function test_windowRemaining_freshWindow_returnsCap() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        // Nothing withdrawn yet → full cap is available.
+        assertEq(vault.windowRemaining(), 1 ether);
+    }
+
+    function test_windowRemaining_partial_returnsRemaining() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory sig = _signWithdraw(alice, 0.7 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.7 ether, 1, sig);
+        assertEq(vault.windowRemaining(), 0.3 ether);
+    }
+
+    function test_windowRemaining_pastDeadline_returnsCap() public {
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory sig = _signWithdraw(alice, 0.7 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.7 ether, 1, sig);
+
+        vm.warp(block.timestamp + 301);
+        // The next withdraw will reset; until then the getter
+        // already reflects the fresh window.
+        assertEq(vault.windowRemaining(), 1 ether);
+    }
+
+    function test_windowRemaining_overConsumed_saturatesAtZero() public {
+        // Same setup as test_window_shrinkBelowVolumeReportsZeroRemaining
+        // but verifying the read path (not the revert path).
+        vm.prank(owner);
+        vault.setWithdrawWindow(1 ether, 300);
+        _depositAlice(5 ether);
+
+        bytes memory sig = _signWithdraw(alice, 0.8 ether, 1, signerKey);
+        vm.prank(alice);
+        vault.withdraw(0.8 ether, 1, sig);
+
+        vm.prank(owner);
+        vault.setWithdrawWindow(0.5 ether, 300);
+        assertEq(vault.windowRemaining(), 0);
+    }
+
+    // ─── signer rotation: cancel event ───────────────────────────────────
+
+    event SignerRotationCancelled(address indexed cancelled);
+
+    function test_cancelPendingSigner_emitsEventWhenPresent() public {
+        address newSigner = makeAddr("newSigner");
+        vm.prank(owner);
+        vault.proposeSigner(newSigner);
+
+        vm.prank(owner);
+        vm.expectEmit(true, false, false, false, address(vault));
+        emit SignerRotationCancelled(newSigner);
+        vault.cancelPendingSigner();
+        assertEq(vault.pendingSigner(), address(0));
+    }
+
+    function test_cancelPendingSigner_silentNoOpWhenNothingPending() public {
+        // Calling on an idle state must not revert; it leaves the
+        // op in the same "rotation off" state regardless. No event
+        // is emitted in this branch — there's nothing to reconcile.
+        vm.prank(owner);
+        vault.cancelPendingSigner();
+        assertEq(vault.pendingSigner(), address(0));
+    }
+
+    // ─── Ownable2Step: handover requires acceptance ──────────────────────
+
+    function test_transferOwnership_requiresAcceptance() public {
+        address newOwner = makeAddr("newOwner");
+        vm.prank(owner);
+        vault.transferOwnership(newOwner);
+        // Ownership is NOT transferred yet — must be accepted.
+        assertEq(vault.owner(), owner);
+        assertEq(vault.pendingOwner(), newOwner);
+
+        // Random address can't claim it.
+        vm.prank(alice);
+        vm.expectRevert();
+        vault.acceptOwnership();
+        assertEq(vault.owner(), owner);
+
+        // The pending owner accepts.
+        vm.prank(newOwner);
+        vault.acceptOwnership();
+        assertEq(vault.owner(), newOwner);
+        assertEq(vault.pendingOwner(), address(0));
+    }
+
+    function test_transferOwnership_typoIsRecoverable() public {
+        // The whole point of Ownable2Step: a typo into transferOwnership
+        // doesn't lock the contract. The current owner can re-transfer.
+        address typo = makeAddr("typo");
+        vm.prank(owner);
+        vault.transferOwnership(typo);
+
+        // Owner notices the typo and overwrites the pending handover.
+        address realNewOwner = makeAddr("realNewOwner");
+        vm.prank(owner);
+        vault.transferOwnership(realNewOwner);
+        assertEq(vault.pendingOwner(), realNewOwner);
+
+        vm.prank(typo);
+        vm.expectRevert();
+        vault.acceptOwnership();
+
+        vm.prank(realNewOwner);
+        vault.acceptOwnership();
+        assertEq(vault.owner(), realNewOwner);
+    }
 }
 
 /// @dev Reentrancy attacker. Receives ETH from a legitimate withdraw and

@@ -1,4 +1,5 @@
 import type { TapGridCell } from "@/lib/taptrade/grid";
+import { getAccessToken } from "@/lib/api/taptradeAuth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const WS_URL =
@@ -157,6 +158,8 @@ type BackendWsMessage =
 type RequestQuoteParams = {
   cell: TapGridCell;
   stakeAmountWei: string;
+  livePrice?: number;
+  nowMs?: number;
 };
 
 export type QuoteGridCellRequest = {
@@ -166,6 +169,31 @@ export type QuoteGridCellRequest = {
   targetRowMaxQ8: string;
   windowStartOffsetMs: number;
   windowDurationMs: number;
+};
+
+/** Anonymised bet row from `/trade/bets/public` and `/trade/wins/public`. */
+export type PublicBetEntry = {
+  id: string;
+  symbol: string;
+  /** Display name — `username` if set, else short wallet (0xABCD…1234). */
+  playerHandle: string;
+  /** Stake in wei (string to preserve precision). */
+  stakeWei: string;
+  multiplierBps: number;
+  /** Stake × multiplier_bps / 10_000, in wei. */
+  potentialPayoutWei: string;
+  placedAtMs: number;
+  windowEndMs: number;
+  /** ms timestamp; non-null only on rows from `/wins/public`. */
+  resolvedAtMs: number | null;
+};
+
+export type LeaderboardEntry = {
+  rank: number;
+  player: string;
+  wins: number;
+  /** Cumulative realised PnL in wei (string for precision). */
+  realizedPnlWei: string;
 };
 
 export type QuoteGridCellResponse = {
@@ -458,11 +486,18 @@ function normalizeBackendBet(
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  // Engine auth middleware reads `Authorization: Bearer <jwt>` from the
+  // header. The token sits in a `taptrade_access_token` document cookie
+  // (planted client-side after SIWE), so we lift it explicitly — relying
+  // on `credentials: "include"` alone would only ship cookies, not the
+  // header the middleware checks.
+  const token = getAccessToken();
   const response = await fetch(`${API_URL}/api/v1${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -477,6 +512,109 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message);
   }
   return response.json() as Promise<T>;
+}
+
+// ── Public-feed helpers (panels) ──────────────────────────────────
+
+function shortWallet(addr: string): string {
+  if (!addr || addr.length < 10) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function normalizePublicBet(b: {
+  id: string;
+  symbol: string;
+  player_handle: string;
+  stake_wei: string;
+  multiplier_bps: number;
+  potential_payout_wei: string;
+  placed_at_ms: number;
+  window_end_ms: number;
+  resolved_at_ms: number | null;
+}): PublicBetEntry {
+  return {
+    id: b.id,
+    symbol: b.symbol,
+    playerHandle: b.player_handle,
+    stakeWei: b.stake_wei,
+    multiplierBps: b.multiplier_bps,
+    potentialPayoutWei: b.potential_payout_wei,
+    placedAtMs: b.placed_at_ms,
+    windowEndMs: b.window_end_ms,
+    resolvedAtMs: b.resolved_at_ms,
+  };
+}
+
+// Mock rows preserve the look-and-feel of the panels in `/preview`,
+// where there's no engine to query. They mirror the multiplier curve
+// you'd see post-Caminho-B (~1.5–2.5× near the snake, scaling out).
+function mockPublicActive(): PublicBetEntry[] {
+  const now = Date.now();
+  const seed = [
+    { handle: "CryptoNinja", stake: 5, mult: 2.05 },
+    { handle: "MoonWalker", stake: 2, mult: 1.72 },
+    { handle: "NightTrader", stake: 5, mult: 2.48 },
+    { handle: "GreenArrow", stake: 10, mult: 1.95 },
+    { handle: "BullRush", stake: 5, mult: 4.21 },
+    { handle: "0x4f9c…b21d", stake: 1, mult: 8.36 },
+    { handle: "Satoshi_7", stake: 2, mult: 2.32 },
+    { handle: "HODLQueen", stake: 1, mult: 1.41 },
+  ];
+  return seed.map((row, i) => {
+    const stakeMilliEth = row.stake;
+    const stakeWei = (BigInt(stakeMilliEth) * BigInt("1000000000000000")).toString();
+    const payoutMilliEth = stakeMilliEth * row.mult;
+    const payoutWei = BigInt(Math.round(payoutMilliEth * 1e15)).toString();
+    return {
+      id: `mock-active-${i}`,
+      symbol: RUSH_MARKET,
+      playerHandle: row.handle,
+      stakeWei,
+      multiplierBps: Math.round(row.mult * 10_000),
+      potentialPayoutWei: payoutWei,
+      placedAtMs: now - (i + 1) * 700,
+      windowEndMs: now + 3_000 + i * 500,
+      resolvedAtMs: null,
+    };
+  });
+}
+
+function mockPublicWins(): PublicBetEntry[] {
+  const now = Date.now();
+  const seed = [
+    { handle: "BullRush", stake: 5, mult: 1.85, agoMs: 8_000 },
+    { handle: "Satoshi_7", stake: 2, mult: 2.24, agoMs: 23_000 },
+    { handle: "HODLQueen", stake: 1, mult: 1.6, agoMs: 41_000 },
+    { handle: "CryptoNinja", stake: 10, mult: 2.05, agoMs: 67_000 },
+    { handle: "0x88af…3c01", stake: 5, mult: 4.86, agoMs: 92_000 },
+    { handle: "MoonWalker", stake: 2, mult: 8.73, agoMs: 134_000 },
+  ];
+  return seed.map((row, i) => {
+    const stakeMilliEth = row.stake;
+    const stakeWei = (BigInt(stakeMilliEth) * BigInt("1000000000000000")).toString();
+    const payoutWei = BigInt(Math.round(stakeMilliEth * row.mult * 1e15)).toString();
+    return {
+      id: `mock-win-${i}`,
+      symbol: RUSH_MARKET,
+      playerHandle: row.handle,
+      stakeWei,
+      multiplierBps: Math.round(row.mult * 10_000),
+      potentialPayoutWei: payoutWei,
+      placedAtMs: now - row.agoMs - 3_000,
+      windowEndMs: now - row.agoMs,
+      resolvedAtMs: now - row.agoMs,
+    };
+  });
+}
+
+function mockLeaderboard(): LeaderboardEntry[] {
+  return [
+    { rank: 1, player: "BullRush", wins: 23, realizedPnlWei: "12540000000000000000" },
+    { rank: 2, player: "MoonWalker", wins: 19, realizedPnlWei: "9875500000000000000" },
+    { rank: 3, player: "Satoshi_7", wins: 16, realizedPnlWei: "7420750000000000000" },
+    { rank: 4, player: "HODLQueen", wins: 14, realizedPnlWei: "6125200000000000000" },
+    { rank: 5, player: "CryptoNinja", wins: 11, realizedPnlWei: "4860000000000000000" },
+  ];
 }
 
 export const rushArenaClient = {
@@ -521,6 +659,37 @@ export const rushArenaClient = {
 
   async verifyBet(id: string): Promise<RushBetVerification> {
     return requestJson<RushBetVerification>(`/trade/bets/${encodeURIComponent(id)}/verify`);
+  },
+
+  /// Engine-authoritative status for a single bet. Used by the
+  /// canvas to settle a local ACTIVE bet once its window has
+  /// elapsed — the local snake (RUSH_INDEX) is just visual; the
+  /// VRF path that determines WIN/LOST is server-side.
+  async getBet(id: string): Promise<RushArenaBet> {
+    if (isRushArenaMockMode()) {
+      // Mock branch: tag every queried bet as LOST so /preview never
+      // claims to settle wins offline.
+      return {
+        id,
+        market: RUSH_MARKET,
+        symbol: RUSH_MARKET,
+        cell: { id: "mock", row: 0, col: 0, pMin: 0, pMax: 0, windowStartMs: 0, windowEndMs: 0, windowStartOffsetMs: 0, windowDurationMs: 3000, distanceBps: 0, multiplier: 1, multiplierBps: 10000, disabled: false } as unknown as TapGridCell,
+        stakeAmount: 0,
+        stakeAmountWei: "0",
+        multiplier: 1,
+        multiplierBps: 10000,
+        potentialWin: 0,
+        status: "LOST",
+        finalResult: "LOST",
+        price0: 0,
+        t0: 0,
+        placedAt: Date.now(),
+      };
+    }
+    const raw = await requestJson<BackendRushArenaBet>(
+      `/trade/bets/${encodeURIComponent(id)}`
+    );
+    return normalizeBackendBet(raw);
   },
 
   /// Price the entire visible grid in one call. Mock mode falls back to
@@ -619,6 +788,8 @@ export const rushArenaClient = {
   async requestQuote({
     cell,
     stakeAmountWei: _stakeAmountWei,
+    livePrice,
+    nowMs,
   }: RequestQuoteParams): Promise<RushQuote> {
     if (isRushArenaMockMode()) {
       await new Promise((resolve) => setTimeout(resolve, 90));
@@ -631,16 +802,17 @@ export const rushArenaClient = {
     }
 
     // Pick UP/DOWN from the band's centre relative to the live
-    // price baked into the cell. Same heuristic the quote-grid
-    // call uses; needed here because the engine's QuoteRequest
-    // requires `direction` and validates the band geometry against
-    // it.
+    // price captured by the page at click time. Same heuristic the
+    // quote-grid call uses; needed here because the engine's
+    // QuoteRequest requires `direction` and validates the band
+    // geometry against it.
     const bandMid = (cell.pMin + cell.pMax) / 2;
-    // `cell.price0` is set by the canvas to the live RUSH_INDEX
-    // price at the moment the cell is rendered; fall back to the
-    // band centre so mock-mode interactions don't crash.
-    const livePrice = (cell as TapGridCell & { livePrice?: number }).livePrice ?? bandMid;
-    const direction: "UP" | "DOWN" = bandMid >= livePrice ? "UP" : "DOWN";
+    // Fall back to the legacy ad-hoc cell field, then the band centre
+    // so mock-mode interactions don't crash.
+    const referencePrice =
+      livePrice ?? (cell as TapGridCell & { livePrice?: number }).livePrice ?? bandMid;
+    const direction: "UP" | "DOWN" = bandMid >= referencePrice ? "UP" : "DOWN";
+    const requestNow = nowMs ?? Date.now();
 
     const response = await requestJson<{
       symbol: string;
@@ -665,7 +837,7 @@ export const rushArenaClient = {
         target_row_min_q8: BigInt(Math.round(cell.pMin * 1e8)).toString(),
         target_row_max_q8: BigInt(Math.round(cell.pMax * 1e8)).toString(),
         window_duration_ms: cell.windowDurationMs,
-        window_start_offset_ms: Math.max(0, cell.windowStartOffsetMs),
+        window_start_offset_ms: Math.max(0, cell.windowStartMs - requestNow),
       }),
     });
     return {
@@ -835,6 +1007,116 @@ export const rushArenaClient = {
       // mean "no scheduled reveal".
       nextSeedRevealAt: Number.MAX_SAFE_INTEGER,
     };
+  },
+
+  /// Public, anonymised list of currently-active bets across all
+  /// users. Drives the "Active Bets" social-proof panel. Mock mode
+  /// returns canned rows so /preview keeps the panel populated
+  /// without an engine.
+  async listPublicActiveBets(): Promise<PublicBetEntry[]> {
+    if (isRushArenaMockMode()) return mockPublicActive();
+    const res = await requestJson<{
+      bets: Array<{
+        id: string;
+        symbol: string;
+        player_handle: string;
+        stake_wei: string;
+        multiplier_bps: number;
+        potential_payout_wei: string;
+        placed_at_ms: number;
+        window_end_ms: number;
+        resolved_at_ms: number | null;
+      }>;
+      total: number;
+    }>("/trade/bets/public");
+    return res.bets.map(normalizePublicBet);
+  },
+
+  /// Public, anonymised list of recent WON bets. Drives "Recent Wins".
+  async listPublicRecentWins(): Promise<PublicBetEntry[]> {
+    if (isRushArenaMockMode()) return mockPublicWins();
+    const res = await requestJson<{
+      bets: Array<{
+        id: string;
+        symbol: string;
+        player_handle: string;
+        stake_wei: string;
+        multiplier_bps: number;
+        potential_payout_wei: string;
+        placed_at_ms: number;
+        window_end_ms: number;
+        resolved_at_ms: number | null;
+      }>;
+      total: number;
+    }>("/trade/wins/public");
+    return res.bets.map(normalizePublicBet);
+  },
+
+  /// Aggregate ACTIVE bets per cell + count of distinct players in
+  /// the room. Drives the canvas heatmap glow + the "X online" pill.
+  /// Polled every 2 s; cells are matched by absolute (band, window)
+  /// against the locally-built TapGridCell instances.
+  async getHeatmap(): Promise<{
+    onlineCount: number;
+    cells: Array<{
+      targetRowMinQ8: string;
+      targetRowMaxQ8: string;
+      windowStartMs: number;
+      windowEndMs: number;
+      nBets: number;
+      totalStakeWei: string;
+    }>;
+  }> {
+    if (isRushArenaMockMode()) return { onlineCount: 0, cells: [] };
+    const res = await requestJson<{
+      online_count: number;
+      cells: Array<{
+        target_row_min_q8: string;
+        target_row_max_q8: string;
+        window_start_ms: number;
+        window_end_ms: number;
+        n_bets: number;
+        total_stake_wei: string;
+      }>;
+    }>("/trade/heatmap");
+    return {
+      onlineCount: res.online_count,
+      cells: res.cells.map((c) => ({
+        targetRowMinQ8: c.target_row_min_q8,
+        targetRowMaxQ8: c.target_row_max_q8,
+        windowStartMs: c.window_start_ms,
+        windowEndMs: c.window_end_ms,
+        nBets: c.n_bets,
+        totalStakeWei: c.total_stake_wei,
+      })),
+    };
+  },
+
+  /// Top players by aggregate winnings. Engine ranks via
+  /// `users.realized_pnl_wei` desc; the canvas renders top N rows.
+  async getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
+    if (isRushArenaMockMode()) return mockLeaderboard();
+    const res = await requestJson<{
+      entries: Array<{
+        rank: number;
+        username: string | null;
+        wallet_address: string;
+        realized_pnl_wei: string;
+        win_rate: number;
+        total_trades: number;
+        best_win_streak: number;
+      }>;
+      period: string;
+    }>(`/leaderboard?limit=${limit}`);
+    return res.entries.map((e) => ({
+      rank: e.rank,
+      player: e.username && e.username.length > 0 ? e.username : shortWallet(e.wallet_address),
+      // Backend doesn't track `wins` directly; reconstruct from
+      // total_trades × win_rate. Both fields ship along with the
+      // pnl, so the calc is loss-free.
+      wins: Math.round(e.total_trades * e.win_rate),
+      realizedPnlWei: e.realized_pnl_wei,
+    }));
   },
 
   connectWebSocket(onEvent: (event: RushArenaEvent) => void) {

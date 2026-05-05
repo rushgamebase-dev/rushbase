@@ -288,6 +288,99 @@ pub struct BetListResponse {
     pub total: i64,
 }
 
+/// Anonymised bet row for the public social-proof panels
+/// (`/trade/bets/public`, `/trade/wins/public`). Drops every sensitive
+/// field — no user_id, no commit_hash, no seed_encrypted — and replaces
+/// the wallet_address with a short handle the UI can display.
+///
+/// `player_handle` rules:
+///   - if the user set a `username`, return it verbatim;
+///   - else return `0xABCD…1234` (first 6 + last 4 chars of the wallet).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PublicBetEntry {
+    pub id: Uuid,
+    pub symbol: String,
+    pub player_handle: String,
+    pub stake_wei: String,
+    pub multiplier_bps: u32,
+    pub potential_payout_wei: String,
+    pub placed_at_ms: i64,
+    pub window_end_ms: i64,
+    /// Resolution timestamp (ms). `null` while ACTIVE; populated for
+    /// rows returned by `/trade/wins/public`.
+    pub resolved_at_ms: Option<i64>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PublicBetListResponse {
+    pub bets: Vec<PublicBetEntry>,
+    pub total: i64,
+}
+
+impl From<&crate::db::repositories::touch_bet_repo::PublicBetRow> for PublicBetEntry {
+    fn from(r: &crate::db::repositories::touch_bet_repo::PublicBetRow) -> Self {
+        let player_handle = if r.username.is_empty() {
+            short_wallet(&r.wallet_address)
+        } else {
+            r.username.clone()
+        };
+        Self {
+            id: r.id,
+            symbol: r.symbol.clone(),
+            player_handle,
+            stake_wei: r.stake_wei.to_string(),
+            multiplier_bps: r.multiplier_bps as u32,
+            potential_payout_wei: r.potential_payout_wei.to_string(),
+            placed_at_ms: r.placed_at.timestamp_millis(),
+            window_end_ms: r.window_end_ms,
+            resolved_at_ms: r.resolved_at.map(|t| t.timestamp_millis()),
+        }
+    }
+}
+
+fn short_wallet(addr: &str) -> String {
+    if addr.len() < 10 {
+        return addr.to_string();
+    }
+    format!("{}…{}", &addr[..6], &addr[addr.len() - 4..])
+}
+
+/// One aggregated cell on the public heatmap. The canvas matches it
+/// against its local cells by comparing the four absolute identifiers
+/// (`target_row_*_q8`, `window_*_ms`) — these are stable across
+/// players because they are absolute price levels and absolute world
+/// time, not viewport-relative.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct HeatmapCell {
+    pub target_row_min_q8: String,
+    pub target_row_max_q8: String,
+    pub window_start_ms: i64,
+    pub window_end_ms: i64,
+    pub n_bets: i64,
+    pub total_stake_wei: String,
+}
+
+/// Heatmap response: how many distinct players are "in the room" right
+/// now plus the per-cell bet density. Polled by the canvas every 2 s.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct HeatmapResponse {
+    pub online_count: i64,
+    pub cells: Vec<HeatmapCell>,
+}
+
+impl From<&crate::db::repositories::touch_bet_repo::HeatmapCellRow> for HeatmapCell {
+    fn from(r: &crate::db::repositories::touch_bet_repo::HeatmapCellRow) -> Self {
+        Self {
+            target_row_min_q8: r.target_row_min_q8.to_string(),
+            target_row_max_q8: r.target_row_max_q8.to_string(),
+            window_start_ms: r.window_start_ms,
+            window_end_ms: r.window_end_ms,
+            n_bets: r.n_bets,
+            total_stake_wei: r.total_stake_wei.to_string(),
+        }
+    }
+}
+
 /// Bundle of everything a client needs to verify a settled bet
 /// off-line. Returned by `GET /trade/bets/:id/verify` after
 /// `window_end_ms`. Before the window has elapsed the endpoint

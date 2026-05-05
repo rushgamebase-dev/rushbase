@@ -456,20 +456,33 @@ async fn main() -> std::io::Result<()> {
     // Solvency monitor — trips the breaker on under-funding or mirror
     // divergence. Withdrawals stay open even when tripped; new bets are
     // refused until the breaker is reset by an admin.
-    let solvency_monitor = SolvencyMonitor::new(
-        pool.clone(),
-        vault_balance_provider.clone(),
-        exposure.clone(),
-        SolvencyMonitorConfig {
-            tick_secs: 30,
-            tolerance_bps: 50, // 0.5% mirror divergence tolerance
-            min_house_buffer_wei: alloy::primitives::U256::from_str(
-                &settings.risk.min_house_buffer_wei,
-            )
-            .unwrap_or(alloy::primitives::U256::ZERO),
-        },
-    );
-    tokio::spawn(async move { solvency_monitor.run().await });
+    //
+    // Dev short-circuit: when `vault_address == 0x0…0` the contract is
+    // not deployed, so the on-chain `houseBalance()` call always returns
+    // 0 and any non-zero DB mirror would trip the breaker on the first
+    // tick. We skip the monitor entirely in that case — bets still go
+    // through the exposure tracker, which is the actual safety net.
+    if vault_addr == alloy::primitives::Address::ZERO {
+        tracing::warn!(
+            "vault_address is 0x0 — solvency monitor disabled (dev mode). \
+             Deploy TradingVault.sol and set APP_CHAIN__VAULT_ADDRESS to enable."
+        );
+    } else {
+        let solvency_monitor = SolvencyMonitor::new(
+            pool.clone(),
+            vault_balance_provider.clone(),
+            exposure.clone(),
+            SolvencyMonitorConfig {
+                tick_secs: 30,
+                tolerance_bps: 50, // 0.5% mirror divergence tolerance
+                min_house_buffer_wei: alloy::primitives::U256::from_str(
+                    &settings.risk.min_house_buffer_wei,
+                )
+                .unwrap_or(alloy::primitives::U256::ZERO),
+            },
+        );
+        tokio::spawn(async move { solvency_monitor.run().await });
+    }
 
     // No feed-stale monitor: the Rush Index is in-process and never
     // stales (the advancer task can fail, but that's a local crash,

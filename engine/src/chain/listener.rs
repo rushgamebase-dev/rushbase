@@ -131,6 +131,61 @@ impl VaultListener {
 
         let from_block = self.handler.cursor().await?.saturating_sub(self.min_confirmations);
 
+        // ── Catchup pass ─────────────────────────────────────────────
+        // `subscribe_logs` over WS is real-time only — it does NOT
+        // replay the [from_block, head] range, even with `from_block`
+        // set on the filter. Without this catchup, every restart drops
+        // any event that arrived between the previous engine stop and
+        // this subscribe. We back-fill via `eth_getLogs` first.
+        let head = provider
+            .get_block_number()
+            .await
+            .map_err(|e| ListenerError::Provider(e.to_string()))?;
+        let safe_head = head.saturating_sub(self.min_confirmations);
+        if safe_head > from_block {
+            let filter = Filter::new()
+                .address(self.vault)
+                .from_block(from_block)
+                .to_block(safe_head);
+            match provider.get_logs(&filter).await {
+                Ok(logs) if !logs.is_empty() => {
+                    tracing::info!(
+                        from_block,
+                        safe_head,
+                        count = logs.len(),
+                        "Vault listener catchup sweep"
+                    );
+                    let mut latest_block: u64 = from_block;
+                    for log in logs {
+                        let log_block = log.block_number.unwrap_or(0);
+                        let tx_hash = log
+                            .transaction_hash
+                            .map(|h| format!("0x{:x}", h))
+                            .unwrap_or_default();
+                        let log_index = log.log_index.unwrap_or(0);
+                        self.dispatch(&log, log_block, &tx_hash, log_index).await;
+                        if log_block > latest_block {
+                            latest_block = log_block;
+                        }
+                    }
+                    let _ = self.handler.advance_cursor(latest_block).await;
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!(from_block, safe_head, "catchup getLogs failed: {}", e);
+                }
+            }
+        }
+
+        // ── Live subscription + periodic poll fallback ───────────────
+        // The Chainstack WS subscription has been observed to go
+        // silent — connection stays open, no events delivered, no
+        // error returned. Relying solely on `subscribe_logs` then
+        // means deposits stop crediting until the engine restarts.
+        // We multiplex the WS stream with a 30 s `eth_getLogs` poll
+        // tick that re-runs the same catchup sweep, so the cursor
+        // advances even if the WS is dead. Idempotent on the unique
+        // `(chain_tx_hash, chain_log_index)` index in `ledger`.
         let filter = Filter::new()
             .address(self.vault)
             .from_block(from_block);
@@ -143,82 +198,196 @@ impl VaultListener {
 
         tracing::info!(vault = %self.vault, from_block, "Vault listener subscribed");
 
-        while let Some(log) = stream.next().await {
-            // Skip until the log has the required confirmation depth.
-            let head = match provider.get_block_number().await {
-                Ok(n) => n,
-                Err(e) => {
-                    tracing::warn!("get_block_number failed: {}", e);
-                    continue;
+        let mut poll_interval = tokio::time::interval(Duration::from_secs(5));
+        // Skip the first immediate tick — the catchup pass above
+        // already covered everything up to safe_head.
+        poll_interval.tick().await;
+        let mut last_polled_block = safe_head;
+
+        loop {
+            tokio::select! {
+                maybe_log = stream.next() => {
+                    let Some(log) = maybe_log else {
+                        tracing::warn!("Vault listener WS stream closed; restart loop will reconnect");
+                        return Ok(());
+                    };
+                    let head = match provider.get_block_number().await {
+                        Ok(n) => n,
+                        Err(e) => {
+                            tracing::warn!("get_block_number failed: {}", e);
+                            continue;
+                        }
+                    };
+                    let log_block = log.block_number.unwrap_or(0);
+                    if head.saturating_sub(log_block) < self.min_confirmations {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        continue;
+                    }
+                    let tx_hash = log
+                        .transaction_hash
+                        .map(|h| format!("0x{:x}", h))
+                        .unwrap_or_default();
+                    let log_index = log.log_index.unwrap_or(0);
+                    self.dispatch(&log, log_block, &tx_hash, log_index).await;
+                    let _ = self.handler.advance_cursor(log_block).await;
+                    if log_block > last_polled_block {
+                        last_polled_block = log_block;
+                    }
                 }
-            };
-            let log_block = log.block_number.unwrap_or(0);
-            if head.saturating_sub(log_block) < self.min_confirmations {
-                tokio::time::sleep(Duration::from_millis(500)).await;
-                continue;
+                _ = poll_interval.tick() => {
+                    let head = match provider.get_block_number().await {
+                        Ok(n) => n,
+                        Err(e) => {
+                            tracing::warn!("poll: get_block_number failed: {}", e);
+                            continue;
+                        }
+                    };
+                    let safe_head = head.saturating_sub(self.min_confirmations);
+                    if safe_head <= last_polled_block {
+                        continue;
+                    }
+                    let from_block = last_polled_block + 1;
+                    let poll_filter = Filter::new()
+                        .address(self.vault)
+                        .from_block(from_block)
+                        .to_block(safe_head);
+                    match provider.get_logs(&poll_filter).await {
+                        Ok(logs) if !logs.is_empty() => {
+                            tracing::info!(
+                                from_block,
+                                safe_head,
+                                count = logs.len(),
+                                "Vault listener poll-tick caught missed events"
+                            );
+                            let mut latest_block: u64 = last_polled_block;
+                            for log in logs {
+                                let log_block = log.block_number.unwrap_or(0);
+                                let tx_hash = log
+                                    .transaction_hash
+                                    .map(|h| format!("0x{:x}", h))
+                                    .unwrap_or_default();
+                                let log_index = log.log_index.unwrap_or(0);
+                                self.dispatch(&log, log_block, &tx_hash, log_index).await;
+                                if log_block > latest_block {
+                                    latest_block = log_block;
+                                }
+                            }
+                            let _ = self.handler.advance_cursor(latest_block).await;
+                            last_polled_block = latest_block;
+                        }
+                        Ok(_) => {
+                            // No new events — still advance the
+                            // poll cursor so we don't re-scan the
+                            // same range every tick. The DB cursor
+                            // only moves on actual events (so a
+                            // restart restarts from the last
+                            // *event* block, not the last poll).
+                            last_polled_block = safe_head;
+                        }
+                        Err(e) => {
+                            tracing::warn!(from_block, safe_head, "poll getLogs failed: {}", e);
+                        }
+                    }
+                }
             }
-
-            let tx_hash = log
-                .transaction_hash
-                .map(|h| format!("0x{:x}", h))
-                .unwrap_or_default();
-            let log_index = log.log_index.unwrap_or(0);
-
-            // Decode the event by topic[0].
-            if let Ok(ev) = log.log_decode::<TradingVault::Deposited>() {
-                let inner = ev.inner.data;
-                let _ = self
-                    .handler
-                    .on_deposit(DepositObserved {
-                        user: inner.user,
-                        amount_wei: inner.amount,
-                        block_number: log_block,
-                        tx_hash: tx_hash.clone(),
-                        log_index,
-                    })
-                    .await;
-            } else if let Ok(ev) = log.log_decode::<TradingVault::Withdrawn>() {
-                let inner = ev.inner.data;
-                let _ = self
-                    .handler
-                    .on_withdraw(WithdrawObserved {
-                        user: inner.user,
-                        amount_wei: inner.amount,
-                        nonce: inner.nonce,
-                        block_number: log_block,
-                        tx_hash: tx_hash.clone(),
-                        log_index,
-                    })
-                    .await;
-            } else if let Ok(ev) = log.log_decode::<TradingVault::HouseFunded>() {
-                let inner = ev.inner.data;
-                let _ = self
-                    .handler
-                    .on_house_funded(HouseFundedObserved {
-                        from: inner.from,
-                        amount_wei: inner.amount,
-                        block_number: log_block,
-                        tx_hash: tx_hash.clone(),
-                        log_index,
-                    })
-                    .await;
-            } else if let Ok(ev) = log.log_decode::<TradingVault::HouseWithdrawn>() {
-                let inner = ev.inner.data;
-                let _ = self
-                    .handler
-                    .on_house_withdrawn(HouseWithdrawnObserved {
-                        to: inner.to,
-                        amount_wei: inner.amount,
-                        block_number: log_block,
-                        tx_hash: tx_hash.clone(),
-                        log_index,
-                    })
-                    .await;
-            }
-
-            let _ = self.handler.advance_cursor(log_block).await;
         }
+    }
 
-        Ok(())
+    /// Decode + handler dispatch shared between the streaming and the
+    /// catchup paths. Idempotent: the unique index on
+    /// `(chain_tx_hash, chain_log_index)` in the ledger keeps any
+    /// double-delivery harmless.
+    async fn dispatch(
+        &self,
+        log: &alloy::rpc::types::Log,
+        log_block: u64,
+        tx_hash: &str,
+        log_index: u64,
+    ) {
+        // Loud surface for every dispatch attempt. The previous version
+        // swallowed handler errors and silently dropped logs that didn't
+        // decode against any of the four event types — leading to
+        // missed deposits with NO trace in the engine log. We log every
+        // outcome (success or failure) so a missed credit always leaves
+        // a breadcrumb.
+        let topic0 = log
+            .topics()
+            .first()
+            .map(|t| format!("0x{:x}", t))
+            .unwrap_or_else(|| "<no-topic>".to_string());
+
+        if let Ok(ev) = log.log_decode::<TradingVault::Deposited>() {
+            let inner = ev.inner.data;
+            match self
+                .handler
+                .on_deposit(DepositObserved {
+                    user: inner.user,
+                    amount_wei: inner.amount,
+                    block_number: log_block,
+                    tx_hash: tx_hash.to_string(),
+                    log_index,
+                })
+                .await
+            {
+                Ok(()) => tracing::info!(block = log_block, tx = %tx_hash, "Deposit dispatched"),
+                Err(e) => tracing::error!(block = log_block, tx = %tx_hash, error = %e, "Deposit handler failed"),
+            }
+        } else if let Ok(ev) = log.log_decode::<TradingVault::Withdrawn>() {
+            let inner = ev.inner.data;
+            match self
+                .handler
+                .on_withdraw(WithdrawObserved {
+                    user: inner.user,
+                    amount_wei: inner.amount,
+                    nonce: inner.nonce,
+                    block_number: log_block,
+                    tx_hash: tx_hash.to_string(),
+                    log_index,
+                })
+                .await
+            {
+                Ok(()) => tracing::info!(block = log_block, tx = %tx_hash, "Withdraw dispatched"),
+                Err(e) => tracing::error!(block = log_block, tx = %tx_hash, error = %e, "Withdraw handler failed"),
+            }
+        } else if let Ok(ev) = log.log_decode::<TradingVault::HouseFunded>() {
+            let inner = ev.inner.data;
+            match self
+                .handler
+                .on_house_funded(HouseFundedObserved {
+                    from: inner.from,
+                    amount_wei: inner.amount,
+                    block_number: log_block,
+                    tx_hash: tx_hash.to_string(),
+                    log_index,
+                })
+                .await
+            {
+                Ok(()) => tracing::info!(block = log_block, tx = %tx_hash, "HouseFunded dispatched"),
+                Err(e) => tracing::error!(block = log_block, tx = %tx_hash, error = %e, "HouseFunded handler failed"),
+            }
+        } else if let Ok(ev) = log.log_decode::<TradingVault::HouseWithdrawn>() {
+            let inner = ev.inner.data;
+            match self
+                .handler
+                .on_house_withdrawn(HouseWithdrawnObserved {
+                    to: inner.to,
+                    amount_wei: inner.amount,
+                    block_number: log_block,
+                    tx_hash: tx_hash.to_string(),
+                    log_index,
+                })
+                .await
+            {
+                Ok(()) => tracing::info!(block = log_block, tx = %tx_hash, "HouseWithdrawn dispatched"),
+                Err(e) => tracing::error!(block = log_block, tx = %tx_hash, error = %e, "HouseWithdrawn handler failed"),
+            }
+        } else {
+            tracing::warn!(
+                block = log_block,
+                tx = %tx_hash,
+                topic0 = %topic0,
+                "Vault log did not decode against any known event — credit potentially lost"
+            );
+        }
     }
 }

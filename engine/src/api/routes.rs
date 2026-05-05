@@ -62,6 +62,23 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, governor: &RateLimit) {
                 "/trade/multiplier_config",
                 web::get().to(handlers::multiplier_config),
             )
+            // Public social-proof feeds — anonymised, no auth. The
+            // canvas polls these every few seconds to render the
+            // "Active Bets" and "Recent Wins" panels with real data.
+            // Not rate-limited individually because the queries are
+            // small and the table is bounded by `LIMIT` in the repo.
+            .route(
+                "/trade/bets/public",
+                web::get().to(handlers::list_public_active),
+            )
+            .route(
+                "/trade/wins/public",
+                web::get().to(handlers::list_public_wins),
+            )
+            .route(
+                "/trade/heatmap",
+                web::get().to(handlers::get_heatmap),
+            )
             .service(
                 web::scope("/user")
                     .wrap(HttpAuthentication::bearer(validator))

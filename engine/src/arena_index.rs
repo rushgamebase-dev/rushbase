@@ -1,35 +1,35 @@
-//! Internal Rush Index — deterministic visual anchor for the
-//! TapTrading arena.
+//! Internal Rush Index — the canonical price line for the TapTrading
+//! arena, used both for the visual grid AND for bet resolution.
 //!
-//! TapTrading is a verifiable VRF arena, not a market touch product.
-//! Resolution is 100% via the per-bet VRF path (see `vrf::path`).
-//! No external feed (Binance, Chainlink, oracle of any kind) is
-//! consulted in the resolution hot path.
+//! Per-bet VRF paths existed in an earlier iteration (see `vrf/`) but
+//! were retired — having an invisible cobra decide the bet while the
+//! visual cobra ran a different path was confusing and made the UX
+//! feel broken (a player saw the line clip a band but the engine
+//! settled LOST). The single-line model brings the engine in line
+//! with what Solcasino / BC.GAME do: the price line you watch IS the
+//! line that decides.
 //!
-//! But a bet still needs an `entry_price_q8` at placement so the
-//! band can be expressed in basis points and the UX has a "now"
-//! line scrolling across the grid before the user taps. The Rush
-//! Index serves that role: a single-symbol (`RUSH_INDEX`)
-//! deterministic price computed in-process from a seeded RNG that
-//! advances at a fixed cadence.
-//!
-//! The seed is hashed at startup and the hash is published as
-//! `server_seed_hash`; users can audit the index movement off-line
-//! by reproducing the RNG. The real seed is held only in memory and
-//! is rotated when the operator decides to.
+//! Provably-fair guarantees survive the migration:
+//!   1. The seed is hashed at startup and the hash is published as
+//!      `server_seed_hash`. Anyone can replay the RNG given the seed.
+//!   2. Each bet snapshots the index state at placement
+//!      (`entry_price_q8` + tick) so the timeline is auditable.
+//!   3. The `path_window(start_ms, end_ms)` method returns the
+//!      committed history used for resolution; clients can verify
+//!      against their own RUSH_INDEX WS feed.
 //!
 //! Design notes:
-//!  - The index is intentionally distinct from any per-bet path.
-//!    Per-bet paths use their own VRF seeds (see `vrf::seed`).
-//!    The index only anchors the visual grid and the entry price.
+//!  - History buffer is a `VecDeque<(timestamp_ms, price)>` covering
+//!    `HISTORY_WINDOW_MS` (~120 s) — long enough for the longest
+//!    bet window in `[touch].allowed_window_ms` (60 s) plus margin.
 //!  - Mean reversion + soft/hard band keep the index inside a
-//!    playable zone (~±150 bps from `INITIAL_PRICE`).
-//!  - The index is **not** part of bet resolution — changing the
-//!    index parameters here does not change any bet outcome.
+//!    playable zone (~±150 bps from `INITIAL_PRICE`) so bets always
+//!    have multipliers anchored to a calibrated table.
 
 use parking_lot::RwLock;
 use rand::Rng;
 use sha2::{Digest, Sha256};
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -53,6 +53,11 @@ const HARD_CAP_BPS: f64 = 150.0;
 /// this; the engine no longer accepts BTCUSDT/ETHUSDT etc. in the
 /// VRF arena.
 pub const RUSH_INDEX_SYMBOL: &str = "RUSH_INDEX";
+
+/// How much history to keep for resolution. Must be ≥ the longest
+/// `[touch].allowed_window_ms` plus a safety pad for tail-end
+/// resolution loop ticks. 120 s covers 60 s windows comfortably.
+pub const HISTORY_WINDOW_MS: i64 = 120_000;
 
 /// Public snapshot of the index — what's broadcast on WS and
 /// returned by `/prices` handlers.
@@ -78,6 +83,10 @@ struct IndexState {
     tick: u64,
     last_update_ms: i64,
     rng_state: u32,
+    /// (timestamp_ms, price) pairs for resolution lookups. Bounded
+    /// by `HISTORY_WINDOW_MS`. New samples are appended in `advance`
+    /// and the front is dropped once it falls outside the window.
+    history: VecDeque<(i64, f64)>,
 }
 
 impl ArenaIndex {
@@ -96,13 +105,19 @@ impl ArenaIndex {
         bytes.copy_from_slice(&hash[..4]);
         let rng_state = u32::from_be_bytes(bytes).max(1); // xorshift requires non-zero
 
+        let now_ms = chrono::Utc::now().timestamp_millis();
+        let mut history = VecDeque::with_capacity(
+            (HISTORY_WINDOW_MS / TICK_MS) as usize + 8,
+        );
+        history.push_back((now_ms, INITIAL_PRICE));
         Self {
             state: RwLock::new(IndexState {
                 price: INITIAL_PRICE,
                 velocity: 0.0,
                 tick: 0,
-                last_update_ms: chrono::Utc::now().timestamp_millis(),
+                last_update_ms: now_ms,
                 rng_state,
+                history,
             }),
             seed_hash: seed_hash_hex,
         }
@@ -179,11 +194,14 @@ impl ArenaIndex {
                 .clamp(0.0, 1.0);
         let elastic = -deviation_bps.signum() * overflow * overflow * 0.001_8;
 
-        let impulse = normal_sample(&mut s.rng_state) * 0.000_50 + cyclical
+        // Keep the visual index calm. Per-bet VRF paths carry the
+        // economic randomness; this background line only needs enough
+        // texture to make the arena feel alive.
+        let impulse = normal_sample(&mut s.rng_state) * 0.000_26 + cyclical
             + base_reversion
             + elastic;
 
-        s.velocity = (s.velocity * 0.86 + impulse).clamp(-0.002_4, 0.002_4);
+        s.velocity = (s.velocity * 0.92 + impulse).clamp(-0.001_6, 0.001_6);
         s.price *= 1.0 + s.velocity;
 
         // Hard wall: if the path ever escapes despite mean
@@ -201,6 +219,41 @@ impl ArenaIndex {
         s.price = s.price.max(100.0);
 
         s.last_update_ms = chrono::Utc::now().timestamp_millis();
+
+        // Append to history, then drop entries older than
+        // `HISTORY_WINDOW_MS`. Cheap since the deque is bounded
+        // by ticks-per-window (~800 entries with TICK_MS = 150).
+        let now_ms = s.last_update_ms;
+        let price_now = s.price;
+        s.history.push_back((now_ms, price_now));
+        let cutoff = now_ms - HISTORY_WINDOW_MS;
+        while s
+            .history
+            .front()
+            .map(|(t, _)| *t < cutoff)
+            .unwrap_or(false)
+        {
+            s.history.pop_front();
+        }
+    }
+
+    /// Slice of the index history that overlaps `[start_ms, end_ms]`,
+    /// returned as `(timestamp_ms, price)` pairs in chronological
+    /// order. Used by the resolver to settle a bet against the
+    /// canonical line — there's no separate VRF path; the cobra you
+    /// see is the cobra that decides.
+    ///
+    /// Returns at most `HISTORY_WINDOW_MS` of samples; callers asking
+    /// for an older window will receive whatever fragment survived
+    /// the eviction (typically empty, which the resolver maps to a
+    /// retryable error so the bet stays ACTIVE for re-attempt).
+    pub fn path_window(&self, start_ms: i64, end_ms: i64) -> Vec<(i64, f64)> {
+        let s = self.state.read();
+        s.history
+            .iter()
+            .filter(|(t, _)| *t >= start_ms && *t <= end_ms)
+            .copied()
+            .collect()
     }
 }
 

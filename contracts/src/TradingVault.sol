@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -24,7 +25,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
  * engine is the source of truth; on-chain we only enforce nonce monotonicity,
  * signer authorization, and total liquidity.
  */
-contract TradingVault is Ownable, ReentrancyGuard {
+contract TradingVault is Ownable2Step, ReentrancyGuard {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
@@ -57,6 +58,31 @@ contract TradingVault is Ownable, ReentrancyGuard {
     ///         per-user balance.
     uint256 public maxSingleWithdraw;
 
+    /// @notice Aggregate withdraw cap across a rolling time window. 0
+    ///         disables the rate limit. Combined with
+    ///         {withdrawWindowSecs}, this caps how fast ETH can leave
+    ///         the vault no matter how many valid signatures the
+    ///         attacker holds — a defense in depth in case the engine
+    ///         signer is compromised and stockpiled authorizations are
+    ///         replayed against the contract. Owner can flip the brake
+    ///         {setWithdrawsPaused} during the wait, then triage.
+    uint256 public maxWindowWithdraw;
+
+    /// @notice Length (seconds) of the rolling window used for
+    ///         {maxWindowWithdraw}. The window is *fixed* — when the
+    ///         current one expires the next withdraw resets the
+    ///         counter. A sliding-window queue would be more accurate
+    ///         but linear in storage; the fixed scheme is O(1) and the
+    ///         worst case (back-to-back windows) leaks ≤ 2 × cap per
+    ///         `2 × windowSecs`, which is acceptable here. 0 = disabled.
+    uint256 public withdrawWindowSecs;
+
+    /// @notice Unix timestamp at which the current window started.
+    uint256 public currentWindowStart;
+
+    /// @notice Sum of withdrawn `amount` since {currentWindowStart}.
+    uint256 public currentWindowVolume;
+
     /// @notice When true, deposits are rejected. Withdrawals stay open so
     ///         users can always exit.
     bool public depositsPaused;
@@ -80,8 +106,15 @@ contract TradingVault is Ownable, ReentrancyGuard {
     event SignerProposed(address indexed pending, uint256 effectiveAt);
     event SignerRotated(address indexed previous, address indexed current);
     event MaxSingleWithdrawSet(uint256 amount);
+    event WithdrawWindowSet(uint256 maxAmount, uint256 windowSecs);
+    event WithdrawWindowReset(uint256 newWindowStart);
     event DepositsPausedSet(bool paused);
     event WithdrawsPausedSet(bool paused);
+    /// @notice Fired when {cancelPendingSigner} unwinds an in-flight
+    ///         rotation. Carries the address that was cancelled so
+    ///         off-chain monitoring can reconcile the abort against
+    ///         the original {SignerProposed} log.
+    event SignerRotationCancelled(address indexed cancelled);
 
     // ─── Errors ──────────────────────────────────────────────────────────
 
@@ -92,11 +125,20 @@ contract TradingVault is Ownable, ReentrancyGuard {
     error InvalidNonce();
     error InvalidSignature();
     error WithdrawTooLarge();
+    /// @dev Carries the blocked amount and how much of the current
+    ///      window's allowance is still available, so off-chain ops
+    ///      can decode the revert reason directly.
+    error WindowVolumeExceeded(uint256 attempted, uint256 windowRemaining);
     error InsufficientHouseBalance();
     error TransferFailed();
     error TimelockNotExpired();
     error NoPendingSigner();
     error ZeroAddress();
+    /// @dev Thrown by {setWithdrawWindow} when `maxAmount > 0` is paired
+    ///      with a zero-second window (would let unlimited resets fire
+    ///      every block). Distinct from {ZeroAmount} so off-chain
+    ///      tooling can route the operator to the right setter.
+    error ZeroWindowSecs();
 
     // ─── Constructor ─────────────────────────────────────────────────────
 
@@ -141,6 +183,32 @@ contract TradingVault is Ownable, ReentrancyGuard {
         ).toEthSignedMessageHash();
 
         if (digest.recover(sig) != engineSigner) revert InvalidSignature();
+
+        // Rolling-window rate limit. Checked AFTER signature validation
+        // so a forged sig can't even bump the window counter. The
+        // window resets lazily on the first withdraw past its end —
+        // gas-efficient and avoids cron-like upkeep.
+        if (maxWindowWithdraw != 0) {
+            if (block.timestamp >= currentWindowStart + withdrawWindowSecs) {
+                currentWindowStart = block.timestamp;
+                currentWindowVolume = 0;
+                emit WithdrawWindowReset(block.timestamp);
+            }
+            uint256 newVolume = currentWindowVolume + amount;
+            if (newVolume > maxWindowWithdraw) {
+                // `currentWindowVolume` may exceed `maxWindowWithdraw`
+                // if the owner shrank the cap mid-window (via
+                // `setWithdrawWindow`); a naive subtraction would
+                // underflow and revert with a Panic instead of our
+                // typed error. Saturate at zero so callers always get
+                // an actionable `windowRemaining`.
+                uint256 windowRemaining = currentWindowVolume >= maxWindowWithdraw
+                    ? 0
+                    : maxWindowWithdraw - currentWindowVolume;
+                revert WindowVolumeExceeded(amount, windowRemaining);
+            }
+            currentWindowVolume = newVolume;
+        }
 
         lastNonce[msg.sender] = nonce;
 
@@ -211,11 +279,17 @@ contract TradingVault is Ownable, ReentrancyGuard {
 
     /**
      * @notice Cancel a pending signer rotation. Useful if the proposed
-     *         signer was leaked before activation.
+     *         signer was leaked before activation. No-op when nothing
+     *         is pending — does not revert, since the calling op is
+     *         already in a "make sure rotation is off" state.
      */
     function cancelPendingSigner() external onlyOwner {
+        address cancelled = pendingSigner;
         pendingSigner = address(0);
         pendingSignerEffectiveAt = 0;
+        if (cancelled != address(0)) {
+            emit SignerRotationCancelled(cancelled);
+        }
     }
 
     // ─── Owner: knobs ────────────────────────────────────────────────────
@@ -223,6 +297,49 @@ contract TradingVault is Ownable, ReentrancyGuard {
     function setMaxSingleWithdraw(uint256 amount) external onlyOwner {
         maxSingleWithdraw = amount;
         emit MaxSingleWithdrawSet(amount);
+    }
+
+    /**
+     * @notice Configure the rolling-window withdraw rate limit.
+     *         Setting `maxAmount = 0` disables the limit.
+     * @param maxAmount  Aggregate cap (wei) within the window.
+     * @param windowSecs Length of the window in seconds. Must be >0
+     *                   when `maxAmount > 0` (would otherwise mean
+     *                   "unlimited withdraws every block").
+     * @dev Changing the window does NOT reset the in-flight counter
+     *      so an owner can't dodge the brake mid-incident — the next
+     *      withdraw that crosses the (possibly re-aligned) window end
+     *      starts a fresh accumulator. To clear immediately, use
+     *      {setWithdrawsPaused} as a brake first.
+     */
+    function setWithdrawWindow(uint256 maxAmount, uint256 windowSecs)
+        external
+        onlyOwner
+    {
+        if (maxAmount > 0 && windowSecs == 0) revert ZeroWindowSecs();
+        maxWindowWithdraw = maxAmount;
+        withdrawWindowSecs = windowSecs;
+        emit WithdrawWindowSet(maxAmount, windowSecs);
+    }
+
+    /**
+     * @notice How much wei could still be withdrawn under the current
+     *         rolling window without tripping {WindowVolumeExceeded}.
+     *         Returns `type(uint256).max` when the rate limit is off.
+     *         A value of `0` means the cap is fully consumed; a follow-up
+     *         withdraw will revert until {currentWindowStart} +
+     *         {withdrawWindowSecs} elapses.
+     * @dev Pure read — frontends and the engine call this to render
+     *      a live "max you can pull right now" hint to the user.
+     */
+    function windowRemaining() external view returns (uint256) {
+        if (maxWindowWithdraw == 0) return type(uint256).max;
+        if (block.timestamp >= currentWindowStart + withdrawWindowSecs) {
+            return maxWindowWithdraw;
+        }
+        return currentWindowVolume >= maxWindowWithdraw
+            ? 0
+            : maxWindowWithdraw - currentWindowVolume;
     }
 
     function setDepositsPaused(bool paused) external onlyOwner {

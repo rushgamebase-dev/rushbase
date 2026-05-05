@@ -17,9 +17,8 @@ use crate::risk::{bd_or_zero_u256, ExposureTracker};
 use crate::touch::pricing::{MultiplierCalculator, MultiplierConfig, MultiplierQuote};
 use crate::utils::wei::{bd_to_q8_i64, bd_to_u256, i256_to_bd, u256_to_bd};
 use crate::vrf::{
-    compute_commit_hash, first_touch_ms, generate_vrf_path, path_points_hash, seed_to_hex,
-    select_regime, sign_commit, CommitPreimage, SeedCipher, VrfPathInput, COMMIT_DOMAIN_TAG,
-    PATH_CONFIG_VERSION,
+    compute_commit_hash, seed_to_hex, select_regime, sign_commit, CommitPreimage,
+    SeedCipher, COMMIT_DOMAIN_TAG, PATH_CONFIG_VERSION,
 };
 use alloy::primitives::{Address, U256};
 use bigdecimal::{BigDecimal, Zero};
@@ -584,7 +583,7 @@ impl TouchEngine {
             TransactionType::StakeLock,
             &(-&stake_bd),
             &free_before,
-            None,
+            Some(bet_id),
             Some("touch_bet"),
             Some("Stake locked for touch bet"),
         )
@@ -692,75 +691,135 @@ impl TouchEngine {
             });
         }
 
-        // Path config check — refuse to settle a bet that was sealed
-        // under a config the binary no longer implements. Operator
-        // would need a binary at the right version (or migration) to
-        // resolve such a bet; leaving it ACTIVE is the safe default.
-        let bet_config = bet
-            .path_config_version
-            .as_deref()
-            .ok_or_else(|| {
-                TradingError::ResolverError("bet missing path_config_version".into())
-            })?;
-        if bet_config != PATH_CONFIG_VERSION {
-            return Err(TradingError::ResolverError(format!(
-                "path config drift: bet uses {}, engine compiles {}",
-                bet_config, PATH_CONFIG_VERSION
-            )));
-        }
-
-        let seed_enc = bet
-            .seed_encrypted
-            .as_ref()
-            .ok_or_else(|| TradingError::ResolverError("bet missing seed_encrypted".into()))?;
-        let seed_bytes = self
-            .vrf_cipher
-            .decrypt_seed(seed_enc)
-            .map_err(|e| TradingError::ResolverError(format!("seed decrypt: {}", e)))?;
-        let seed_hex = seed_to_hex(&seed_bytes);
-
-        // Regenerate the path. Inputs come straight from the bet row
-        // — no live price, no aggregator, no clock-dependent state.
-        // The tick / volatility / bound constants are tied to
-        // `PATH_CONFIG_VERSION` above; bumping any of them requires a
-        // version bump.
-        let entry_q8_i = bd_to_q8_i64(&bet.entry_price_q8);
-        let start_price = (entry_q8_i as f64) / 1e8;
-        let path = generate_vrf_path(VrfPathInput {
-            seed: seed_hex.clone(),
-            start_price,
-            start_time_ms: bet.window_start_ms,
-            end_time_ms: bet.window_end_ms,
-            tick_ms: VRF_TICK_MS,
-            volatility_bps: VRF_VOLATILITY_BPS,
-            bound_bps: VRF_BOUND_BPS,
-        });
-
+        // Resolution against the visible Rush Index history. The
+        // resolver replays the index path inside the bet's window,
+        // checks first-passage against the band, and settles. This
+        // is the same line the player watched in the canvas — no
+        // hidden VRF cobra, no surprise.
+        //
+        // The legacy commit/reveal VRF code is left in `vrf/` for
+        // historical reference and was the resolver until 2026-05-04.
         let p_min = (bd_to_q8_i64(&bet.target_row_min_q8) as f64) / 1e8;
         let p_max = (bd_to_q8_i64(&bet.target_row_max_q8) as f64) / 1e8;
-        let touch = first_touch_ms(
-            &path,
-            p_min,
-            p_max,
-            bet.window_start_ms,
-            bet.window_end_ms,
-            bet.window_end_ms,
-        );
+
+        let path = self
+            .arena_index
+            .path_window(bet.window_start_ms, bet.window_end_ms);
+        if path.is_empty() {
+            // History buffer evicted before we got around to settling.
+            // Two cases:
+            //   1. Bet's window ended < HISTORY_WINDOW_MS ago and the
+            //      buffer just hasn't filled yet (engine restart) —
+            //      retry next tick.
+            //   2. Window ended > HISTORY_WINDOW_MS ago — history is
+            //      gone forever. Auto-cancel so the bet doesn't loop
+            //      in the resolution sweep until the operator notices.
+            //      Cancellation refunds the stake; no PnL is realised
+            //      because we cannot prove which side touched.
+            const HISTORY_WINDOW_MS: i64 = 120_000;
+            if now_ms - bet.window_end_ms > HISTORY_WINDOW_MS {
+                tracing::warn!(
+                    bet = %bet.id,
+                    window_end_ms = bet.window_end_ms,
+                    age_ms = now_ms - bet.window_end_ms,
+                    "Cancelling unresolvable bet — history evicted"
+                );
+                return self.cancel_unresolvable(bet).await;
+            }
+            return Err(TradingError::ResolverError(
+                "arena index history missing for bet window".into(),
+            ));
+        }
+
+        let touch = first_touch_in_path(&path, p_min, p_max);
         let won = touch.is_some();
         let touched_at_ms = touch;
-        let path_hash_hex = path_points_hash(&path);
-        // Drop the plaintext seed reference once we no longer need
-        // it; the persisted copy is `revealed_seed` below, which is
-        // expected to be public after reveal.
-        let revealed_seed_bytes: Vec<u8> = seed_bytes.to_vec();
-        // Best-effort: signal intent to drop the plaintext from this
-        // scope. `[u8; 32]` is `Copy` so this is a hint, not a
-        // guarantee — switching to `zeroize::Zeroize` would harden
-        // it. The encrypted copy remains the durable artifact.
-        let _ = seed_bytes;
 
-        self.settle(bet, won, touched_at_ms, revealed_seed_bytes, path_hash_hex)
+        // Hash of the path the resolver actually used, so audits can
+        // confirm later that we didn't regenerate the line. Same
+        // shape as the previous VRF `path_points_hash` so downstream
+        // schemas stay backwards compatible.
+        let path_hash_hex = hash_index_path(&path);
+
+        // No per-bet seed any more — the index seed itself is the
+        // server commit, hashed at startup and exposed via
+        // `arena_index::seed_hash`. We pass an empty byte vec to the
+        // settle path so the column stays NULL on new bets without
+        // schema churn.
+        self.settle(bet, won, touched_at_ms, Vec::new(), path_hash_hex)
             .await
+    }
+
+    /// Refund-only path for bets the resolver cannot honestly settle
+    /// (history evicted from the arena_index buffer). Status flips to
+    /// CANCELLED, stake is released back to the player, no PnL is
+    /// realised. Idempotent under the FOR UPDATE re-check inside the
+    /// transaction.
+    async fn cancel_unresolvable(
+        &self,
+        bet: TouchBet,
+    ) -> Result<ResolveOutcome, TradingError> {
+        let mut tx = self.pool.begin().await?;
+        let row: TouchBet = sqlx::query_as("SELECT * FROM touch_bets WHERE id = $1 FOR UPDATE")
+            .bind(bet.id)
+            .fetch_one(&mut *tx)
+            .await?;
+        if row.status != TouchStatus::Active {
+            return Err(TradingError::BetAlreadyResolved);
+        }
+
+        let user: User = sqlx::query_as("SELECT * FROM users WHERE id = $1 FOR UPDATE")
+            .bind(bet.user_id)
+            .fetch_one(&mut *tx)
+            .await?;
+        let free_before = user.free_balance_wei();
+
+        sqlx::query(
+            r#"
+            UPDATE users
+               SET locked_margin_wei = locked_margin_wei - $2,
+                   updated_at = NOW()
+             WHERE id = $1
+            "#,
+        )
+        .bind(bet.user_id)
+        .bind(&bet.stake_wei)
+        .execute(&mut *tx)
+        .await?;
+
+        LedgerRepository::create_in_tx(
+            &mut *tx,
+            bet.user_id,
+            TransactionType::StakeRelease,
+            &bet.stake_wei,
+            &free_before,
+            Some(bet.id),
+            Some("touch_bet"),
+            Some("Stake released — bet cancelled (resolver history evicted)"),
+        )
+        .await?;
+
+        let cancelled: TouchBet = sqlx::query_as(
+            r#"
+            UPDATE touch_bets
+               SET status = 'CANCELLED'::touch_status,
+                   resolved_at = NOW(),
+                   updated_at = NOW()
+             WHERE id = $1
+            RETURNING *
+            "#,
+        )
+        .bind(bet.id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(ResolveOutcome {
+            bet: cancelled,
+            touched: false,
+            realized_pnl_wei: BigDecimal::from(0),
+        })
     }
 
     async fn settle(
@@ -904,7 +963,15 @@ impl TouchEngine {
         let touched_at = touched_at_ms.map(|ms| {
             chrono::DateTime::<Utc>::from_timestamp_millis(ms).unwrap_or_else(Utc::now)
         });
-        let revealed_seed_bytes_ref: &[u8] = &revealed_seed_bytes;
+        // The `revealed_seed_size` check requires NULL or exactly 32
+        // bytes. Under the arena_index resolver there is no per-bet
+        // seed, so map the empty vector to NULL instead of binding a
+        // zero-byte BYTEA.
+        let revealed_seed_opt: Option<&[u8]> = if revealed_seed_bytes.is_empty() {
+            None
+        } else {
+            Some(&revealed_seed_bytes)
+        };
         let resolved: TouchBet = sqlx::query_as(
             r#"
             UPDATE touch_bets
@@ -923,7 +990,7 @@ impl TouchEngine {
         .bind(new_status.as_str())
         .bind(touched_at)
         .bind(&pnl_bd)
-        .bind(revealed_seed_bytes_ref)
+        .bind(revealed_seed_opt)
         .bind(&path_points_hash_hex)
         .fetch_one(&mut *tx)
         .await?;
@@ -1021,6 +1088,33 @@ pub fn check_activation_gate(
         });
     }
     Ok(())
+}
+
+/// First-passage check on the Rush Index history. Returns the
+/// timestamp (ms) of the first sample whose price falls inside the
+/// closed band `[p_min, p_max]`, or `None` if the band was never
+/// touched during the bet window. Linear scan; the history slice
+/// for any single bet is bounded by the window duration / TICK_MS
+/// (≤ 60 000 / 150 = 400 entries).
+fn first_touch_in_path(path: &[(i64, f64)], p_min: f64, p_max: f64) -> Option<i64> {
+    path.iter()
+        .find(|(_, price)| *price >= p_min && *price <= p_max)
+        .map(|(t, _)| *t)
+}
+
+/// Stable digest of an index slice used in the bet's resolution
+/// trace. Format mirrors what the legacy `vrf::path::path_points_hash`
+/// produced so downstream consumers (the `path_points_hash_hex`
+/// column on `touch_bets`) keep the same shape: SHA-256 of
+/// space-separated `ts:price_q8` pairs in hex.
+fn hash_index_path(path: &[(i64, f64)]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    for (t, p) in path {
+        let q8 = (p * 1e8).round() as i64;
+        hasher.update(format!("{}:{} ", t, q8).as_bytes());
+    }
+    hex::encode(hasher.finalize())
 }
 
 #[cfg(test)]

@@ -112,15 +112,25 @@ impl UserRepository {
 
         let before_free = user.free_balance_wei();
 
-        // Idempotent insert into ledger.
+        // Idempotent via NOT EXISTS — the unique index on
+        // (chain_tx_hash, chain_log_index) is PARTIAL
+        // (`WHERE chain_tx_hash IS NOT NULL`), and Postgres can only
+        // match an ON CONFLICT clause against a partial index when the
+        // partial predicate is repeated verbatim. Mismatched ON CONFLICT
+        // returns "no unique or exclusion constraint" and silently
+        // dropped every observed deposit. Pre-check here is portable
+        // and avoids that whole class of bugs.
         let inserted = sqlx::query(
             r#"
             INSERT INTO ledger (user_id, tx_type, amount_wei, free_balance_before_wei,
                                 free_balance_after_wei, reference_type, chain_tx_hash,
                                 chain_log_index, chain_block_number, description)
-            VALUES ($1, 'DEPOSIT'::transaction_type, $2, $3, $4, 'vault_deposit',
-                    $5, $6, $7, 'On-chain deposit observed')
-            ON CONFLICT (chain_tx_hash, chain_log_index) DO NOTHING
+            SELECT $1, 'DEPOSIT'::transaction_type, $2, $3, $4, 'vault_deposit',
+                   $5, $6, $7, 'On-chain deposit observed'
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM ledger
+                  WHERE chain_tx_hash = $5 AND chain_log_index = $6
+             )
             RETURNING id
             "#,
         )
@@ -181,14 +191,19 @@ impl UserRepository {
 
         let before_free = user.free_balance_wei();
 
+        // Same partial-index workaround as apply_deposit — NOT EXISTS
+        // pre-check instead of ON CONFLICT.
         let inserted = sqlx::query(
             r#"
             INSERT INTO ledger (user_id, tx_type, amount_wei, free_balance_before_wei,
                                 free_balance_after_wei, reference_type, chain_tx_hash,
                                 chain_log_index, chain_block_number, description)
-            VALUES ($1, 'WITHDRAWAL'::transaction_type, -$2, $3, $4, 'vault_withdrawal',
-                    $5, $6, $7, 'On-chain withdrawal observed')
-            ON CONFLICT (chain_tx_hash, chain_log_index) DO NOTHING
+            SELECT $1, 'WITHDRAWAL'::transaction_type, -$2, $3, $4, 'vault_withdrawal',
+                   $5, $6, $7, 'On-chain withdrawal observed'
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM ledger
+                  WHERE chain_tx_hash = $5 AND chain_log_index = $6
+             )
             RETURNING id
             "#,
         )

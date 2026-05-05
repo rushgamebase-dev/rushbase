@@ -124,7 +124,9 @@ impl EventHandler for VaultEventHandler {
             .await
             .map_err(|e| ListenerError::Handler(e.to_string()))?;
 
-        // Idempotent house ledger insert.
+        // Idempotent house ledger insert. The unique index on
+        // (chain_tx_hash, chain_log_index) is partial; ON CONFLICT
+        // can't bind to it, so use a NOT EXISTS pre-check instead.
         let inserted = sqlx::query(
             r#"
             INSERT INTO house_ledger (
@@ -139,7 +141,10 @@ impl EventHandler for VaultEventHandler {
                    $2,
                    $3,
                    'On-chain HouseFunded'
-            ON CONFLICT (chain_tx_hash, chain_log_index) DO NOTHING
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM house_ledger
+                  WHERE chain_tx_hash = $2 AND chain_log_index = $3
+             )
             RETURNING id
             "#,
         )
@@ -199,7 +204,10 @@ impl EventHandler for VaultEventHandler {
                    $2,
                    $3,
                    'On-chain HouseWithdrawn'
-            ON CONFLICT (chain_tx_hash, chain_log_index) DO NOTHING
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM house_ledger
+                  WHERE chain_tx_hash = $2 AND chain_log_index = $3
+             )
             RETURNING id
             "#,
         )

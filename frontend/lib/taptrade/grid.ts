@@ -1,3 +1,8 @@
+import {
+  quoteCell as quoteCellEmpirical,
+  type DisabledReason,
+} from "./empiricalPricing";
+
 export type TapGridCell = {
   id: string;
   row: number;
@@ -13,6 +18,19 @@ export type TapGridCell = {
   multiplierBps: number;
   disabled: boolean;
   reason?: string;
+  /** Set by the empirical-table quote when the engine would refuse
+   *  this cell (UNCALIBRATED, EV_POSITIVE, INVALID_WINDOW, …).
+   *  When non-null the canvas MUST treat the cell as disabled — the
+   *  multiplier shown is only the floor and clicking would 400. */
+  disabledReason?: DisabledReason | null;
+  /** Heatmap overlay: number of OTHER players with an ACTIVE bet on
+   *  this exact (band, window). 0 / undefined ⇒ paint normal. Set
+   *  by the trade page after polling `/trade/heatmap`. */
+  nBets?: number;
+  /** Sum of stakes across all ACTIVE bets on this cell, in wei (as
+   *  a decimal string to preserve precision). Surfaced in the cell
+   *  hover tooltip. */
+  totalStakeWei?: string;
 };
 
 export type TapGridConfig = {
@@ -39,10 +57,10 @@ export const DEFAULT_GRID = {
   priceStepBps: 40,
   minDistanceBps: 0,
   maxDistanceBps: 1_000_000,
-  minMultiplier: 1.02,
-  maxMultiplier: 20,
+  minMultiplier: 1.1,
+  maxMultiplier: 500,
   houseEdgeBps: 500,
-  volBpsPerSqrtSec: 24,
+  volBpsPerSqrtSec: 2.8,
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -54,6 +72,101 @@ export function multiplierLabel(multiplier: number) {
   if (multiplier >= 100) return `${multiplier.toFixed(0)}x`;
   if (multiplier >= 10) return `${multiplier.toFixed(1)}x`;
   return `${multiplier.toFixed(2)}x`;
+}
+
+export function tapPreviewOdds(params: {
+  currentPrice: number;
+  nowTime: number;
+  pMin: number;
+  pMax: number;
+  windowStartMs: number;
+  windowEndMs: number;
+  stepMs?: number;
+  points?: number;
+  volatility?: number;
+  houseEdgeBps?: number;
+  minMultiplier?: number;
+  maxMultiplier?: number;
+}) {
+  const min = params.minMultiplier ?? DEFAULT_GRID.minMultiplier;
+  const max = params.maxMultiplier ?? DEFAULT_GRID.maxMultiplier;
+  const price = params.currentPrice;
+  if (
+    !Number.isFinite(price) ||
+    !Number.isFinite(params.pMin) ||
+    !Number.isFinite(params.pMax) ||
+    price <= 0 ||
+    params.pMin <= 0 ||
+    params.pMax <= 0 ||
+    params.windowEndMs <= params.nowTime
+  ) {
+    return min;
+  }
+
+  const stepMs = Math.max(100, params.stepMs ?? 500);
+  const points = Math.max(31, Math.min(140, Math.round(params.points ?? 100)));
+  const volatility = Math.max(0.000001, params.volatility ?? 0.001);
+  const edgeFactor = 1 - (params.houseEdgeBps ?? DEFAULT_GRID.houseEdgeBps) / 10_000;
+  const stepStart = Math.max(1, Math.ceil((params.windowStartMs - params.nowTime) / stepMs));
+  const stepEnd = Math.max(stepStart, Math.ceil((params.windowEndMs - params.nowTime) / stepMs));
+  const y0 = Math.log(price);
+  const yMin = y0 - 4 * volatility * Math.sqrt(stepEnd);
+  const yMax = y0 + 4 * volatility * Math.sqrt(stepEnd);
+  const dy = (yMax - yMin) / (points - 1);
+  if (!Number.isFinite(dy) || dy <= 0) return min;
+
+  const targetMin = Math.log(Math.min(params.pMin, params.pMax));
+  const targetMax = Math.log(Math.max(params.pMin, params.pMax));
+  const inBand: boolean[] = [];
+  for (let i = 0; i < points; i += 1) {
+    const y = yMin + i * dy;
+    inBand.push(y >= targetMin && y <= targetMax);
+  }
+
+  let state = new Array<number>(points).fill(0);
+  const initialIndex = Math.round(clamp((y0 - yMin) / dy, 0, points - 1));
+  state[initialIndex] = 1;
+
+  const transitions: number[][] = [];
+  for (let from = 0; from < points; from += 1) {
+    const weights = new Array<number>(points);
+    let total = 0;
+    const fromY = yMin + from * dy;
+    for (let to = 0; to < points; to += 1) {
+      const toY = yMin + to * dy;
+      const z = (toY - fromY) / volatility;
+      const weight = Math.exp(-0.5 * z * z);
+      weights[to] = weight;
+      total += weight;
+    }
+    transitions.push(total > 0 ? weights.map((weight) => weight / total) : weights);
+  }
+
+  for (let step = 1; step <= stepEnd; step += 1) {
+    const next = new Array<number>(points).fill(0);
+    for (let from = 0; from < points; from += 1) {
+      const mass = state[from];
+      if (mass <= 0) continue;
+      const weights = transitions[from];
+      for (let to = 0; to < points; to += 1) {
+        next[to] += mass * weights[to];
+      }
+    }
+    if (step >= stepStart) {
+      for (let i = 0; i < points; i += 1) {
+        if (inBand[i]) next[i] = 0;
+      }
+    }
+    state = next;
+  }
+
+  const missProbability = clamp(
+    state.reduce((sum, value) => sum + value, 0),
+    0,
+    1
+  );
+  const pHit = clamp(1 - missProbability, 0.0001, 0.999);
+  return clamp(edgeFactor / pHit, min, max);
 }
 
 export function priceBandForRow(
@@ -171,10 +284,11 @@ function pTouchWindow(params: {
   return totalWeight > 0 ? weighted / totalWeight : 0.0001;
 }
 
-/// FALLBACK ONLY. The authoritative multiplier comes from the backend
-/// `/trade/quote-grid` endpoint. This mirrors the backend Bachelier
-/// approximation only so first paint has a directional placeholder;
-/// the trade page keeps cells unbettable until the backend quote lands.
+/// FALLBACK ONLY. The authoritative multiplier for a real bet comes
+/// from the signed `/trade/quote` request made on click. This mirrors
+/// the backend Bachelier approximation only so geometry builders have
+/// a directional placeholder before the trade page overlays preview
+/// odds.
 export function multiplierForCell(params: {
   distanceBps: number;
   windowStartOffsetMs: number;
@@ -316,6 +430,154 @@ export type SlidingTapGridConfig = {
  *  the past) are emitted with `disabled=true` so the canvas can render
  *  them dimmed and ignore clicks; they remain visible until they slide
  *  off the plot. */
+export type DynamicTapGridConfig = {
+  /** Latched reference price ("level 0"). Stays constant for a session
+   *  so price levels are absolutely stable: a cell at `level=3` always
+   *  occupies `[anchor*(1+(3-0.5)*step/10000), anchor*(1+(3+0.5)*step/10000)]`,
+   *  regardless of where the snake is right now. This is what lets bets
+   *  pin permanently — placing a bet on level=3 means betting on that
+   *  exact price band forever. */
+  anchorPrice: number;
+  /** Live snake position. Used to decide *which* levels to emit (the
+   *  band around current), not to compute pMin/pMax. */
+  currentPrice: number;
+  /** A fixed origin (ms epoch). Cell windows are
+   *  `[origin + col*duration, origin + (col+1)*duration]`. */
+  originMs: number;
+  nowTime: number;
+  /** How many price levels above `currentPrice` to emit. */
+  rowsAbove: number;
+  /** How many price levels below `currentPrice` to emit. */
+  rowsBelow: number;
+  /** Past time-columns to keep visible (for cells whose window already
+   *  opened — used so locked bets keep showing). */
+  pastCols: number;
+  /** Future time-columns to emit (still bettable). */
+  futureCols: number;
+  columnDurationMs: number;
+  activationDelayMs?: number;
+  priceStepBps: number;
+  minDistanceBps?: number;
+  maxDistanceBps?: number;
+  minMultiplier?: number;
+  maxMultiplier?: number;
+  houseEdgeBps?: number;
+  volBpsPerSqrtSec?: number;
+  /** Window durations the engine is configured to accept
+   *  (`[touch] allowed_window_ms`). When omitted the catalog only
+   *  emits the column duration. Cells whose duration is outside
+   *  this list get `disabledReason = "INVALID_WINDOW"` from the
+   *  empirical quote. */
+  allowedDurationsMs?: ReadonlyArray<number>;
+};
+
+/** Cells live at *absolute* integer price levels measured in
+ *  `priceStepBps` from `anchorPrice`. The window of emitted levels
+ *  follows `currentPrice` so the player always sees a band of cells
+ *  around the live snake position — no fixed grid that the snake can
+ *  escape, no cells that move once spawned. Stable ids `lvl{N}c{C}`
+ *  keep React keys consistent and let bets reference cells across
+ *  re-renders.
+ *
+ *  Geometry mirrors what STONKS-style touch UIs do: dim, infinite
+ *  background grid; a bright "active zone" of cells in the snake's
+ *  vicinity; bets pinned to absolute (price, time) by their snapshot
+ *  rather than by their position in the live grid. */
+export function buildDynamicCells(config: DynamicTapGridConfig): TapGridCell[] {
+  const duration = config.columnDurationMs;
+  const activationDelay = config.activationDelayMs ?? DEFAULT_GRID.activationDelayMs;
+  const minDistance = config.minDistanceBps ?? DEFAULT_GRID.minDistanceBps;
+  const maxDistance = config.maxDistanceBps ?? DEFAULT_GRID.maxDistanceBps;
+
+  // Absolute price step (units of price). A "level" is an integer
+  // number of `step`s away from `anchorPrice`. Levels never move.
+  const stepFraction = config.priceStepBps / 10_000;
+  const step = config.anchorPrice * stepFraction;
+  if (step <= 0) return [];
+
+  // Current snake level — integer index of the level closest to the
+  // live price. We emit `rowsAbove` levels above and `rowsBelow` below.
+  const currentLevelFloat = (config.currentPrice - config.anchorPrice) / step;
+  const centerLevel = Math.round(currentLevelFloat);
+  const minLevel = centerLevel - config.rowsBelow;
+  const maxLevel = centerLevel + config.rowsAbove;
+
+  const firstFutureCol = Math.ceil(
+    (config.nowTime + activationDelay - config.originMs) / duration
+  );
+  const startCol = firstFutureCol - config.pastCols;
+  const endCol = firstFutureCol + config.futureCols - 1;
+
+  const cells: TapGridCell[] = [];
+  for (let level = minLevel; level <= maxLevel; level += 1) {
+    // Absolute, immutable band for this level. (level - 0.5) … (level + 0.5)
+    // expressed as bps offsets from the anchor price.
+    const lowBps = (level - 0.5) * config.priceStepBps;
+    const highBps = (level + 0.5) * config.priceStepBps;
+    const pMin = config.anchorPrice * (1 + lowBps / 10_000);
+    const pMax = config.anchorPrice * (1 + highBps / 10_000);
+    // Distance from the *current* snake to the band's near edge,
+    // in bps. Used for client-side multiplier preview only — the
+    // backend re-derives this against its own current price.
+    const distanceBps = distanceToBandBps(config.currentPrice, pMin, pMax);
+    // `row` is a viewport-relative index (0 = top of visible band)
+    // so the canvas can sort/paint deterministically. Note this row
+    // index changes as the window slides, but the cell *identity*
+    // (price band, id) does not.
+    const row = maxLevel - level;
+
+    for (let col = startCol; col <= endCol; col += 1) {
+      const windowStartMs = config.originMs + col * duration;
+      const windowEndMs = windowStartMs + duration;
+      const offset = windowStartMs - config.nowTime;
+      const isFuture = windowStartMs >= config.nowTime + activationDelay - 1;
+
+      // Authoritative price comes from the empirical table the
+      // engine itself uses. `quoteCell` returns either a real
+      // multiplier or a `disabledReason` mirroring whatever the
+      // engine would refuse — never a Bachelier guess. The cell
+      // carries this multiplier as part of its identity until it
+      // expires; nothing recomputes per-tick.
+      const quote = quoteCellEmpirical({
+        distanceBps,
+        durationMs: duration,
+        offsetMs: Math.max(0, offset),
+        allowedDurationMs: config.allowedDurationsMs ?? [duration],
+      });
+      const outOfRange = distanceBps < minDistance || distanceBps > maxDistance;
+      const disabled = !isFuture || outOfRange || quote.disabledReason !== null;
+      cells.push({
+        // Stable id keyed on the absolute (level, col) pair — a cell
+        // at (level=3, col=12) is *always* the same cell across
+        // ticks, regardless of viewport.
+        id: `lvl${level}c${col}`,
+        row,
+        col,
+        pMin,
+        pMax,
+        windowStartMs,
+        windowEndMs,
+        windowStartOffsetMs: offset,
+        windowDurationMs: duration,
+        distanceBps,
+        multiplier: quote.multiplier,
+        multiplierBps: quote.multiplierBps,
+        disabled,
+        reason: !isFuture
+          ? "Locked"
+          : outOfRange
+            ? "Out of range"
+            : quote.disabledReason
+              ? humanizeDisabledReason(quote.disabledReason)
+              : undefined,
+        disabledReason: quote.disabledReason,
+      });
+    }
+  }
+
+  return cells;
+}
+
 export function buildSlidingCells(config: SlidingTapGridConfig): TapGridCell[] {
   const duration = config.columnDurationMs;
   const activationDelay = config.activationDelayMs ?? DEFAULT_GRID.activationDelayMs;
@@ -383,4 +645,17 @@ export function buildSlidingCells(config: SlidingTapGridConfig): TapGridCell[] {
   }
 
   return cells;
+}
+
+function humanizeDisabledReason(reason: DisabledReason): string {
+  switch (reason) {
+    case "UNCALIBRATED":
+      return "Uncalibrated";
+    case "EV_POSITIVE":
+      return "Too easy";
+    case "INVALID_BAND":
+      return "Invalid band";
+    case "INVALID_WINDOW":
+      return "Invalid window";
+  }
 }

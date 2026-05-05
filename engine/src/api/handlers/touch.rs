@@ -1,8 +1,8 @@
 use crate::api::anti_replay::{idempotency_key, NonceError};
 use crate::api::dto::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
-    OpenBetRequest, QuoteGridCellResponse, QuoteGridRequest, QuoteGridResponse, QuoteRequest,
-    QuoteResponse,
+    OpenBetRequest, PublicBetEntry, PublicBetListResponse, QuoteGridCellResponse,
+    QuoteGridRequest, QuoteGridResponse, QuoteRequest, QuoteResponse,
 };
 use crate::api::middleware::AuthenticatedUser;
 use crate::api::state::AppState;
@@ -658,6 +658,88 @@ pub async fn list_history(
     Ok(HttpResponse::Ok().json(BetListResponse {
         total: bets.len() as i64,
         bets: bets.iter().map(BetResponse::from).collect(),
+    }))
+}
+
+/// `GET /api/v1/trade/bets/public` — anonymised list of currently
+/// active bets across all users. Drives the "Active Bets" social-proof
+/// panel in the canvas. No auth required: only public bet data
+/// (anonymised handle) is exposed; user IDs / tokens / commit material
+/// stay private.
+#[utoipa::path(
+    get,
+    path = "/api/v1/trade/bets/public",
+    responses((status = 200, description = "Active bets, anonymised",
+                body = PublicBetListResponse)),
+    tag = "trade",
+)]
+pub async fn list_public_active(
+    app_state: web::Data<AppState>,
+) -> Result<HttpResponse, ApiError> {
+    // 50 rows is plenty for a canvas-side scrolling panel; bumping
+    // would mostly inflate response size without UX gain.
+    let rows = app_state
+        .touch_engine
+        .bet_repo()
+        .list_public_active(50)
+        .await
+        .map_err(|e| ApiError::internal(format!("DB: {}", e)))?;
+    Ok(HttpResponse::Ok().json(PublicBetListResponse {
+        total: rows.len() as i64,
+        bets: rows.iter().map(PublicBetEntry::from).collect(),
+    }))
+}
+
+/// `GET /api/v1/trade/heatmap` — aggregated ACTIVE bets per cell +
+/// "online" headcount. Single round-trip; the canvas uses the cell
+/// rows to render a glow heatmap and the count for the room pill.
+#[utoipa::path(
+    get,
+    path = "/api/v1/trade/heatmap",
+    responses((status = 200, description = "Active-bet heatmap + online count",
+                body = crate::api::dto::touch::HeatmapResponse)),
+    tag = "trade",
+)]
+pub async fn get_heatmap(
+    app_state: web::Data<AppState>,
+) -> Result<HttpResponse, ApiError> {
+    let (online_count, cells) = app_state
+        .touch_engine
+        .bet_repo()
+        .list_active_heatmap()
+        .await
+        .map_err(|e| ApiError::internal(format!("DB: {}", e)))?;
+    Ok(HttpResponse::Ok().json(crate::api::dto::touch::HeatmapResponse {
+        online_count,
+        cells: cells
+            .iter()
+            .map(crate::api::dto::touch::HeatmapCell::from)
+            .collect(),
+    }))
+}
+
+/// `GET /api/v1/trade/wins/public` — anonymised list of recent WON
+/// bets. Drives the "Recent Wins" panel. Same privacy stance as
+/// `/trade/bets/public`.
+#[utoipa::path(
+    get,
+    path = "/api/v1/trade/wins/public",
+    responses((status = 200, description = "Recent wins, anonymised",
+                body = PublicBetListResponse)),
+    tag = "trade",
+)]
+pub async fn list_public_wins(
+    app_state: web::Data<AppState>,
+) -> Result<HttpResponse, ApiError> {
+    let rows = app_state
+        .touch_engine
+        .bet_repo()
+        .list_public_recent_wins(20)
+        .await
+        .map_err(|e| ApiError::internal(format!("DB: {}", e)))?;
+    Ok(HttpResponse::Ok().json(PublicBetListResponse {
+        total: rows.len() as i64,
+        bets: rows.iter().map(PublicBetEntry::from).collect(),
     }))
 }
 
