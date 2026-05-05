@@ -993,13 +993,23 @@ function TopHeader({
               <Plus className="h-5 w-5" />
             </span>
           </button>
+          {/* Mobile: compact balance pill + plus icon.
+              Without the balance number visible the user can't see
+              their funds without opening the drawer — and many
+              players assumed their deposit was lost. */}
           <button
             type="button"
             onClick={onOpenWallet}
             aria-label="Open wallet"
-            className="grid h-10 w-10 place-items-center rounded-lg border border-[#72ff9d]/50 bg-[#00ff66] text-[#02260f] shadow-[0_0_18px_rgba(0,255,102,0.38)] md:hidden"
+            className="flex h-10 items-center gap-2 rounded-lg border border-[#1d3327] bg-[#040b0f] pl-3 pr-1 transition hover:border-[#00ff66]/60 md:hidden"
           >
-            <Plus className="h-5 w-5" />
+            <span className="font-mono text-sm font-black text-white">
+              {formatEth(balance, 4)}
+              <span className="ml-1 text-[10px] font-bold text-[#8aa393]">ETH</span>
+            </span>
+            <span className="grid h-8 w-8 place-items-center rounded-md border border-[#72ff9d]/50 bg-[#00ff66] text-[#02260f] shadow-[0_0_18px_rgba(0,255,102,0.38)]">
+              <Plus className="h-4 w-4" />
+            </span>
           </button>
         </div>
         {/* Wallet connect/disconnect/switch — same RainbowKit-style
