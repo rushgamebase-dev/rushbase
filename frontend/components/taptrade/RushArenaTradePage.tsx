@@ -667,7 +667,12 @@ export default function RushArenaTradePage({
       if (bet.status === "WON") {
         setBalance((value) => value + bet.potentialWin);
         hapticSuccess();
-        playSound("win");
+        // Bigger payoff sound when the multiplier was meaningful.
+        // 3× is the threshold at which the cell visibly stood out
+        // in the grid; below that, the chime is enough; above, the
+        // shimmer cascade fires for that "you really hit it" feel.
+        const wasBig = (bet.cell?.multiplier ?? 1) >= 3;
+        playSound(wasBig ? "bigWin" : "win");
         // Spawn the "+amount ETH" floater. `from` defaults to the
         // viewport centre; `to` reads the Balance widget rect at
         // resolution time so the trajectory adapts to the active

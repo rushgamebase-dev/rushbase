@@ -103,6 +103,76 @@ function createPluck(
   osc.stop(now + 0.1);
 }
 
+// NEON TAP - short, tactile coin-like UI click.
+function createNeonTap(ctx: AudioContext, volume: number) {
+  const now = ctx.currentTime;
+  const output = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(1150, now);
+  filter.frequency.exponentialRampToValueAtTime(1850, now + 0.05);
+  filter.Q.value = 3.6;
+
+  output.gain.setValueAtTime(0, now);
+  output.gain.linearRampToValueAtTime(volume * 0.95, now + 0.006);
+  output.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+  filter.connect(output);
+  output.connect(ctx.destination);
+
+  const body = ctx.createOscillator();
+  body.type = "triangle";
+  body.frequency.setValueAtTime(620, now);
+  body.frequency.exponentialRampToValueAtTime(410, now + 0.075);
+  body.connect(filter);
+  body.start(now);
+  body.stop(now + 0.14);
+
+  const shine = ctx.createOscillator();
+  shine.type = "sine";
+  shine.frequency.setValueAtTime(1380, now + 0.012);
+  shine.frequency.exponentialRampToValueAtTime(1850, now + 0.08);
+  shine.connect(filter);
+  shine.start(now + 0.012);
+  shine.stop(now + 0.12);
+}
+
+function createWinChime(ctx: AudioContext, volume: number) {
+  // Three-stage sound for visceral payoff feel:
+  //   1. Bright impact "ding" at t=0 — communicates "you hit"
+  //   2. Ascending major-7 arpeggio (C-E-G-B) — climbing satisfaction
+  //   3. Sparkle tail at +250 ms — echoes the win
+  // Tuned louder and richer than the previous gentle 4-tone chime
+  // because players reported wins feeling underwhelming.
+
+  // 1. Impact ding — bell-like sine at high freq with quick decay
+  const ding = ctx.createOscillator();
+  const dingGain = ctx.createGain();
+  ding.type = "sine";
+  ding.frequency.setValueAtTime(2093, ctx.currentTime);  // C7
+  dingGain.gain.setValueAtTime(volume * 0.65, ctx.currentTime);
+  dingGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+  ding.connect(dingGain);
+  dingGain.connect(ctx.destination);
+  ding.start(ctx.currentTime);
+  ding.stop(ctx.currentTime + 0.2);
+
+  // 2. Major-7 arpeggio — C5, E5, G5, B5
+  const arpFreqs = [523.25, 659.25, 783.99, 987.77];
+  arpFreqs.forEach((freq, i) => {
+    createSoftTone(ctx, freq, "triangle", 0.22, volume * (0.78 - i * 0.06), 0.04 + i * 0.06);
+    // Octave-up shimmer for sparkle
+    createShimmer(ctx, freq * 2, volume * (0.55 - i * 0.06), 0.04 + i * 0.06 + 0.02);
+  });
+
+  // 3. Tail sparkle — final cascade after the arpeggio resolves
+  setTimeout(() => {
+    createShimmer(ctx, 2637, volume * 0.4); // E7
+    createShimmer(ctx, 3136, volume * 0.32, 0.04); // G7
+  }, 280);
+}
+
 // SHIMMER - Sparkling high-frequency effect
 function createShimmer(
   ctx: AudioContext,
@@ -181,31 +251,24 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
       if (!enabled) return;
 
       const ctx = initAudioContext();
-      const vol = volume * 0.25; // Keep sounds subtle
+      const vol = volume * 0.34; // Present, but still short and UI-safe.
 
       switch (type) {
         case "tap":
-          // Soft pop/click - very subtle
-          createPluck(ctx, 800, vol * 0.4);
+          createNeonTap(ctx, vol);
           break;
 
         case "bet":
-          // Confirmation - two soft tones rising
-          createPluck(ctx, 600, vol * 0.5);
-          createPluck(ctx, 900, vol * 0.6, 0.08);
+          createPluck(ctx, 720, vol * 0.42);
+          createPluck(ctx, 1080, vol * 0.36, 0.055);
           break;
 
         case "win":
-          // Pleasant ascending chime
-          createShimmer(ctx, 880, vol);
-          createShimmer(ctx, 1100, vol * 0.8, 0.1);
-          createShimmer(ctx, 1320, vol * 0.6, 0.2);
+          createWinChime(ctx, vol);
           break;
 
         case "loss":
-          // Soft descending tone - not harsh
-          createSoftTone(ctx, 400, "sine", 0.2, vol * 0.5);
-          createSoftTone(ctx, 300, "sine", 0.25, vol * 0.4, 0.1);
+          // TapTrading intentionally keeps losses silent.
           break;
 
         case "bigWin":
