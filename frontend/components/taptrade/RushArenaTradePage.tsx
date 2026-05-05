@@ -60,7 +60,7 @@ const PRICE_STEP_BPS = 40;
 // `APP_TOUCH__MAX_STAKE_WEI` override in engine/.env. Anything above
 // 0.01 here would 400 with `InvalidStakeAmount`. Bump to [0.005,
 // 0.025, 0.05, 0.1] once tier-2 (max_stake = 0.1 ETH) is in effect.
-const STAKE_PRESETS = [0.001, 0.002, 0.005, 0.01];
+const STAKE_PRESETS = [0.0001, 0.0005, 0.001, 0.005];
 // Mirror of `engine/config/default.toml [touch] allowed_window_ms`.
 // The empirical table is calibrated against exactly these durations;
 // passing the list to `buildDynamicCells` lets the local quote refuse
@@ -1093,8 +1093,8 @@ function TradeSidebar({
             onBlur={() => {
               const next = Number(stakeDraft);
               if (!Number.isFinite(next) || next <= 0) {
-                setStakeAmount(0.001);
-                setStakeDraft("0.001");
+                setStakeAmount(0.0001);
+                setStakeDraft("0.0001");
               }
             }}
             inputMode="decimal"
@@ -1226,8 +1226,8 @@ function MobileStakeStrip({
             // user left the input empty or invalid.
             const next = Number(draft);
             if (!Number.isFinite(next) || next <= 0) {
-              setStakeAmount(0.001);
-              setDraft("0.001");
+              setStakeAmount(0.0001);
+              setDraft("0.0001");
             }
           }}
           inputMode="decimal"

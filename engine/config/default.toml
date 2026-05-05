@@ -44,7 +44,7 @@ min_confirmations = 2
 withdraw_auth_ttl_secs = 900
 
 [touch]
-min_stake_wei = "1000000000000000"             # 0.001 ETH
+min_stake_wei = "100000000000000"              # 0.0001 ETH (~$0.30 — entry-level cherry tap)
 max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
 # Single-attacker exposure cap: 3 simultaneous bets (was 25). Combined
 # with `max_payout_per_bet_wei` and `max_potential_payout_per_user_wei`
