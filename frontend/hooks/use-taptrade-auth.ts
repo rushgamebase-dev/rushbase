@@ -80,6 +80,32 @@ export function useTapTradeAuth(): TapTradeAuthState {
     else setBalance(null);
   }, [token, refreshBalance]);
 
+  // Wallet-change guard. The JWT identifies a single wallet; if the
+  // user reconnects with a different account in MetaMask, we'd
+  // otherwise keep showing the OLD wallet's balance (and they would
+  // think their deposit disappeared). Detect the mismatch via the
+  // `balance.wallet_address` snapshot the engine returns and force a
+  // sign-out — the UI then prompts a fresh SIWE with the new wallet.
+  useEffect(() => {
+    if (!address || !balance?.wallet_address) return;
+    if (balance.wallet_address.toLowerCase() !== address.toLowerCase()) {
+      clearAccessToken();
+      setToken(null);
+      setBalance(null);
+    }
+  }, [address, balance]);
+
+  // Disconnect guard: if wagmi loses the wallet entirely (user clicks
+  // "Disconnect" in MetaMask), drop the token so the next sign-in
+  // re-SIWEs with whatever wallet they connect next.
+  useEffect(() => {
+    if (!isConnected && token) {
+      clearAccessToken();
+      setToken(null);
+      setBalance(null);
+    }
+  }, [isConnected, token]);
+
   const signIn = useCallback(async () => {
     if (!address || !isConnected) {
       setError("Connect a wallet first");
