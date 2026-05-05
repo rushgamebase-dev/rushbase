@@ -144,15 +144,25 @@ impl MultiplierCalculator {
         entry_q8: u128,
         band_min_q8: u128,
         band_max_q8: u128,
-        direction: TouchDirection,
+        _direction: TouchDirection,
         window_start_offset_ms: u64,
         window_duration_ms: u64,
     ) -> MultiplierQuote {
         // Distance to the *near* edge of the band — that's the barrier
         // the price has to actually cross to register a touch.
-        let near_edge_q8 = match direction {
-            TouchDirection::Up => band_min_q8,
-            TouchDirection::Down => band_max_q8,
+        //
+        // We pick the near edge from band-vs-snake geometry rather
+        // than the legacy `direction` argument: snake below band → pMin
+        // is the near edge; snake above → pMax. When the band envelops
+        // the snake the bet would auto-touch at t=0; pricing returns a
+        // distance of 0 and the EV+ guard downstream refuses it.
+        let near_edge_q8 = if entry_q8 < band_min_q8 {
+            band_min_q8
+        } else if entry_q8 > band_max_q8 {
+            band_max_q8
+        } else {
+            // Snake inside band — distance is 0 either way.
+            band_min_q8
         };
         let entry_f = entry_q8 as f64;
         let edge_f = near_edge_q8 as f64;

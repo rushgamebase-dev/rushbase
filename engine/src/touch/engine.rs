@@ -267,20 +267,15 @@ impl TouchEngine {
             });
         }
 
-        // Direction-band sanity: UP band must be above entry, DOWN below.
-        match req.direction {
-            TouchDirection::Up if req.target_row_min_q8 <= entry_q8_u => {
-                return Err(TradingError::InvalidBand {
-                    reason: "UP band must lie strictly above entry".into(),
-                });
-            }
-            TouchDirection::Down if req.target_row_max_q8 >= entry_q8_u => {
-                return Err(TradingError::InvalidBand {
-                    reason: "DOWN band must lie strictly below entry".into(),
-                });
-            }
-            _ => {}
-        }
+        // `direction` is legacy metadata from the bullish/bearish
+        // predictor era. The current arena resolver checks first-touch
+        // of the band over the window regardless of where the snake
+        // sits at quote time, so a band above OR below the entry is
+        // equally valid — the snake can drift either way during the
+        // window. The geometric "snake already inside the band" case
+        // is handled downstream by the EV+ guard in pricing.rs (which
+        // sees `distance_bps == 0` and refuses the cell as too easy),
+        // so no extra check is needed here.
 
         // Window must start meaningfully in the future. See `check_activation_gate`.
         check_activation_gate(req.window_start_ms, now_ms, self.min_activation_delay_ms)?;
@@ -360,13 +355,16 @@ impl TouchEngine {
             });
         }
 
-        // Tolerate 1% multiplier drift between quote and bet — the
-        // price *will* move during the click→submit RTT, and an exact
-        // match would 400 every honest user. The HMAC quote_token
-        // already pins the parameters to the original quote; this
-        // check protects against material re-pricing, not noise.
+        // Tolerate 10% multiplier drift between quote and bet. The
+        // arena_index can move 30-50 bps in the 100-300 ms click→submit
+        // RTT and that translates to 5-10% mult swing on cells near
+        // the snake. The HMAC quote_token already pins the parameters
+        // to the original quote (TTL 2s), so this is just a sanity
+        // check against a client tampering with `expected_multiplier_bps`.
+        // The previous 1% tolerance was rejecting roughly half of all
+        // honest clicks during fast price moves.
         let mult_drift_bps = (quote.multiplier_bps as i64 - req.expected_multiplier_bps as i64).abs();
-        let mult_tolerance = (req.expected_multiplier_bps as i64 / 100).max(50); // ≥0.5%, capped at 1%
+        let mult_tolerance = (req.expected_multiplier_bps as i64 / 10).max(500); // 10% of expected, ≥500 bps
         if mult_drift_bps > mult_tolerance {
             return Err(TradingError::QuoteMismatch {
                 expected_multiplier_bps: req.expected_multiplier_bps,

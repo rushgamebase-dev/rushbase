@@ -244,18 +244,12 @@ pub async fn quote_grid(
         } else if calc.is_ev_positive_at_floor(p_touch) {
             Some("EV_POSITIVE".to_string())
         } else {
-            // Direction-band sanity check (UP must lie strictly above
-            // entry, DOWN strictly below).
-            let entry_u = U256::from(entry as u64);
-            match dir {
-                TouchDirection::Up if target_min <= entry_u => {
-                    Some("INVALID_BAND".to_string())
-                }
-                TouchDirection::Down if target_max >= entry_u => {
-                    Some("INVALID_BAND".to_string())
-                }
-                _ => None,
-            }
+            // Direction-band geometric check is gone with the legacy
+            // bullish/bearish model — the resolver only cares about
+            // first-touch of the band during the window. EV_POSITIVE
+            // above already covers the only invalid geometry (snake
+            // already inside the band ⇒ p_touch * mult_floor > 1).
+            None
         };
 
         // max_stake_wei such that stake * multiplier_bps / 10_000 ≤ max_payout.
