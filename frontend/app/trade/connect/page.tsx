@@ -55,25 +55,34 @@ export default function ConnectPage() {
 
       <main className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-start gap-8 px-5 pb-16 pt-10 sm:pt-16">
         {/* ── Hero ──────────────────────────────────────────────── */}
-        <section className="flex w-full flex-col items-center gap-3 text-center">
-          <div
-            role="img"
-            aria-label="Rush logo"
-            className="h-14 w-14 overflow-hidden rounded-xl border border-[#1aff84]/40 bg-[#0a1612] shadow-[0_0_28px_rgba(0,255,102,0.32)] sm:h-16 sm:w-16"
-            style={{
-              backgroundImage: "url('/logo.png')",
-              backgroundPosition: "50% 31%",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "184%",
-            }}
-          />
-          <h1 className="mt-1 font-mono text-3xl font-black tracking-[0.18em] text-white sm:text-4xl">
+        <section className="flex w-full flex-col items-center gap-2 text-center">
+          {/* Mascot — animated skunk in a leather jacket holding 4 aces.
+              Transparent background, ~580 px tall. Sits in a soft
+              radial glow so the dark page doesn't swallow it. */}
+          <div className="relative flex h-44 w-44 items-center justify-center sm:h-56 sm:w-56">
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(0,255,102,0.22) 0%, rgba(0,255,102,0.08) 38%, transparent 70%)",
+              }}
+              aria-hidden="true"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/taptrade/mascot.gif"
+              alt="Rush mascot — confident skunk holding four aces"
+              className="relative h-full w-full object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+            />
+          </div>
+
+          <h1 className="font-mono text-3xl font-black tracking-[0.18em] text-white sm:text-4xl">
             <span className="text-[#00ff66]">RUSH</span> · TapTrading
           </h1>
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.32em] text-[#00ff66]/80">
             Provably-fair price-touch arena · Base mainnet
           </p>
-          <p className="mt-2 max-w-xl font-mono text-sm leading-relaxed text-[#b8c7d9]">
+          <p className="mt-1 max-w-xl font-mono text-sm leading-relaxed text-[#b8c7d9]">
             Tap a price band. If the snake touches it during your window,{" "}
             <span className="font-black text-[#00ff66]">you win</span>. Real
             ETH, real time, no paper. Single line, no hidden RNG, every bet
