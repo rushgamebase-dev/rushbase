@@ -1061,16 +1061,36 @@ function TradeSidebar({
         ? "Click the highlighted cell"
         : "Select a cell in the grid";
 
+  // Same draft-string pattern as MobileStakeStrip — Number()
+  // coercion on every keystroke would reset the field while the user
+  // types intermediate values like "0", "0.0", "0.00".
+  const [stakeDraft, setStakeDraft] = useState(() => String(stakeAmount));
+  useEffect(() => {
+    setStakeDraft((prev) => (Number(prev) === stakeAmount ? prev : String(stakeAmount)));
+  }, [stakeAmount]);
+
   return (
     <aside className="hidden w-[330px] shrink-0 flex-col gap-3 xl:flex">
       <div className="rounded-lg border border-[#10251d] bg-[#06100f] p-4 shadow-[0_0_28px_rgba(0,255,102,0.04)]">
         <div className="font-mono text-xs font-black uppercase tracking-widest text-[#8aa393]">Stake Amount</div>
         <label className="mt-3 flex h-14 items-center rounded-md border border-[#183229] bg-[#020806] px-4 shadow-[inset_0_0_18px_rgba(0,255,102,0.03)]">
           <input
-            value={stakeAmount}
+            value={stakeDraft}
             onChange={(event) => {
-              const next = Number(event.target.value);
-              setStakeAmount(Number.isFinite(next) && next > 0 ? next : 0.001);
+              const raw = event.target.value;
+              if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+              setStakeDraft(raw);
+              const next = Number(raw);
+              if (raw !== "" && Number.isFinite(next) && next > 0) {
+                setStakeAmount(next);
+              }
+            }}
+            onBlur={() => {
+              const next = Number(stakeDraft);
+              if (!Number.isFinite(next) || next <= 0) {
+                setStakeAmount(0.001);
+                setStakeDraft("0.001");
+              }
             }}
             inputMode="decimal"
             className="min-w-0 flex-1 bg-transparent font-mono text-2xl font-black text-white outline-none"
@@ -1163,14 +1183,47 @@ function MobileStakeStrip({
   // ≥44 px tap surface. The previous 36 px buttons were misclick-prone
   // on phones, especially during fast play. Bumped to 48 px.
   const cheapestRatio = stakeAmount > 0 ? Math.min(1, stakeAmount / Math.max(balance, 0.0001)) : 0;
+
+  // Local string state lets the user type intermediate values
+  // ("0", "0.0", "0.00", "0.005") without the parent immediately
+  // coercing to Number and resetting to the fallback. We only push
+  // a numeric stake up on blur or when the field already parses to a
+  // valid number above the floor. Keeps the parent in sync when a
+  // preset is tapped from outside (the parent's `stakeAmount` flips
+  // and we mirror it).
+  const [draft, setDraft] = useState(() => String(stakeAmount));
+  useEffect(() => {
+    setDraft((prev) => (Number(prev) === stakeAmount ? prev : String(stakeAmount)));
+  }, [stakeAmount]);
+
   return (
     <div className="flex h-16 shrink-0 items-center gap-2 border-t border-[#10251d] bg-[#02070b] px-2 xl:hidden">
       <label className="flex h-12 w-28 shrink-0 items-center rounded-lg border border-[#1d3327] bg-[#06100f] px-2.5 sm:w-32 sm:px-3">
         <input
-          value={stakeAmount}
+          value={draft}
           onChange={(event) => {
-            const next = Number(event.target.value);
-            setStakeAmount(Number.isFinite(next) && next > 0 ? next : 0.001);
+            const raw = event.target.value;
+            // Allow only digits + a single dot (rejects letters, signs,
+            // multiple dots). Empty string is allowed so the user can
+            // clear and retype.
+            if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
+            setDraft(raw);
+            // Push parent only when the draft parses to a finite
+            // value > 0. While the user types "0", "0.", "0.0" etc.,
+            // we keep the local draft but DO NOT reset the parent.
+            const next = Number(raw);
+            if (raw !== "" && Number.isFinite(next) && next > 0) {
+              setStakeAmount(next);
+            }
+          }}
+          onBlur={() => {
+            // Final commit on blur — falls back to the floor if the
+            // user left the input empty or invalid.
+            const next = Number(draft);
+            if (!Number.isFinite(next) || next <= 0) {
+              setStakeAmount(0.001);
+              setDraft("0.001");
+            }
           }}
           inputMode="decimal"
           aria-label="Bet stake (ETH)"
