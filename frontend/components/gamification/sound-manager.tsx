@@ -237,6 +237,22 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
     setEnabled((prev) => {
       const newValue = !prev;
       localStorage.setItem("taptrader-sound-enabled", String(newValue));
+      // Browsers require the AudioContext to be created or resumed
+      // inside a user gesture (Chrome, Safari, all mobile WebKit).
+      // Doing it here on toggle means the very first click warms up
+      // the audio pipeline AND plays back a confirmation tone, so the
+      // user gets immediate feedback the sound actually works.
+      if (newValue) {
+        try {
+          const ctx = (audioContextRef.current ??=
+            new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)());
+          if (ctx.state === "suspended") void ctx.resume();
+          // Quick neon-tap as a "sound is on" affordance.
+          createNeonTap(ctx, 0.45);
+        } catch {
+          // Audio API unavailable — leave silently.
+        }
+      }
       return newValue;
     });
   }, []);
