@@ -691,7 +691,7 @@ export default function RushArenaTradePage({
           // a 0.0001 stake at 1.7× displays "+0.0002" and the player
           // assumes that's pure profit when half of it is just the stake
           // coming back from the lock.
-          const netGain = Math.max(0, bet.potentialWin - bet.stake);
+          const netGain = Math.max(0, bet.potentialWin - bet.stakeAmount);
           setWinFloaters((prev) => [
             ...prev,
             {
