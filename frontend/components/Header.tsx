@@ -125,6 +125,33 @@ export default function Header() {
             </span>
           </Link>
 
+          {/* STAKE — single-sided $RUSH staking, ETH rewards from
+              TapTrading house edge. Synthetix accumulator pattern,
+              live earned counter on the page. */}
+          <Link
+            href="/stake"
+            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
+            style={{ color: "#1aff84", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#7dffaa")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#1aff84")}
+          >
+            STAKE
+            <span
+              className="px-1 py-0.5 rounded text-center"
+              style={{
+                fontSize: 10,
+                background: "rgba(26,255,132,0.12)",
+                border: "1px solid rgba(26,255,132,0.3)",
+                color: "#1aff84",
+                fontFamily: "monospace",
+                letterSpacing: "0.06em",
+                lineHeight: 1,
+              }}
+            >
+              NEW
+            </span>
+          </Link>
+
           <Link
             href="/leaderboard"
             className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
