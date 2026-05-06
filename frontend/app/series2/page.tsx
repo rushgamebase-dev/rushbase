@@ -652,20 +652,20 @@ function FounderCard({
         ))}
       </ul>
 
-      {/* CTA */}
+      {/* CTA — sales closed */}
       <button
-        onClick={onClaim}
-        className="w-full py-3 rounded-lg font-black tracking-widest text-sm transition-all hover:opacity-90 active:scale-95"
+        disabled
+        className="w-full py-3 rounded-lg font-black tracking-widest text-sm"
         style={{
-          background: "linear-gradient(135deg, #ffd700, #e6a800)",
-          color: "#0a0a0a",
+          background: "rgba(120,120,120,0.08)",
+          color: "#666",
           fontFamily: "monospace",
-          cursor: "pointer",
-          border: "none",
+          cursor: "not-allowed",
+          border: "1px solid rgba(120,120,120,0.2)",
           minHeight: 44,
         }}
       >
-        BECOME A FOUNDER — 0.5 ETH
+        SALES CLOSED
       </button>
 
       {/* Scarcity */}
@@ -729,20 +729,20 @@ function NormalCard({ onClaim }: { onClaim: () => void }) {
         ))}
       </ul>
 
-      {/* CTA */}
+      {/* CTA — sales closed */}
       <button
-        onClick={onClaim}
-        className="w-full py-3 rounded-lg font-black tracking-widest text-sm transition-all hover:opacity-90 active:scale-95"
+        disabled
+        className="w-full py-3 rounded-lg font-black tracking-widest text-sm"
         style={{
           background: "transparent",
-          color: "#00ff88",
+          color: "#666",
           fontFamily: "monospace",
-          cursor: "pointer",
-          border: "1px solid rgba(0,255,136,0.35)",
+          cursor: "not-allowed",
+          border: "1px solid rgba(120,120,120,0.25)",
           minHeight: 44,
         }}
       >
-        CLAIM NORMAL — 0.1 ETH
+        SALES CLOSED
       </button>
 
       {/* Spacer to align with founder card scarcity */}
@@ -1154,11 +1154,21 @@ export default function Series2Page() {
   const founderTiles = tiles.filter((t) => t.isActive && t.isFounder);
   const firstAvailable = tiles.find((t) => !t.isActive) ?? null;
 
-  function openClaim(wantFounder: boolean) {
-    if (!firstAvailable) return;
-    setDefaultFounder(wantFounder);
-    setSelected(firstAvailable);
+  // Sales closed 2026-05-06 — no new claims accepted via UI.
+  // Existing holders keep full access to manage / claim fees / abandon.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function openClaim(_wantFounder: boolean) {
+    return;
   }
+
+  // Top holder by tier-price spent (5 founder × 0.5 + 4 normal × 0.1 = 2.9 ETH).
+  // Hardcoded snapshot at sales close — derived from on-chain census.
+  const TOP_HOLDER = {
+    address: "0x2F996aB7ec5DDe2Bc3a33a5e3BC656A9B5f84FDc",
+    founderCount: 5,
+    normalCount: 4,
+    spentEth: 2.9,
+  };
 
   return (
     <div style={{ background: "#0a0a0a", color: "#ccc", minHeight: "100vh", fontFamily: "monospace" }}>
@@ -1166,6 +1176,73 @@ export default function Series2Page() {
       <ProofBanner />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
+
+        {/* ── Sales Closed Banner ── */}
+        <section className="pt-6">
+          <div
+            className="rounded-xl px-4 py-4 sm:px-6 sm:py-5 text-center"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,68,68,0.06), rgba(255,68,68,0.02))",
+              border: "1px solid rgba(255,68,68,0.35)",
+            }}
+          >
+            <div
+              className="text-[10px] font-black tracking-[0.32em] mb-2"
+              style={{ color: "#ff4444", fontFamily: "monospace" }}
+            >
+              SERIES 2 — SALES CLOSED
+            </div>
+            <div
+              className="text-sm sm:text-base"
+              style={{ color: "#e0e0e0", fontFamily: "monospace", lineHeight: 1.55 }}
+            >
+              No new Founder or Normal seats are being sold via the UI. Existing
+              holders keep full access — claim fees, manage price, or abandon at
+              any time. The protocol continues paying revenue to current seats.
+            </div>
+          </div>
+        </section>
+
+        {/* ── Top Holder Highlight ── */}
+        <section className="pt-6">
+          <div
+            className="rounded-xl px-4 py-4 sm:px-6 sm:py-5"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.02))",
+              border: "1px solid rgba(255,215,0,0.4)",
+              boxShadow: "0 0 24px rgba(255,215,0,0.06)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Crown size={14} style={{ color: "#ffd700" }} />
+              <span
+                className="text-[10px] font-black tracking-[0.3em]"
+                style={{ color: "#ffd700", fontFamily: "monospace" }}
+              >
+                TOP HOLDER
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <a
+                  href={`https://basescan.org/address/${TOP_HOLDER.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm sm:text-base font-black hover:underline"
+                  style={{ color: "#ffd700", fontFamily: "monospace" }}
+                >
+                  {truncateAddress(TOP_HOLDER.address)}
+                </a>
+                <div className="text-[11px] mt-1" style={{ color: "#aaa", fontFamily: "monospace" }}>
+                  {TOP_HOLDER.founderCount} Founder · {TOP_HOLDER.normalCount} Normal · {TOP_HOLDER.spentEth} ETH committed
+                </div>
+              </div>
+              <div className="text-[10px]" style={{ color: "#888", fontFamily: "monospace" }}>
+                Largest investor in Series 2.
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ── Hero ── */}
         <section className="pt-12 pb-10 text-center">
@@ -1284,11 +1361,10 @@ export default function Series2Page() {
 
         {/* ── Full Grid ── */}
         <FullGrid tiles={tiles} onSelect={(tile) => {
+          // Sales closed — only owners can interact (manage/claim/abandon).
+          // Empty tiles are no longer claimable through the grid.
           if (tile.isMine && tile.isActive) {
             setManageTile(tile);
-          } else if (!tile.isActive) {
-            setDefaultFounder(false);
-            setSelected(tile);
           }
         }} />
 
