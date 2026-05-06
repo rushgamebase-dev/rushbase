@@ -1,0 +1,153 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 146889 (camera: peace-bridge-qew, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Confidence override: 0.08
+[Camera] Line from config: 0.794,0.541,0.836,0.190
+[Camera] Line 2 from config: 0.648,0.360,0.792,0.186
+[Camera] Peace Bridge — QEW to CND Duty Free (Peace Bridge Authority) — YOUTUBE
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=SETJ79HmwI0
+  Camera: peace-bridge-qew
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] Using cached URL (age 258s)
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 147308)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[WS] Client disconnected (1 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 147312
+[2026-04-17 18:14:53] INFO ============================================================
+[2026-04-17 18:14:53] INFO   Rush Oracle Watchdog
+[2026-04-17 18:14:53] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-17 18:14:53] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-17 18:14:53] INFO   Log: /tmp/rush_oracle.log
+[2026-04-17 18:14:53] INFO ============================================================
+[2026-04-17 18:14:53] INFO Running startup orphan scan...
+[WS] Client connected (2 total)
+[Counter] Line 1: (1016, 389) -> (1070, 136)
+[Counter] Line 2: (829, 259) -> (1013, 133)
+[2026-04-17 18:14:54] INFO Orphan scan: 1 active market(s) found
+[2026-04-17 18:14:55] INFO No orphan markets found
+[2026-04-17 18:14:55] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-17 18:14:55] INFO Child started (PID 147504)
+[2026-04-17 18:14:56] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-17 18:14:56] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-17 18:14:56] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-17 18:14:56] ============================================================
+[2026-04-17 18:14:56]   SinalBet Rush Round Manager
+[2026-04-17 18:14:56]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-17 18:14:56]   Duration: 150s per round
+[2026-04-17 18:14:56]   Cameras:  Peace Bridge — QEW to CND Duty Free
+[2026-04-17 18:14:56] ============================================================
+[2026-04-17 18:14:56] Round #1 | Peace Bridge — QEW to CND Duty Free | threshold=50
+[WS] Client connected (3 total)
+[2026-04-17 18:14:56] Cancelling orphan market: 0x77f8E6D7f8685Afe3A2f21866Ac5C7626EaAE248
+[2026-04-17 18:14:57] Market cancelled: 0x77f8E6D7f8685Afe3A2f21866Ac5C7626EaAE248 (tx: f970539b0f6cee0cfd3d560de82512ab3dfaaba5e41af8c81c022e6f50a3a166)
+[2026-04-17 18:14:57] Ably publish OK: market_cancelled
+[2026-04-17 18:15:00] Refunds distributed: 0x77f8E6D7f8685Afe3A2f21866Ac5C7626EaAE248 (tx: d5437bc7e4edd28b2008f0ad3c581f5f55428025f965b5948e43669c90f85bef)
+[2026-04-17 18:15:00] Cancelled 1 orphan market(s)
+[2026-04-17 18:15:01] createMarket tx sent: b081c773b11dae5049d133f8fd3e603137eee5216ed1d5c8cd64dd40fc9f1acf
+[2026-04-17 18:15:03] Market created: 0xEf8133718399236F4C6DbA540FcDbbd093d7ABbd (tx: b081c773b11dae5049d133f8fd3e603137eee5216ed1d5c8cd64dd40fc9f1acf)
+[2026-04-17 18:15:04] Ably publish OK: market_created
+[2026-04-17 18:15:04] Counting vehicles for 150s...
+[2026-04-17 18:15:04] [StreamClient] Reconnecting...
+[WS] Client connected (3 total)
+[2026-04-17 18:15:04] [StreamClient] Connected to ws://localhost:9000
+[2026-04-17 18:15:04] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=SETJ79HmwI0', 'state': 'idle', 'count': 1, 'cameraId': 'peace-bridge-qew'}
+[STATE] betting — market=0xEf813371... bet=150s count=150s round=1
+[Counter] Line 1: (1016, 389) -> (1070, 136)
+[Counter] Line 2: (829, 259) -> (1013, 133)
+[WS] Client disconnected (3 total)
+[Prune] Removed 4 stale IDs (frame 200)
+[WS] Client connected (4 total)
+[Prune] Removed 2 stale IDs (frame 400)
+[Evidence] Saved evidence/1776460504_30s.jpg (350629 bytes, sha256:bf8ef6ec259c9...)
+[Prune] Removed 3 stale IDs (frame 500)
+[Prune] Removed 1 stale IDs (frame 600)
+[Evidence] Saved evidence/1776460504_60s.jpg (351203 bytes, sha256:5fa6a90e18619...)
+[Prune] Removed 4 stale IDs (frame 900)
+[Prune] Removed 6 stale IDs (frame 1000)
+[Prune] Removed 4 stale IDs (frame 1100)
+[WS] Client disconnected (3 total)
+[Prune] Removed 4 stale IDs (frame 1200)
+[WS] Client connected (4 total)
+[Evidence] Saved evidence/1776460504_90s.jpg (351476 bytes, sha256:0efb70663a16c...)
+[Prune] Removed 7 stale IDs (frame 1300)
+[Prune] Removed 1 stale IDs (frame 1400)
+[WS] Client disconnected (3 total)
+[WS] Client disconnected (2 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client connected (3 total)
+[WS] Client connected (4 total)
+[Evidence] Saved evidence/1776460504_120s.jpg (351312 bytes, sha256:b06e2af9e1ea0...)
+[Prune] Removed 1 stale IDs (frame 1900)
+[Prune] Removed 5 stale IDs (frame 2000)
+[Prune] Removed 3 stale IDs (frame 2100)
+[STATE] counting — market=0xEf813371... duration=150s round=1
+[Evidence] Saved evidence/1776460504_150s.jpg (351283 bytes, sha256:25a006b005d49...)
+[WS] Client disconnected (3 total)
+[WS] Client connected (4 total)
+[Prune] Removed 2 stale IDs (frame 2300)
+[Prune] Removed 5 stale IDs (frame 2400)
+[WS] Client connected (5 total)
+[Prune] Removed 7 stale IDs (frame 2500)
+[Evidence] Saved evidence/1776460504_180s.jpg (351482 bytes, sha256:9b3b22551a7a6...)
+[WS] Client disconnected (4 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client connected (5 total)
+[Prune] Removed 2 stale IDs (frame 2600)

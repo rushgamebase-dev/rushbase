@@ -1,0 +1,183 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 1226027 (camera: netherlands-highway, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Line from config: 0.936,0.394,0.963,0.473
+[Camera] Line 2 from config: 0.775,0.414,0.825,0.527
+[Camera] Netherlands Highway — Live Traffic (Axis Communications) — YOUTUBE
+[Camera] ROI mask: 1 polygon(s)
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=Jy1Y9f8NEY0
+  Camera: netherlands-highway
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] OK: https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1776321145/ei/...
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 1226297)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+opening handshake failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 356, in conn_handler
+    await connection.handshake(
+    ...<3 lines>...
+    )
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 142, in handshake
+    async with self.send_context(expected_state=CONNECTING):
+               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client disconnected (1 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 1226301
+[WS] Client disconnected (0 total)
+[WS] Client connected (1 total)
+[2026-04-15 21:32:30] INFO ============================================================
+[2026-04-15 21:32:30] INFO   Rush Oracle Watchdog
+[2026-04-15 21:32:30] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-15 21:32:30] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-15 21:32:30] INFO   Log: /tmp/rush_oracle.log
+[2026-04-15 21:32:30] INFO ============================================================
+[2026-04-15 21:32:30] INFO Running startup orphan scan...
+[ROI] 1 polygon(s) loaded, 36 total vertices
+[Counter] Line 1: (1198, 283) -> (1232, 340)
+[Counter] Line 2: (992, 298) -> (1056, 379)
+[2026-04-15 21:32:31] INFO Orphan scan: 1 active market(s) found
+[2026-04-15 21:32:32] INFO No orphan markets found
+[2026-04-15 21:32:32] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-15 21:32:32] INFO Child started (PID 1226483)
+[2026-04-15 21:32:32] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-15 21:32:32] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-15 21:32:32] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-15 21:32:32] ============================================================
+[2026-04-15 21:32:32]   SinalBet Rush Round Manager
+[2026-04-15 21:32:32]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-15 21:32:32]   Duration: 150s per round
+[2026-04-15 21:32:32]   Cameras:  Netherlands Highway — Live Traffic
+[2026-04-15 21:32:32] ============================================================
+[2026-04-15 21:32:32] Round #1 | Netherlands Highway — Live Traffic | threshold=50
+[2026-04-15 21:32:33] Cancelling orphan market: 0x3436430221c6b4779bd38048742f6afacC23258e
+[2026-04-15 21:32:34] Market cancelled: 0x3436430221c6b4779bd38048742f6afacC23258e (tx: 281ce7f573e590d0887c97f9e29441855e6de8adc142e27d779a8162dc55f269)
+[2026-04-15 21:32:34] Ably publish OK: market_cancelled
+[2026-04-15 21:32:37] Refunds distributed: 0x3436430221c6b4779bd38048742f6afacC23258e (tx: d4f283cf5463f9fd5edd87c7ba5e6fdda775c76c50dc03f5c20a9b6033ef62b2)
+[2026-04-15 21:32:37] Cancelled 1 orphan market(s)
+[2026-04-15 21:32:37] createMarket tx sent: 4939908f08946cb97b3bc734a20a44aa72654d097447be19bcb7283864415e57
+[2026-04-15 21:32:38] Market created: 0x6aCe421FABbF3D293a19bfd1Aa482eCDE3B8C3E6 (tx: 4939908f08946cb97b3bc734a20a44aa72654d097447be19bcb7283864415e57)
+[2026-04-15 21:32:38] Ably publish OK: market_created
+[2026-04-15 21:32:38] Counting vehicles for 150s...
+[2026-04-15 21:32:38] [StreamClient] Reconnecting...
+[WS] Client connected (2 total)
+[2026-04-15 21:32:38] [StreamClient] Connected to ws://localhost:9000
+[2026-04-15 21:32:38] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=Jy1Y9f8NEY0', 'state': 'idle', 'count': 0, 'cameraId': 'netherlands-highway'}
+[STATE] betting — market=0x6aCe421F... bet=150s count=150s round=1
+[ROI] 1 polygon(s) loaded, 36 total vertices
+[Counter] Line 1: (1198, 283) -> (1232, 340)
+[Counter] Line 2: (992, 298) -> (1056, 379)
+[WS] Client connected (3 total)
+[Prune] Removed 2 stale IDs (frame 700)
+[Evidence] Saved evidence/1776299558_30s.jpg (160261 bytes, sha256:15fdd476bfe10...)
+[Prune] Removed 1 stale IDs (frame 1100)
+[WS] Client disconnected (2 total)
+[WS] Client connected (3 total)
+[Prune] Removed 1 stale IDs (frame 1300)
+[Prune] Removed 3 stale IDs (frame 1400)
+[Evidence] Saved evidence/1776299558_60s.jpg (159892 bytes, sha256:1c6ba33222126...)
+[Prune] Removed 3 stale IDs (frame 1800)
+[Prune] Removed 1 stale IDs (frame 2000)
+[Prune] Removed 2 stale IDs (frame 2100)
+[Prune] Removed 1 stale IDs (frame 2200)
+[Prune] Removed 2 stale IDs (frame 2300)
+[Prune] Removed 3 stale IDs (frame 2400)
+[Prune] Removed 3 stale IDs (frame 2500)
+[Prune] Removed 1 stale IDs (frame 2600)
+[Evidence] Saved evidence/1776299558_90s.jpg (157281 bytes, sha256:04840bc3f646b...)
+[Prune] Removed 1 stale IDs (frame 2700)
+[Prune] Removed 3 stale IDs (frame 2800)
+[Prune] Removed 1 stale IDs (frame 2900)
+[Evidence] Saved evidence/1776299558_120s.jpg (155923 bytes, sha256:96b55f4063295...)
+[STATE] counting — market=0x6aCe421F... duration=150s round=1
+[Evidence] Saved evidence/1776299558_150s.jpg (159698 bytes, sha256:12f51597945da...)
+[Evidence] Saved evidence/1776299558_180s.jpg (159736 bytes, sha256:678be1f734179...)
+[Prune] Removed 2 stale IDs (frame 5800)
+[Prune] Removed 3 stale IDs (frame 6000)
+[Evidence] Saved evidence/1776299558_210s.jpg (162449 bytes, sha256:c86891f5f9633...)
+[Prune] Removed 2 stale IDs (frame 6200)
+[Prune] Removed 2 stale IDs (frame 6300)
+[Prune] Removed 1 stale IDs (frame 6500)
+[Prune] Removed 4 stale IDs (frame 6600)
+[Prune] Removed 1 stale IDs (frame 6700)
+[Prune] Removed 2 stale IDs (frame 6900)
+[Evidence] Saved evidence/1776299558_240s.jpg (160546 bytes, sha256:2faae1deb8794...)
+[Prune] Removed 1 stale IDs (frame 7000)
+[Prune] Removed 3 stale IDs (frame 7200)
+[Evidence] Saved evidence/1776299558_270s.jpg (160584 bytes, sha256:47e0f21a58b42...)
+[Prune] Removed 3 stale IDs (frame 8400)
+[Prune] Removed 1 stale IDs (frame 8500)
+[Prune] Removed 1 stale IDs (frame 8700)
+[Evidence] Saved evidence/1776299558_final.jpg (162933 bytes, sha256:204277e2cbdc9...)
+[Evidence] Saved evidence/1776299558_final.jpg (162403 bytes, sha256:e147746efbe08...)
+[Evidence] Saved evidence/1776299558_final.jpg (162547 bytes, sha256:06ae718496a4e...)
+[STATE] idle — round 1 complete: 12 vehicles
+[2026-04-15 21:37:38] Count complete: 12 vehicles (in=8 out=4)
+[2026-04-15 21:37:40] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-15 21:37:40] Market resolved: 12 vehicles → Under 50 wins
+[2026-04-15 21:37:40] resolveMarket tx sent: 1de7d2af7b535fcfc8807da68fb9e1411848945d66526b3f3df1e0a81680cd0d
+[Prune] Removed 7 stale IDs (frame 8800)
+[2026-04-15 21:37:43] resolveMarket confirmed (tx: 1de7d2af7b535fcfc8807da68fb9e1411848945d66526b3f3df1e0a81680cd0d)
+[2026-04-15 21:37:43] Ably publish OK: market_resolved
+[2026-04-15 21:37:44] Winnings distributed: 0x6aCe421FABbF3D293a19bfd1Aa482eCDE3B8C3E6 (tx: c5c51e85a6eb9d31bb11d94d44e6b65ede7900bd12cf686ad344f3407ffb97b2)
+[2026-04-15 21:37:44] Auto-distributed winnings (tx: c5c51e85a6eb9d31bb11d94d44e6b65ede7900bd12cf686ad344f3407ffb97b2)
+[2026-04-15 21:37:44] Ably publish OK: winnings_distributed
+[2026-04-15 21:37:44] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-15 21:37:44] New threshold: 12 (avg of [12])
+[2026-04-15 21:37:44] Waiting 15s before Round #2...
+[Prune] Removed 6 stale IDs (frame 8900)
+[Prune] Removed 3 stale IDs (frame 9000)
+[Prune] Removed 3 stale IDs (frame 9200)
+[2026-04-15 21:37:59] Round #2 | Netherlands Highway — Live Traffic | threshold=12
+[Prune] Removed 2 stale IDs (frame 9300)
+[2026-04-15 21:38:00] createMarket tx sent: edb28030e172adcd2ee12440b452d744206ee5da13ff1ea24c49ac142d56c365
+[2026-04-15 21:38:03] Market created: 0x6b6c1565C264C06A039092dC9C5cE2d58982549B (tx: edb28030e172adcd2ee12440b452d744206ee5da13ff1ea24c49ac142d56c365)
+[Prune] Removed 1 stale IDs (frame 9400)
+[2026-04-15 21:38:03] Ably publish OK: market_created
+[2026-04-15 21:38:03] Counting vehicles for 150s...
+[2026-04-15 21:38:03] [StreamClient] Unexpected response: {'type': 'idle', 'state': 'waiting', 'cameraId': 'netherlands-highway'}
+[STATE] betting — market=0x6b6c1565... bet=150s count=150s round=2
+[ROI] 1 polygon(s) loaded, 36 total vertices
+[Counter] Line 1: (1198, 283) -> (1232, 340)
+[Counter] Line 2: (992, 298) -> (1056, 379)
+[Prune] Removed 1 stale IDs (frame 200)
+[Prune] Removed 4 stale IDs (frame 300)
+[Prune] Removed 3 stale IDs (frame 400)
+[Prune] Removed 1 stale IDs (frame 500)
+[Prune] Removed 1 stale IDs (frame 600)
+[Prune] Removed 2 stale IDs (frame 700)
+[Evidence] Saved evidence/1776299883_30s.jpg (162215 bytes, sha256:1d3c0f0b673ad...)
+[Prune] Removed 2 stale IDs (frame 1000)
+[Prune] Removed 1 stale IDs (frame 1400)
+[Prune] Removed 3 stale IDs (frame 1500)
+[Prune] Removed 3 stale IDs (frame 1600)
+[Evidence] Saved evidence/1776299883_60s.jpg (158511 bytes, sha256:d88f7b000575e...)

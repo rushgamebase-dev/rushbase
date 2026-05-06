@@ -537,15 +537,11 @@ export default function Home() {
           {/* Why Rush */}
           <WhyRush />
 
-          {/* Tiles preview */}
-          <TilesPreview />
-
           {/* Built With */}
           <BuiltWith />
 
           {/* Footer links */}
           <div className="flex gap-4 text-xs pb-2" style={{ color: "#333", fontFamily: "monospace" }}>
-            <a href="/tiles" className="hover:text-[#00ff88] transition-colors">Tiles</a>
             <a href="/stats" className="hover:text-[#00ff88] transition-colors">Stats</a>
             <a href="https://basescan.org" target="_blank" rel="noopener noreferrer" className="hover:text-[#00ff88] transition-colors">
               Basescan

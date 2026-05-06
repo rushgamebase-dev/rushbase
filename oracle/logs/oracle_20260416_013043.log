@@ -1,0 +1,267 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 1656130 (camera: netherlands-highway, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Netherlands Highway — Live Traffic (Axis Communications) — YOUTUBE
+[Camera] ROI mask: 1 polygon(s)
+[Camera] Line zones: 3 (canonical sv.LineZone, threshold=2)
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=Jy1Y9f8NEY0
+  Camera: netherlands-highway
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] Using cached URL (age 14299s)
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 1656279)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client disconnected (0 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 1656283
+[2026-04-16 01:30:49] INFO ============================================================
+[2026-04-16 01:30:49] INFO   Rush Oracle Watchdog
+[2026-04-16 01:30:49] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:30:49] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-16 01:30:49] INFO   Log: /tmp/rush_oracle.log
+[2026-04-16 01:30:49] INFO ============================================================
+[2026-04-16 01:30:49] INFO Running startup orphan scan...
+[ROI] 1 polygon(s) loaded, 28 total vertices
+[LineZone] (1198,283) -> (1232,340)
+[LineZone] (992,298) -> (1056,379)
+[LineZone] (883,313) -> (947,410)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 01:30:50] INFO Orphan scan: 1 active market(s) found
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[2026-04-16 01:30:51] INFO No orphan markets found
+[2026-04-16 01:30:51] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:30:51] INFO Child started (PID 1656431)
+[WS] Client connected (3 total)
+[2026-04-16 01:30:51] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-16 01:30:51] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-16 01:30:51] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-16 01:30:51] ============================================================
+[2026-04-16 01:30:51]   SinalBet Rush Round Manager
+[2026-04-16 01:30:51]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-16 01:30:51]   Duration: 150s per round
+[2026-04-16 01:30:51]   Cameras:  Netherlands Highway — Live Traffic
+[2026-04-16 01:30:51] ============================================================
+[2026-04-16 01:30:51] Round #1 | Netherlands Highway — Live Traffic | threshold=50
+[2026-04-16 01:30:52] Cancelling orphan market: 0x7119C4DeBc23DE5d6438de93751aD754aD188C89
+[Prune] Removed 3 stale IDs (frame 100)
+[2026-04-16 01:30:55] Market cancelled: 0x7119C4DeBc23DE5d6438de93751aD754aD188C89 (tx: 9027a30b9e765291e2b9f3ad90dd6f6e90cda1001775b152d1a84ad5e2365997)
+[2026-04-16 01:30:55] Ably publish OK: market_cancelled
+[Prune] Removed 29 stale IDs (frame 200)
+[2026-04-16 01:30:58] Refunds distributed: 0x7119C4DeBc23DE5d6438de93751aD754aD188C89 (tx: 7173283a0efabb47051dbb29e63d7b7e8e98a817a561c810a70ec59a98a5cf45)
+[2026-04-16 01:30:58] Cancelled 1 orphan market(s)
+[2026-04-16 01:30:58] createMarket tx sent: 4237c3706e532018bd2a0e8f8d067b067642c1965167353b38c539b01b898280
+[2026-04-16 01:31:01] Market created: 0x1E489Ac8d2598C9961403AA34c6D524921921e69 (tx: 4237c3706e532018bd2a0e8f8d067b067642c1965167353b38c539b01b898280)
+[2026-04-16 01:31:01] Ably publish OK: market_created
+[2026-04-16 01:31:01] Counting vehicles for 150s...
+[2026-04-16 01:31:01] [StreamClient] Reconnecting...
+[WS] Client connected (4 total)
+[2026-04-16 01:31:01] [StreamClient] Connected to ws://localhost:9000
+[2026-04-16 01:31:01] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=Jy1Y9f8NEY0', 'state': 'idle', 'count': 10, 'cameraId': 'netherlands-highway'}
+[STATE] betting — market=0x1E489Ac8... bet=150s count=150s round=1
+[ROI] 1 polygon(s) loaded, 28 total vertices
+[LineZone] (1198,283) -> (1232,340)
+[LineZone] (992,298) -> (1056,379)
+[LineZone] (883,313) -> (947,410)
+[Counter] Line: (579, 10) -> (701, 710)
+[Prune] Removed 17 stale IDs (frame 200)
+[Prune] Removed 14 stale IDs (frame 300)
+[Prune] Removed 21 stale IDs (frame 400)
+[Prune] Removed 21 stale IDs (frame 500)
+[Prune] Removed 17 stale IDs (frame 600)
+[WS] Client disconnected (3 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[Prune] Removed 30 stale IDs (frame 700)
+[Evidence] Saved evidence/1776313861_30s.jpg (227370 bytes, sha256:d76c32850c0d6...)
+[Prune] Removed 27 stale IDs (frame 800)
+[Prune] Removed 29 stale IDs (frame 900)
+[Prune] Removed 27 stale IDs (frame 1000)
+[Prune] Removed 57 stale IDs (frame 1100)
+[Prune] Removed 54 stale IDs (frame 1200)
+[Prune] Removed 45 stale IDs (frame 1300)
+[Evidence] Saved evidence/1776313861_60s.jpg (232713 bytes, sha256:196fc04e38f87...)
+[Prune] Removed 54 stale IDs (frame 1400)
+[Prune] Removed 31 stale IDs (frame 1500)
+[Prune] Removed 23 stale IDs (frame 1600)
+[Prune] Removed 19 stale IDs (frame 1700)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[Prune] Removed 31 stale IDs (frame 1800)
+[Prune] Removed 35 stale IDs (frame 1900)
+[Prune] Removed 37 stale IDs (frame 2000)
+[Evidence] Saved evidence/1776313861_90s.jpg (233165 bytes, sha256:028a6d5687b23...)
+[Prune] Removed 24 stale IDs (frame 2100)
+[Prune] Removed 21 stale IDs (frame 2200)
+[Prune] Removed 52 stale IDs (frame 2300)
+[Prune] Removed 32 stale IDs (frame 2400)
+[Prune] Removed 25 stale IDs (frame 2500)
+[Prune] Removed 38 stale IDs (frame 2700)
+[Prune] Removed 23 stale IDs (frame 2800)
+[Evidence] Saved evidence/1776313861_120s.jpg (222693 bytes, sha256:79b48d7ab701e...)
+[Prune] Removed 1 stale IDs (frame 2900)
+[ffmpeg]     Last message repeated 3 times
+[ffmpeg] [hls @ 0x605452518f80] skipping 2 segments ahead, expired from playlists
+[Prune] Removed 22 stale IDs (frame 3000)
+[Prune] Removed 17 stale IDs (frame 3100)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[Prune] Removed 17 stale IDs (frame 3300)
+[Prune] Removed 27 stale IDs (frame 3400)
+[STATE] counting — market=0x1E489Ac8... duration=150s round=1
+[Evidence] Saved evidence/1776313861_150s.jpg (225173 bytes, sha256:da007ba53b783...)
+[Prune] Removed 6 stale IDs (frame 3700)
+[ffmpeg] [hls @ 0x605452518f80] skipping 3 segments ahead, expired from playlists
+[ffmpeg] [vost#0:0/rawvideo @ 0x605452ce5e80] More than 1000 frames duplicated
+[Prune] Removed 45 stale IDs (frame 3800)
+[Prune] Removed 17 stale IDs (frame 3900)
+[Prune] Removed 15 stale IDs (frame 4000)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[ffmpeg] [vist#0:1/h264 @ 0x6054530f7ec0] timestamp discontinuity (stream id=0): 15000000, new offset= -15000000
+[Prune] Removed 37 stale IDs (frame 4100)
+[Prune] Removed 62 stale IDs (frame 4200)
+[Evidence] Saved evidence/1776313861_180s.jpg (223343 bytes, sha256:f12e1c0b770a8...)
+[Prune] Removed 43 stale IDs (frame 4300)
+[ffmpeg] [hls @ 0x605452518f80] skipping 2 segments ahead, expired from playlists
+[Prune] Removed 52 stale IDs (frame 4500)
+[Prune] Removed 44 stale IDs (frame 4600)
+[Prune] Removed 49 stale IDs (frame 4700)
+[Prune] Removed 33 stale IDs (frame 4800)
+[Evidence] Saved evidence/1776313861_210s.jpg (231669 bytes, sha256:d35b5226bf4b7...)
+[ffmpeg] [hls @ 0x605452518f80] skipping 3 segments ahead, expired from playlists
+[Prune] Removed 35 stale IDs (frame 5100)
+[Prune] Removed 36 stale IDs (frame 5200)
+[ffmpeg] [vist#0:1/h264 @ 0x6054530f7ec0] timestamp discontinuity (stream id=0): 15000000, new offset= -30000000
+[Prune] Removed 36 stale IDs (frame 5300)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[Prune] Removed 61 stale IDs (frame 5400)
+[Prune] Removed 29 stale IDs (frame 5500)
+[Prune] Removed 33 stale IDs (frame 5600)
+[Evidence] Saved evidence/1776313861_240s.jpg (234988 bytes, sha256:187cd5d06ce9d...)
+[Prune] Removed 39 stale IDs (frame 5700)
+[Prune] Removed 17 stale IDs (frame 5800)
+[ffmpeg] [hls @ 0x605452518f80] skipping 2 segments ahead, expired from playlists
+[Prune] Removed 26 stale IDs (frame 5900)
+[Prune] Removed 25 stale IDs (frame 6000)
+[Prune] Removed 37 stale IDs (frame 6100)
+[Evidence] Saved evidence/1776313861_270s.jpg (240968 bytes, sha256:753eb198a2f38...)
+[Prune] Removed 32 stale IDs (frame 6400)
+[ffmpeg] [hls @ 0x605452518f80] skipping 3 segments ahead, expired from playlists
+[Prune] Removed 50 stale IDs (frame 6500)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[ffmpeg] [vist#0:1/h264 @ 0x6054530f7ec0] timestamp discontinuity (stream id=0): 15000000, new offset= -45000000
+[Prune] Removed 37 stale IDs (frame 6600)
+[Prune] Removed 46 stale IDs (frame 6700)
+[Prune] Removed 47 stale IDs (frame 6800)
+[Prune] Removed 16 stale IDs (frame 6900)
+[Evidence] Saved evidence/1776313861_final.jpg (233444 bytes, sha256:f798f06650ee1...)
+[Evidence] Saved evidence/1776313861_final.jpg (233324 bytes, sha256:1617efeb0a89c...)
+[Evidence] Saved evidence/1776313861_final.jpg (233390 bytes, sha256:a43c79a5f1a5f...)
+[STATE] idle — round 1 complete: 126 vehicles
+[2026-04-16 01:36:02] Count complete: 126 vehicles (in=126 out=0)
+[Prune] Removed 17 stale IDs (frame 7000)
+[2026-04-16 01:36:03] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 01:36:03] Market resolved: 126 vehicles → Over 50 wins
+[2026-04-16 01:36:04] resolveMarket tx sent: d882f3cbdd56d44d348fc01a2d82d14afcaccc334769eb59fa521ef5343f0bc3
+[ffmpeg] [hls @ 0x605452518f80] skipping 2 segments ahead, expired from playlists
+[2026-04-16 01:36:06] resolveMarket confirmed (tx: d882f3cbdd56d44d348fc01a2d82d14afcaccc334769eb59fa521ef5343f0bc3)
+[2026-04-16 01:36:06] Ably publish OK: market_resolved
+[2026-04-16 01:36:07] Winnings distributed: 0x1E489Ac8d2598C9961403AA34c6D524921921e69 (tx: 940fbb42ec3f5955575ca182148584ff241702a13bf94d7a0fab7948830b5f7d)
+[2026-04-16 01:36:07] Auto-distributed winnings (tx: 940fbb42ec3f5955575ca182148584ff241702a13bf94d7a0fab7948830b5f7d)
+[2026-04-16 01:36:07] Ably publish OK: winnings_distributed
+[2026-04-16 01:36:07] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 01:36:07] New threshold: 126 (avg of [126])
+[2026-04-16 01:36:07] Waiting 15s before Round #2...
+[Prune] Removed 43 stale IDs (frame 7100)
+[Prune] Removed 40 stale IDs (frame 7200)
+[Prune] Removed 47 stale IDs (frame 7300)
+[2026-04-16 01:36:22] Round #2 | Netherlands Highway — Live Traffic | threshold=126
+[2026-04-16 01:36:23] createMarket tx sent: 89687addff730175d016dff74a6315aa26574e8be38990e5f9bee870bd746bee
+[2026-04-16 01:36:23] Market created: 0xC12a445f6aF61f33442C0724BA1cc7f58cee576a (tx: 89687addff730175d016dff74a6315aa26574e8be38990e5f9bee870bd746bee)
+[2026-04-16 01:36:24] Ably publish OK: market_created
+[2026-04-16 01:36:24] Counting vehicles for 150s...
+[2026-04-16 01:36:24] [StreamClient] Unexpected response: {'type': 'idle', 'state': 'waiting', 'cameraId': 'netherlands-highway'}
+[STATE] betting — market=0xC12a445f... bet=150s count=150s round=2
+[ROI] 1 polygon(s) loaded, 28 total vertices
+[LineZone] (1198,283) -> (1232,340)
+[LineZone] (992,298) -> (1056,379)
+[LineZone] (883,313) -> (947,410)
+[Counter] Line: (579, 10) -> (701, 710)
+[ffmpeg] [hls @ 0x605452518f80] skipping 3 segments ahead, expired from playlists
+[Prune] Removed 4 stale IDs (frame 100)
+[Prune] Removed 32 stale IDs (frame 200)
+[ffmpeg] [vist#0:1/h264 @ 0x6054530f7ec0] timestamp discontinuity (stream id=0): 15000000, new offset= -60000000
+[Prune] Removed 37 stale IDs (frame 300)
+[Prune] Removed 53 stale IDs (frame 400)
+[Prune] Removed 25 stale IDs (frame 500)
+[Prune] Removed 50 stale IDs (frame 600)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[Prune] Removed 54 stale IDs (frame 700)
+[Evidence] Saved evidence/1776314184_30s.jpg (235957 bytes, sha256:bdb630a1c02fa...)
+[Prune] Removed 51 stale IDs (frame 800)
+[Prune] Removed 47 stale IDs (frame 900)
+[Prune] Removed 34 stale IDs (frame 1000)
+[Prune] Removed 51 stale IDs (frame 1200)
+[Prune] Removed 45 stale IDs (frame 1300)
+[Prune] Removed 40 stale IDs (frame 1400)
+[Evidence] Saved evidence/1776314184_60s.jpg (228404 bytes, sha256:d1980d944d909...)
+[Prune] Removed 17 stale IDs (frame 1500)
+[Prune] Removed 38 stale IDs (frame 1600)
+[Prune] Removed 46 stale IDs (frame 1700)
+[Prune] Removed 13 stale IDs (frame 1800)
+[ffmpeg]     Last message repeated 3 times
+[ffmpeg] [hls @ 0x605452518f80] skipping 2 segments ahead, expired from playlists
+[Prune] Removed 31 stale IDs (frame 1900)
+[Prune] Removed 24 stale IDs (frame 2000)
+[Prune] Removed 9 stale IDs (frame 2100)
+[Evidence] Saved evidence/1776314184_90s.jpg (232513 bytes, sha256:3a799559fa747...)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[Prune] Removed 36 stale IDs (frame 2200)
+[Prune] Removed 33 stale IDs (frame 2300)
+[Prune] Removed 12 stale IDs (frame 2400)
+[ffmpeg] [hls @ 0x605452518f80] skipping 3 segments ahead, expired from playlists
+[Prune] Removed 36 stale IDs (frame 2700)
+[Prune] Removed 34 stale IDs (frame 2800)
+[Evidence] Saved evidence/1776314184_120s.jpg (233114 bytes, sha256:043e927d0b3f1...)
+[ffmpeg] [hls @ 0x605452518f80] skipping 1 segments ahead, expired from playlists
+[ffmpeg] [vist#0:1/h264 @ 0x6054530f7ec0] timestamp discontinuity (stream id=0): 15000000, new offset= -75000000
+[Prune] Removed 41 stale IDs (frame 3000)

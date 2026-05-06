@@ -1,0 +1,385 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 1634387 (camera: konya-turkey-19, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Confidence override: 0.08
+[Camera] Line from config: 0.120,0.788,0.865,0.794
+[Camera] Line 2 from config: 0.200,0.624,0.780,0.624
+[Camera] Konya, Turkey — City Road (TrafficVision) — HLS
+[Camera] ROI mask: 1 polygon(s)
+[Camera] Dedup override: radius=160px window=15.0s
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://content.tvkur.com/l/c77i5e384cnrb6mlji10/master.m3u8
+  Camera: konya-turkey-19
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[Stream] Referer: https://trafficvision.live/
+
+[Stream] Probing stream...
+[Stream] 1920x1080 @ 25.0fps
+[Stream] ffmpeg spawned (PID 1634650)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 25.0 fps
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[WS] Client connected (3 total)
+opening handshake failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 356, in conn_handler
+    await connection.handshake(
+    ...<3 lines>...
+    )
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 142, in handshake
+    async with self.send_context(expected_state=CONNECTING):
+               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client disconnected (2 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 1634654
+[2026-04-16 01:19:18] INFO ============================================================
+[2026-04-16 01:19:18] INFO   Rush Oracle Watchdog
+[2026-04-16 01:19:18] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:19:18] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-16 01:19:18] INFO   Log: /tmp/rush_oracle.log
+[2026-04-16 01:19:18] INFO ============================================================
+[2026-04-16 01:19:18] INFO Running startup orphan scan...
+[ffmpeg] mime type is not rfc8216 compliant
+[2026-04-16 01:19:18] INFO Orphan scan: 1 active market(s) found
+[2026-04-16 01:19:19] INFO No orphan markets found
+[2026-04-16 01:19:19] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:19:19] INFO Child started (PID 1634682)
+[2026-04-16 01:19:20] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-16 01:19:20] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-16 01:19:20] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-16 01:19:20] ============================================================
+[2026-04-16 01:19:20]   SinalBet Rush Round Manager
+[2026-04-16 01:19:20]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-16 01:19:20]   Duration: 150s per round
+[2026-04-16 01:19:20]   Cameras:  Konya, Turkey — City Road
+[2026-04-16 01:19:20] ============================================================
+[2026-04-16 01:19:20] Round #1 | Konya, Turkey — City Road | threshold=50
+[2026-04-16 01:19:21] Cancelling orphan market: 0x357A4507DDf6401FFBA900b2f2f03aa76672032C
+[ffmpeg] [swscaler @ 0x5b5eeee02480] deprecated pixel format used, make sure you did set range correctly
+[ffmpeg] [swscaler @ 0x5b5eeee2e380] deprecated pixel format used, make sure you did set range correctly
+[ROI] 1 polygon(s) loaded, 35 total vertices
+[Counter] Line 1: (230, 851) -> (1660, 857)
+[Counter] Line 2: (384, 673) -> (1497, 673)
+[2026-04-16 01:19:21] Market cancelled: 0x357A4507DDf6401FFBA900b2f2f03aa76672032C (tx: 1a3d3b4c921fa5459f84646e07c0eec77f0af8ac1c542566f092f76f951940aa)
+[2026-04-16 01:19:22] Ably publish OK: market_cancelled
+[ffmpeg]     Last message repeated 2 times
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1340625600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1340622000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[2026-04-16 01:19:24] Refunds distributed: 0x357A4507DDf6401FFBA900b2f2f03aa76672032C (tx: 4350ef86006b1ac50d4fbdce0e26434941e6c3a1281bf3566f8b4500b0dcf552)
+[2026-04-16 01:19:24] Cancelled 1 orphan market(s)
+[2026-04-16 01:19:25] createMarket tx sent: 0e1e1476c67eba3dcee97d4c704553475b2ae52b10bde7a497049614bb9019f9
+[2026-04-16 01:19:25] Market created: 0x31b2b627FA4Ad20d2e10e4d243664dDf5ABB9CD5 (tx: 0e1e1476c67eba3dcee97d4c704553475b2ae52b10bde7a497049614bb9019f9)
+[2026-04-16 01:19:26] Ably publish OK: market_created
+[2026-04-16 01:19:26] Counting vehicles for 150s...
+[2026-04-16 01:19:26] [StreamClient] Reconnecting...
+[WS] Client connected (3 total)
+[2026-04-16 01:19:26] [StreamClient] Connected to ws://localhost:9000
+[2026-04-16 01:19:26] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://content.tvkur.com/l/c77i5e384cnrb6mlji10/master.m3u8', 'state': 'idle', 'count': 0, 'cameraId': 'konya-turkey-19'}
+[STATE] betting — market=0x31b2b627... bet=150s count=150s round=1
+[ROI] 1 polygon(s) loaded, 35 total vertices
+[Counter] Line 1: (230, 851) -> (1660, 857)
+[Counter] Line 2: (384, 673) -> (1497, 673)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1340805600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1340802000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1340985600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1340982000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 3 stale IDs (frame 100)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1341165600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1341162000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1341345600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1341342000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1341525600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1341522000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 4 stale IDs (frame 200)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1341705600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1341702000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 5 stale IDs (frame 300)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1342065600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1342062000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1342245600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1342242000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1342425600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1342422000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 10 stale IDs (frame 400)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1342605600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1342602000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1342785600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1342782000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 18 stale IDs (frame 500)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1343145600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1343142000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1343325600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1343322000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 23 stale IDs (frame 600)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1343505600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1343502000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Evidence] Saved evidence/1776313166_30s.jpg (302453 bytes, sha256:129119727addc...)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1343685600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1343682000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 17 stale IDs (frame 700)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1343865600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1343862000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344045600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344042000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344225600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344222000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 16 stale IDs (frame 800)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344405600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344402000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344585600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344582000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 30 stale IDs (frame 900)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344765600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344762000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1344945600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1344942000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1345125600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1345122000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 20 stale IDs (frame 1000)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1345305600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1345302000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1345485600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1345482000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 9 stale IDs (frame 1100)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1345665600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1345662000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1345845600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1345842000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346025600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346022000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 10 stale IDs (frame 1200)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346205600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346202000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Evidence] Saved evidence/1776313166_60s.jpg (318163 bytes, sha256:682c8496ae965...)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346385600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346382000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 15 stale IDs (frame 1300)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346565600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346562000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346745600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346742000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1346925600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1346922000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 4 stale IDs (frame 1400)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1347105600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1347102000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 7 stale IDs (frame 1500)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1347465600).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1347462000).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1347646500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1347642900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1347826500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1347822900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 9 stale IDs (frame 1600)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348006500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348002900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348186500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348182900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 2 stale IDs (frame 1700)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348366500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348362900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348546500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348542900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348726500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348722900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 1 stale IDs (frame 1800)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1348906500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1348902900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349086500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349082900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Evidence] Saved evidence/1776313166_90s.jpg (300629 bytes, sha256:215ccc022dad4...)
+[Prune] Removed 6 stale IDs (frame 1900)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349266500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349262900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349446500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349442900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349626500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349622900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 11 stale IDs (frame 2000)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349806500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349802900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1349986500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1349982900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 5 stale IDs (frame 2100)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1350166500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1350162900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1350346500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1350342900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1350526500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1350522900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 8 stale IDs (frame 2200)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1350706500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1350702900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1350886500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1350882900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 14 stale IDs (frame 2300)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351066500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351062900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351246500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351242900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351426500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351422900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 10 stale IDs (frame 2400)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351606500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351602900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351786500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351782900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 17 stale IDs (frame 2500)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1351966500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1351962900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Evidence] Saved evidence/1776313166_120s.jpg (294255 bytes, sha256:499271952e6f2...)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1352146500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1352142900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1352326500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1352322900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 18 stale IDs (frame 2600)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1352686500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1352682900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1352866500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1352862900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 8 stale IDs (frame 2700)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1353046500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1353042900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1353226500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1353222900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 7 stale IDs (frame 2800)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1353406500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1353402900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 8 stale IDs (frame 2900)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1353766500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1353762900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1353946500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1353942900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1354126500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1354122900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 5 stale IDs (frame 3000)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1354306500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1354302900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1354486500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1354482900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1354666500).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1354662900).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 7 stale IDs (frame 3100)
+[STATE] counting — market=0x31b2b627... duration=150s round=1
+[Evidence] Saved evidence/1776313166_150s.jpg (292161 bytes, sha256:5b692a4db6bed...)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1354847400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1354843800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355027400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355023800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 9 stale IDs (frame 3200)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355207400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355203800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355387400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355383800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[Prune] Removed 11 stale IDs (frame 3300)
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355567400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355563800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355747400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355743800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0
+[ffmpeg] [mpegts @ 0x5b5eee107d40] Packet corrupt (stream = 0, dts = 1355927400).
+[ffmpeg] [hls @ 0x5b5eee0fd000] Packet corrupt (stream = 0, dts = 1355923800).
+[ffmpeg] [in#0/hls @ 0x5b5eee0fcf00] corrupt input packet in stream 0

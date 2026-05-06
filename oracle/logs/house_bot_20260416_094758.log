@@ -1,0 +1,14 @@
+[09:47:58] [HOUSE] Ably connected for bet broadcasting
+[09:47:58] [HOUSE] House bot started (ETH mode)
+[09:47:58] [HOUSE] Bet: 0.005 ETH per side | Factory: 0x5b04F3DFaE
+[09:47:58] [HOUSE] Polling every 2s for new markets...
+[09:48:00] [HOUSE] Seeding 0x8cdAE46794...
+[09:48:03] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+/home/lumen/.gemini/antigravity/scratch/rush/oracle/house_bot.py:157: DeprecationWarning: There is no current event loop
+  asyncio.get_event_loop().run_until_complete(channel.publish("bet_placed", bet_data))
+[09:48:04] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[09:48:10] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[09:48:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[09:48:10] [HOUSE] Seeded 0x8cdAE46794 — 0.005 + 0.005 ETH
+[09:48:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[09:48:10] [HOUSE]   Chat: round is open. pool is warm. jump in

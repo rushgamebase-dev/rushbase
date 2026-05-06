@@ -14,6 +14,17 @@ pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, sqlx::Error>
         .min_connections(config.min_connections)
         .acquire_timeout(Duration::from_secs(config.connect_timeout_secs))
         .idle_timeout(Duration::from_secs(config.idle_timeout_secs))
+        // Validate every connection with a cheap `SELECT 1` before
+        // the pool hands it out. Without this, sqlx will happily
+        // surface a TCP-reset connection to the caller and the next
+        // query fails with `Connection reset by peer (os error 104)`.
+        // Cost is one round-trip (~0.1 ms over loopback) per acquire,
+        // negligible compared to the average resolution-loop query.
+        .test_before_acquire(true)
+        // Cap connection lifetime well under any kernel/Postgres
+        // idle-kill window. 10 min keeps the pool healthy without
+        // forcing reconnects mid-traffic.
+        .max_lifetime(Some(Duration::from_secs(600)))
         .connect(&config.url)
         .await?;
 

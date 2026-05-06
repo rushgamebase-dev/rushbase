@@ -1,0 +1,169 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 1606109 (camera: levi-ski-finland, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Confidence override: 0.05
+[Camera] Levi Ski Resort — Finland (Levi Ski Resort Live Cam) — YOUTUBE
+[Camera] Classes override: [0] (person)
+[Camera] Line zones: 1 (canonical sv.LineZone, threshold=1)
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=Wr9b5aYA4mI
+  Camera: levi-ski-finland
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] OK: https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1776333834/ei/...
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 1606365)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[WS] Client connected (3 total)
+opening handshake failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 356, in conn_handler
+    await connection.handshake(
+    ...<3 lines>...
+    )
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 142, in handshake
+    async with self.send_context(expected_state=CONNECTING):
+               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client connected (4 total)
+[WS] Client disconnected (3 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 1606378
+[2026-04-16 01:03:58] INFO ============================================================
+[2026-04-16 01:03:58] INFO   Rush Oracle Watchdog
+[2026-04-16 01:03:58] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:03:58] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-16 01:03:58] INFO   Log: /tmp/rush_oracle.log
+[2026-04-16 01:03:58] INFO ============================================================
+[2026-04-16 01:03:58] INFO Running startup orphan scan...
+[2026-04-16 01:03:58] INFO Orphan scan: 1 active market(s) found
+[LineZone] (295,570) -> (1276,335)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 01:03:59] INFO No orphan markets found
+[2026-04-16 01:03:59] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 01:03:59] INFO Child started (PID 1606496)
+[2026-04-16 01:04:00] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-16 01:04:00] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-16 01:04:00] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-16 01:04:00] ============================================================
+[2026-04-16 01:04:00]   SinalBet Rush Round Manager
+[2026-04-16 01:04:00]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-16 01:04:00]   Duration: 150s per round
+[2026-04-16 01:04:00]   Cameras:  Levi Ski Resort — Finland
+[2026-04-16 01:04:00] ============================================================
+[2026-04-16 01:04:00] Round #1 | Levi Ski Resort — Finland | threshold=50
+[2026-04-16 01:04:00] Cancelling orphan market: 0x435117C9102f83363a0A7CD17004B3773C89c3d4
+[2026-04-16 01:04:01] Market cancelled: 0x435117C9102f83363a0A7CD17004B3773C89c3d4 (tx: 9afe8591d55ec5d148f1aef73301a9466cb2cb3b36680b76ba3a16db0588e2ee)
+[2026-04-16 01:04:01] Ably publish OK: market_cancelled
+[2026-04-16 01:04:02] refundAll failed for 0x435117C9102f83363a0A7CD17004B3773C89c3d4: {'code': -32000, 'message': 'replacement transaction underpriced'}
+[2026-04-16 01:04:02] Cancelled 1 orphan market(s)
+[Prune] Removed 3 stale IDs (frame 100)
+[2026-04-16 01:04:03] createMarket attempt 1/3 failed: {'code': -32000, 'message': 'nonce too low: next nonce 13746, tx nonce 13745'}
+[2026-04-16 01:04:09] createMarket tx sent: 8cf955797f18a8d759a3211b0816d33f22b428361e0c268ef793c33de751feb7
+[2026-04-16 01:04:09] Market created: 0xFff721c7079198b8aD386dBCe2f838306039C89C (tx: 8cf955797f18a8d759a3211b0816d33f22b428361e0c268ef793c33de751feb7)
+[2026-04-16 01:04:10] Ably publish OK: market_created
+[2026-04-16 01:04:10] Counting vehicles for 150s...
+[2026-04-16 01:04:10] [StreamClient] Reconnecting...
+[WS] Client connected (4 total)
+[2026-04-16 01:04:10] [StreamClient] Connected to ws://localhost:9000
+[2026-04-16 01:04:10] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=Wr9b5aYA4mI', 'state': 'idle', 'count': 0, 'cameraId': 'levi-ski-finland'}
+[STATE] betting — market=0xFff721c7... bet=150s count=150s round=1
+[LineZone] (295,570) -> (1276,335)
+[Counter] Line: (579, 10) -> (701, 710)
+[Prune] Removed 1 stale IDs (frame 300)
+[Evidence] Saved evidence/1776312250_30s.jpg (111952 bytes, sha256:bd0477c865c07...)
+[Evidence] Saved evidence/1776312250_60s.jpg (112512 bytes, sha256:5f60a07ffa6a2...)
+[Evidence] Saved evidence/1776312250_90s.jpg (122815 bytes, sha256:6adb466e54301...)
+[WS] Client disconnected (3 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[Evidence] Saved evidence/1776312250_120s.jpg (134689 bytes, sha256:544acf15c37f9...)
+[WS] Client connected (4 total)
+[WS] Client connected (5 total)
+[WS] Client disconnected (4 total)
+[STATE] counting — market=0xFff721c7... duration=150s round=1
+[Evidence] Saved evidence/1776312250_150s.jpg (132704 bytes, sha256:17441d110d3d3...)
+[WS] Client connected (5 total)
+[WS] Client disconnected (4 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[Evidence] Saved evidence/1776312250_180s.jpg (133910 bytes, sha256:01454506fa2f7...)
+[WS] Client disconnected (3 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent

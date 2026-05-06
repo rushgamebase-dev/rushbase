@@ -1,0 +1,721 @@
+[19:18:56] [HOUSE] Ably connected for bet broadcasting
+[19:18:56] [HOUSE] House bot started (ETH mode)
+[19:18:56] [HOUSE] Bet: 0.005 ETH per side | Factory: 0x5b04F3DFaE
+[19:18:56] [HOUSE] Polling every 2s for new markets...
+[19:18:57] [HOUSE] Skip 0xC3E3dEBc5C — lockTime passed (113s ago)
+[19:19:03] [HOUSE] Seeding 0x14e80e99EC...
+[19:19:08] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+/home/lumen/.gemini/antigravity/scratch/rush/oracle/house_bot.py:157: DeprecationWarning: There is no current event loop
+  asyncio.get_event_loop().run_until_complete(channel.publish("bet_placed", bet_data))
+[19:19:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:19:13] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:19:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:19:13] [HOUSE] Seeded 0x14e80e99EC — 0.005 + 0.005 ETH
+[19:19:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:19:14] [HOUSE]   Chat: seeded. odds are live. bet or regret
+[19:20:37] [HOUSE] Seeding 0x77ddb6437F...
+[19:20:41] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:20:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:20:47] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:20:47] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:20:47] [HOUSE] Seeded 0x77ddb6437F — 0.005 + 0.005 ETH
+[19:20:47] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:20:47] [HOUSE]   Chat: bet against the house bot. I dare you
+[19:25:02] [HOUSE] Seeding 0x3950055D2A...
+[19:25:05] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:25:05] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:25:12] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:25:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:25:12] [HOUSE] Seeded 0x3950055D2A — 0.005 + 0.005 ETH
+[19:25:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:25:12] [HOUSE]   Chat: placed both sides. now I wait for a real player
+[19:26:51] [HOUSE] Seeding 0x226279cfe5...
+[19:26:54] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:26:54] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:26:59] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:26:59] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:26:59] [HOUSE] Seeded 0x226279cfe5 — 0.005 + 0.005 ETH
+[19:27:00] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:27:00] [HOUSE]   Chat: every round I show up. where's everyone else?
+[19:30:55] [HOUSE] Seeding 0x2cc2C17257...
+[19:31:00] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:31:00] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:31:05] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:31:05] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:31:05] [HOUSE] Seeded 0x2cc2C17257 — 0.005 + 0.005 ETH
+[19:31:05] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:31:05] [HOUSE]   Chat: fresh round. fresh pool. fresh odds
+[19:33:09] [HOUSE] Seeding 0xEB690d701b...
+[19:33:12] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:33:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:33:17] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:33:17] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:33:17] [HOUSE] Seeded 0xEB690d701b — 0.005 + 0.005 ETH
+[19:33:17] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:33:17] [HOUSE]   Chat: free odds courtesy of the house bot
+[19:36:53] [HOUSE] Seeding 0x0d9A8b4044...
+[19:36:58] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:36:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:37:04] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:37:04] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:37:04] [HOUSE] Seeded 0x0d9A8b4044 — 0.005 + 0.005 ETH
+[19:37:04] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:37:04] [HOUSE]   Chat: over or under? I'm on both. beat me
+[19:39:22] [HOUSE] Seeding 0x06A4d14B76...
+[19:39:26] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:39:26] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:39:31] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:39:31] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:39:31] [HOUSE] Seeded 0x06A4d14B76 — 0.005 + 0.005 ETH
+[19:39:31] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:39:31] [HOUSE]   Chat: house bot here. I just funded both sides
+[19:42:47] [HOUSE] Seeding 0x001c77b6F8...
+[19:42:50] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:42:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:42:55] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:42:55] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:42:55] [HOUSE] Seeded 0x001c77b6F8 — 0.005 + 0.005 ETH
+[19:42:55] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:42:55] [HOUSE]   Chat: the cameras are live. the pool is live. are you?
+[19:45:36] [HOUSE] Seeding 0x99A2E61232...
+[19:45:39] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:45:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:45:46] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:45:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:45:46] [HOUSE] Seeded 0x99A2E61232 — 0.005 + 0.005 ETH
+[19:45:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:45:46] [HOUSE]   Chat: over gang or under gang? choose
+[19:48:45] [HOUSE] Seeding 0x24B316508f...
+[19:48:50] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:48:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:48:55] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:48:55] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:48:55] [HOUSE] Seeded 0x24B316508f — 0.005 + 0.005 ETH
+[19:48:56] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:48:56] [HOUSE]   Chat: LP seeded. 0.001 ETH each side. come get it
+[19:51:49] [HOUSE] Seeding 0x9CB145cDe3...
+[19:51:54] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:51:54] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:51:59] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:51:59] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:51:59] [HOUSE] Seeded 0x9CB145cDe3 — 0.005 + 0.005 ETH
+[19:52:00] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:52:00] [HOUSE]   Chat: round funded. someone's taking my ETH today
+[19:54:38] [HOUSE] Seeding 0x03084049c7...
+[19:54:41] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:54:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:54:48] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:54:48] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:54:48] [HOUSE] Seeded 0x03084049c7 — 0.005 + 0.005 ETH
+[19:54:48] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:54:48] [HOUSE]   Chat: house bot reporting for duty. pool is live
+[19:58:01] [HOUSE] Seeding 0x2ba4C7eeDb...
+[19:58:04] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[19:58:04] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:58:09] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[19:58:09] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[19:58:09] [HOUSE] Seeded 0x2ba4C7eeDb — 0.005 + 0.005 ETH
+[19:58:09] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[19:58:09] [HOUSE]   Chat: double up or go home
+[20:00:37] [HOUSE] Seeding 0xd563BB9AE2...
+[20:00:41] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:00:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:00:48] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:00:48] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:00:48] [HOUSE] Seeded 0xd563BB9AE2 — 0.005 + 0.005 ETH
+[20:00:48] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:00:48] [HOUSE]   Chat: seeded and ready. this pool won't fill itself
+[20:04:16] [HOUSE] Seeding 0xdc893939c8...
+[20:04:19] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:04:20] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:04:25] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:04:25] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:04:25] [HOUSE] Seeded 0xdc893939c8 — 0.005 + 0.005 ETH
+[20:04:25] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:04:25] [HOUSE]   Chat: house bot never misses a round. do you?
+[20:06:31] [HOUSE] Seeding 0x3Efd1EFF65...
+[20:06:35] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:06:35] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:06:42] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:06:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:06:42] [HOUSE] Seeded 0x3Efd1EFF65 — 0.005 + 0.005 ETH
+[20:06:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:06:42] [HOUSE]   Chat: cars are moving. are you?
+[20:10:30] [HOUSE] Seeding 0x52D7187f9e...
+[20:10:34] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:10:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:10:39] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:10:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:10:39] [HOUSE] Seeded 0x52D7187f9e — 0.005 + 0.005 ETH
+[20:10:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:10:39] [HOUSE]   Chat: pool ready. you betting or watching?
+[20:12:29] [HOUSE] Seeding 0x99B517716C...
+[20:12:34] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:12:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:12:39] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:12:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:12:39] [HOUSE] Seeded 0x99B517716C — 0.005 + 0.005 ETH
+[20:12:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:12:39] [HOUSE]   Chat: liquidity is in. no excuses now
+[20:16:47] [HOUSE] Seeding 0x51Cb9284BA...
+[20:16:52] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:16:52] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:16:57] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:16:57] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:16:57] [HOUSE] Seeded 0x51Cb9284BA — 0.005 + 0.005 ETH
+[20:16:57] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:16:57] [HOUSE]   Chat: 0.001 ETH over, 0.001 ETH under. who's brave?
+[20:18:26] [HOUSE] Seeding 0xaDd8958D25...
+[20:18:29] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:18:29] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:18:36] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:18:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:18:36] [HOUSE] Seeded 0xaDd8958D25 — 0.005 + 0.005 ETH
+[20:18:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:18:36] [HOUSE]   Chat: house bot just dropped liquidity. who's next?
+[20:22:43] [HOUSE] Seeding 0x737c067e5f...
+[20:22:48] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:22:48] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:22:53] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:22:53] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:22:53] [HOUSE] Seeded 0x737c067e5f — 0.005 + 0.005 ETH
+[20:22:54] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:22:54] [HOUSE]   Chat: house bot activated. bring it
+[20:24:41] [HOUSE] Seeding 0x5beb377426...
+[20:24:44] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:24:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:24:49] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:24:49] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:24:49] [HOUSE] Seeded 0x5beb377426 — 0.005 + 0.005 ETH
+[20:24:49] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:24:49] [HOUSE]   Chat: LP in. the question is: over or under?
+[20:28:52] [HOUSE] Seeding 0xEbA16DD357...
+[20:28:56] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:28:56] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:29:01] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:29:02] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:29:02] [HOUSE] Seeded 0xEbA16DD357 — 0.005 + 0.005 ETH
+[20:29:02] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:29:02] [HOUSE]   Chat: both sides funded. your move
+[20:30:36] [HOUSE] Seeding 0x797b125C3C...
+[20:30:39] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:30:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:30:46] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:30:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:30:46] [HOUSE] Seeded 0x797b125C3C — 0.005 + 0.005 ETH
+[20:30:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:30:46] [HOUSE]   Chat: round is hot. pool is funded. what are you waiting for?
+[20:35:06] [HOUSE] Seeding 0xF3D51B914D...
+[20:35:09] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:35:09] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:35:16] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:35:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:35:16] [HOUSE] Seeded 0xF3D51B914D — 0.005 + 0.005 ETH
+[20:35:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:35:16] [HOUSE]   Chat: someone's winning my ETH this round. might as well be you
+[20:36:33] [HOUSE] Seeding 0xf108C1071E...
+[20:36:38] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:36:38] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:36:43] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:36:43] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:36:43] [HOUSE] Seeded 0xf108C1071E — 0.005 + 0.005 ETH
+[20:36:43] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:36:43] [HOUSE]   Chat: house bot doesn't sleep. neither should your bets
+[20:41:19] [HOUSE] Seeding 0x192aF81e4e...
+[20:41:24] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:41:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:41:29] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:41:29] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:41:29] [HOUSE] Seeded 0x192aF81e4e — 0.005 + 0.005 ETH
+[20:41:29] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:41:29] [HOUSE]   Chat: if you're reading this, the pool is live
+[20:42:26] [HOUSE] Seeding 0x848B5DF657...
+[20:42:30] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:42:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:42:36] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:42:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:42:36] [HOUSE] Seeded 0x848B5DF657 — 0.005 + 0.005 ETH
+[20:42:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:42:36] [HOUSE]   Chat: 0.001 ETH on both sides. free money for someone
+[20:47:34] [HOUSE] Seeding 0x5F4831f132...
+[20:47:37] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:47:37] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:47:44] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:47:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:47:44] [HOUSE] Seeded 0x5F4831f132 — 0.005 + 0.005 ETH
+[20:47:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:47:44] [HOUSE]   Chat: both sides open. pick your side wisely
+[20:48:35] [HOUSE] Seeding 0xE37D6AF8DA...
+[20:48:40] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:48:40] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:48:45] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:48:45] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:48:45] [HOUSE] Seeded 0xE37D6AF8DA — 0.005 + 0.005 ETH
+[20:48:45] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:48:45] [HOUSE]   Chat: new round new money. who wants it?
+[20:53:53] [HOUSE] Seeding 0x4676c65595...
+[20:53:58] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:53:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:54:03] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:54:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:54:03] [HOUSE] Seeded 0x4676c65595 — 0.005 + 0.005 ETH
+[20:54:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:54:03] [HOUSE]   Chat: funded. now it's your turn
+[20:54:47] [HOUSE] Seeding 0x069417d3A3...
+[20:54:52] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[20:54:52] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:54:57] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[20:54:57] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[20:54:57] [HOUSE] Seeded 0x069417d3A3 — 0.005 + 0.005 ETH
+[20:54:57] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[20:54:57] [HOUSE]   Chat: pool is hot. 2x if you call it right
+[21:00:04] [HOUSE] Seeding 0xe17Dd55434...
+[21:00:10] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:00:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:00:15] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:00:15] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:00:15] [HOUSE] Seeded 0xe17Dd55434 — 0.005 + 0.005 ETH
+[21:00:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:00:16] [HOUSE]   Chat: I put my ETH where my mouth is. both sides
+[21:00:58] [HOUSE] Seeding 0x2B72277F7D...
+[21:01:01] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:01:01] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:01:08] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:01:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:01:08] [HOUSE] Seeded 0x2B72277F7D — 0.005 + 0.005 ETH
+[21:01:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:01:08] [HOUSE]   Chat: I bet on everything. you just need to pick one side
+[21:06:24] [HOUSE] Seeding 0x8a2162530f...
+[21:06:27] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:06:27] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:06:34] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:06:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:06:34] [HOUSE] Seeded 0x8a2162530f — 0.005 + 0.005 ETH
+[21:06:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:06:34] [HOUSE]   Chat: the cars don't care about your feelings. bet
+[21:07:14] [HOUSE] Seeding 0x868d13b9A5...
+[21:07:17] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:07:17] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:07:24] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:07:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:07:24] [HOUSE] Seeded 0x868d13b9A5 — 0.005 + 0.005 ETH
+[21:07:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:07:24] [HOUSE]   Chat: your ETH could double right now
+[21:12:39] [HOUSE] Seeding 0xbF6f5D44f3...
+[21:12:44] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:12:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:12:49] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:12:49] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:12:49] [HOUSE] Seeded 0xbF6f5D44f3 — 0.005 + 0.005 ETH
+[21:12:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:12:50] [HOUSE]   Chat: house bot here. as always. with ETH. as always
+[21:13:30] [HOUSE] Seeding 0x9dDd0861D6...
+[21:13:33] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:13:33] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:13:40] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:13:40] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:13:40] [HOUSE] Seeded 0x9dDd0861D6 — 0.005 + 0.005 ETH
+[21:13:40] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:13:40] [HOUSE]   Chat: round is live. 0.001 ETH on each side. fight me
+[21:17:22] [HOUSE] Seeding 0xdc79c17f3C...
+[21:17:25] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:17:25] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:17:32] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:17:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:17:32] [HOUSE] Seeded 0xdc79c17f3C — 0.005 + 0.005 ETH
+[21:17:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:17:32] [HOUSE]   Chat: AI is counting. you should be betting
+[21:23:10] [HOUSE] Seeding 0x3d0E1774f8...
+[21:23:14] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:23:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:23:19] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:23:19] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:23:19] [HOUSE] Seeded 0x3d0E1774f8 — 0.005 + 0.005 ETH
+[21:23:20] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:23:20] [HOUSE]   Chat: round is open. pool is warm. jump in
+[21:29:02] [HOUSE] Seeding 0x3436430221...
+[21:29:06] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:29:06] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:29:11] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:29:11] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:29:11] [HOUSE] Seeded 0x3436430221 — 0.005 + 0.005 ETH
+[21:29:11] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:29:11] [HOUSE]   Chat: I seed, you reap. that's the deal
+[21:32:40] [HOUSE] Seeding 0x6aCe421FAB...
+[21:32:43] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:32:43] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:32:50] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:32:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:32:50] [HOUSE] Seeded 0x6aCe421FAB — 0.005 + 0.005 ETH
+[21:32:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:32:50] [HOUSE]   Chat: initial liquidity deployed. let's go
+[21:38:05] [HOUSE] Seeding 0x6b6c1565C2...
+[21:38:10] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:38:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:38:15] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:38:15] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:38:15] [HOUSE] Seeded 0x6b6c1565C2 — 0.005 + 0.005 ETH
+[21:38:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:38:16] [HOUSE]   Chat: another round, another seed. who's playing?
+[21:39:48] [HOUSE] Seeding 0xc1dC071E68...
+[21:39:51] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:39:52] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:39:58] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:39:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:39:58] [HOUSE] Seeded 0xc1dC071E68 — 0.005 + 0.005 ETH
+[21:39:59] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:39:59] [HOUSE]   Chat: just seeded. first real bet doubles up easy
+[21:45:11] [HOUSE] Seeding 0xa35C1b2774...
+[21:45:16] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:45:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:45:21] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:45:21] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:45:21] [HOUSE] Seeded 0xa35C1b2774 — 0.005 + 0.005 ETH
+[21:45:22] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:45:22] [HOUSE]   Chat: pool loaded. first bet gets the best odds
+[21:51:05] [HOUSE] Seeding 0x6BaA50Cdaf...
+[21:51:08] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:51:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:51:13] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:51:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:51:13] [HOUSE] Seeded 0x6BaA50Cdaf — 0.005 + 0.005 ETH
+[21:51:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:51:13] [HOUSE]   Chat: liquidity provider checking in. pool is ready
+[21:57:00] [HOUSE] Seeding 0x23A7A668E7...
+[21:57:03] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[21:57:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:57:10] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[21:57:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[21:57:10] [HOUSE] Seeded 0x23A7A668E7 — 0.005 + 0.005 ETH
+[21:57:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[21:57:10] [HOUSE]   Chat: seeded. odds are live. bet or regret
+[22:02:52] [HOUSE] Seeding 0xaA8585fBAd...
+[22:02:56] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:02:57] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:03:02] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:03:02] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:03:02] [HOUSE] Seeded 0xaA8585fBAd — 0.005 + 0.005 ETH
+[22:03:02] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:03:02] [HOUSE]   Chat: bet against the house bot. I dare you
+[22:08:46] [HOUSE] Seeding 0x43A276965E...
+[22:08:52] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:08:52] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:08:57] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:08:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:08:58] [HOUSE] Seeded 0x43A276965E — 0.005 + 0.005 ETH
+[22:08:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:08:58] [HOUSE]   Chat: placed both sides. now I wait for a real player
+[22:14:39] [HOUSE] Seeding 0x276a28E66a...
+[22:14:44] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:14:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:14:49] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:14:49] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:14:49] [HOUSE] Seeded 0x276a28E66a — 0.005 + 0.005 ETH
+[22:14:49] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:14:49] [HOUSE]   Chat: every round I show up. where's everyone else?
+[22:20:32] [HOUSE] Seeding 0xd66A5Be9d5...
+[22:20:35] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:20:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:20:41] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:20:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:20:41] [HOUSE] Seeded 0xd66A5Be9d5 — 0.005 + 0.005 ETH
+[22:20:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:20:42] [HOUSE]   Chat: fresh round. fresh pool. fresh odds
+[22:26:25] [HOUSE] Seeding 0x4a59B90f60...
+[22:26:32] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:26:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:26:37] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:26:37] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:26:37] [HOUSE] Seeded 0x4a59B90f60 — 0.005 + 0.005 ETH
+[22:26:37] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:26:37] [HOUSE]   Chat: free odds courtesy of the house bot
+[22:32:21] [HOUSE] Seeding 0x81feBD92B3...
+[22:32:26] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:32:26] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:32:31] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:32:31] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:32:31] [HOUSE] Seeded 0x81feBD92B3 — 0.005 + 0.005 ETH
+[22:32:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:32:32] [HOUSE]   Chat: over or under? I'm on both. beat me
+[22:38:19] [HOUSE] Seeding 0x5d2fe3f601...
+[22:38:24] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:38:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:38:29] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:38:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:38:30] [HOUSE] Seeded 0x5d2fe3f601 — 0.005 + 0.005 ETH
+[22:38:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:38:30] [HOUSE]   Chat: house bot here. I just funded both sides
+[22:44:17] [HOUSE] Seeding 0x81f879BD4D...
+[22:44:22] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:44:22] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:44:27] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:44:27] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:44:27] [HOUSE] Seeded 0x81f879BD4D — 0.005 + 0.005 ETH
+[22:44:27] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:44:27] [HOUSE]   Chat: the cameras are live. the pool is live. are you?
+[22:50:09] [HOUSE] Seeding 0x71A2f09514...
+[22:50:12] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:50:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:50:17] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:50:17] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:50:17] [HOUSE] Seeded 0x71A2f09514 — 0.005 + 0.005 ETH
+[22:50:17] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:50:17] [HOUSE]   Chat: over gang or under gang? choose
+[22:56:04] [HOUSE] Seeding 0xa179D2215e...
+[22:56:07] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[22:56:07] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:56:14] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[22:56:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[22:56:14] [HOUSE] Seeded 0xa179D2215e — 0.005 + 0.005 ETH
+[22:56:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[22:56:14] [HOUSE]   Chat: LP seeded. 0.001 ETH each side. come get it
+[23:02:00] [HOUSE] Seeding 0xa90f0C144a...
+[23:02:03] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:02:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:02:10] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:02:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:02:10] [HOUSE] Seeded 0xa90f0C144a — 0.005 + 0.005 ETH
+[23:02:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:02:10] [HOUSE]   Chat: round funded. someone's taking my ETH today
+[23:07:54] [HOUSE] Seeding 0x420533bCab...
+[23:07:58] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:07:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:08:03] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:08:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:08:03] [HOUSE] Seeded 0x420533bCab — 0.005 + 0.005 ETH
+[23:08:03] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:08:03] [HOUSE]   Chat: house bot reporting for duty. pool is live
+[23:13:48] [HOUSE] Seeding 0x99399cFCdA...
+[23:13:52] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:13:53] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:13:58] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:13:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:13:58] [HOUSE] Seeded 0x99399cFCdA — 0.005 + 0.005 ETH
+[23:13:58] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:13:58] [HOUSE]   Chat: double up or go home
+[23:19:30] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[23:19:41] [HOUSE] Seeding 0xE85dde130F...
+[23:19:46] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:19:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:19:51] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:19:51] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:19:51] [HOUSE] Seeded 0xE85dde130F — 0.005 + 0.005 ETH
+[23:19:51] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:19:51] [HOUSE]   Chat: seeded and ready. this pool won't fill itself
+[23:25:40] [HOUSE] Seeding 0xB796c6bE09...
+[23:25:43] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:25:44] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:25:50] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:25:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:25:50] [HOUSE] Seeded 0xB796c6bE09 — 0.005 + 0.005 ETH
+[23:25:50] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:25:50] [HOUSE]   Chat: house bot never misses a round. do you?
+[23:31:33] [HOUSE] Seeding 0x3D567a1410...
+[23:31:36] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:31:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:31:41] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:31:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:31:41] [HOUSE] Seeded 0x3D567a1410 — 0.005 + 0.005 ETH
+[23:31:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:31:41] [HOUSE]   Chat: cars are moving. are you?
+[23:37:30] [HOUSE] Seeding 0xEFbab3B954...
+[23:37:34] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:37:35] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:37:42] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:37:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:37:42] [HOUSE] Seeded 0xEFbab3B954 — 0.005 + 0.005 ETH
+[23:37:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:37:42] [HOUSE]   Chat: pool ready. you betting or watching?
+[23:43:25] [HOUSE] Seeding 0x357225A6EB...
+[23:43:30] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:43:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:43:35] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:43:35] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:43:35] [HOUSE] Seeded 0x357225A6EB — 0.005 + 0.005 ETH
+[23:43:35] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:43:35] [HOUSE]   Chat: liquidity is in. no excuses now
+[23:49:18] [HOUSE] Seeding 0xb5E12dadCe...
+[23:49:22] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:49:22] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:49:28] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:49:28] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:49:28] [HOUSE] Seeded 0xb5E12dadCe — 0.005 + 0.005 ETH
+[23:49:28] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:49:28] [HOUSE]   Chat: 0.001 ETH over, 0.001 ETH under. who's brave?
+[23:55:12] [HOUSE] Seeding 0x54d2e0dE6A...
+[23:55:15] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[23:55:16] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:55:23] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[23:55:23] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[23:55:23] [HOUSE] Seeded 0x54d2e0dE6A — 0.005 + 0.005 ETH
+[23:55:23] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[23:55:23] [HOUSE]   Chat: house bot just dropped liquidity. who's next?
+[00:01:03] [HOUSE] Seeding 0x2080A4dD70...
+[00:01:07] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:01:07] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:01:14] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:01:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:01:14] [HOUSE] Seeded 0x2080A4dD70 — 0.005 + 0.005 ETH
+[00:01:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:01:14] [HOUSE]   Chat: house bot activated. bring it
+[00:07:01] [HOUSE] Seeding 0x75e5B04539...
+[00:07:04] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:07:04] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:07:09] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:07:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:07:10] [HOUSE] Seeded 0x75e5B04539 — 0.005 + 0.005 ETH
+[00:07:10] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:07:10] [HOUSE]   Chat: LP in. the question is: over or under?
+[00:08:16] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:08:33] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:08:50] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:09:07] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:10:18] [HOUSE] Seeding 0xecab0a145F...
+[00:10:23] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:10:23] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:10:30] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:10:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:10:30] [HOUSE] Seeded 0xecab0a145F — 0.005 + 0.005 ETH
+[00:10:30] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:10:30] [HOUSE]   Chat: both sides funded. your move
+[00:15:44] [HOUSE] Seeding 0x399166b279...
+[00:15:47] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:15:47] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:15:54] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:15:54] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:15:54] [HOUSE] Seeded 0x399166b279 — 0.005 + 0.005 ETH
+[00:15:54] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:15:54] [HOUSE]   Chat: round is hot. pool is funded. what are you waiting for?
+[00:21:35] [HOUSE] Seeding 0x4Bcc399BA2...
+[00:21:39] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:21:39] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:21:46] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:21:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:21:46] [HOUSE] Seeded 0x4Bcc399BA2 — 0.005 + 0.005 ETH
+[00:21:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:21:46] [HOUSE]   Chat: someone's winning my ETH this round. might as well be you
+[00:26:46] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:27:33] [HOUSE] Seeding 0x4359930F66...
+[00:27:38] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:27:38] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:27:43] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:27:43] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:27:43] [HOUSE] Seeded 0x4359930F66 — 0.005 + 0.005 ETH
+[00:27:43] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:27:43] [HOUSE]   Chat: house bot doesn't sleep. neither should your bets
+[00:31:07] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:31:30] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[00:33:23] [HOUSE] Seeding 0x0d190dD6b3...
+[00:33:28] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:33:28] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:33:34] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:33:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:33:34] [HOUSE] Seeded 0x0d190dD6b3 — 0.005 + 0.005 ETH
+[00:33:34] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:33:34] [HOUSE]   Chat: if you're reading this, the pool is live
+[00:39:18] [HOUSE] Seeding 0x242f1fC79f...
+[00:39:21] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:39:21] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:39:28] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:39:28] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:39:28] [HOUSE] Seeded 0x242f1fC79f — 0.005 + 0.005 ETH
+[00:39:28] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:39:28] [HOUSE]   Chat: 0.001 ETH on both sides. free money for someone
+[00:45:13] [HOUSE] Seeding 0x4D6CcAc768...
+[00:45:18] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:45:18] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:45:24] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:45:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:45:24] [HOUSE] Seeded 0x4D6CcAc768 — 0.005 + 0.005 ETH
+[00:45:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:45:24] [HOUSE]   Chat: both sides open. pick your side wisely
+[00:51:05] [HOUSE] Seeding 0x2b3C7F1035...
+[00:51:08] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:51:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:51:13] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:51:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:51:13] [HOUSE] Seeded 0x2b3C7F1035 — 0.005 + 0.005 ETH
+[00:51:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:51:13] [HOUSE]   Chat: new round new money. who wants it?
+[00:57:06] [HOUSE] Seeding 0xfB91A0D171...
+[00:57:12] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[00:57:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:57:20] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[00:57:20] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[00:57:20] [HOUSE] Seeded 0xfB91A0D171 — 0.005 + 0.005 ETH
+[00:57:21] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[00:57:21] [HOUSE]   Chat: funded. now it's your turn
+[01:03:02] [HOUSE] Seeding 0x435117C910...
+[01:03:06] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:03:06] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:03:11] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:03:11] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:03:11] [HOUSE] Seeded 0x435117C910 — 0.005 + 0.005 ETH
+[01:03:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:03:12] [HOUSE]   Chat: pool is hot. 2x if you call it right
+[01:04:13] [HOUSE] Seeding 0xFff721c707...
+[01:04:18] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:04:18] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:04:23] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:04:23] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:04:23] [HOUSE] Seeded 0xFff721c707 — 0.005 + 0.005 ETH
+[01:04:24] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:04:24] [HOUSE]   Chat: I put my ETH where my mouth is. both sides
+[01:07:29] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[01:07:46] [HOUSE] Error: Command '['cast', 'call', '0x5b04F3DFaE780A7e109066E754d27f491Af55Af9', 'getActiveMarkets()(address[])', '--rpc-url', 'https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236']' timed out after 15 seconds
+[01:08:22] [HOUSE] Seeding 0x665035499C...
+[01:08:25] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:08:25] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:08:32] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:08:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:08:32] [HOUSE] Seeded 0x665035499C — 0.005 + 0.005 ETH
+[01:08:32] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:08:32] [HOUSE]   Chat: I bet on everything. you just need to pick one side
+[01:13:01] [HOUSE] Seeding 0x3D1AAEe7dF...
+[01:13:06] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:13:06] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:13:11] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:13:11] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:13:11] [HOUSE] Seeded 0x3D1AAEe7dF — 0.005 + 0.005 ETH
+[01:13:12] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:13:12] [HOUSE]   Chat: the cars don't care about your feelings. bet
+[01:14:57] [HOUSE] Seeding 0x357A4507DD...
+[01:15:00] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:15:00] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:15:05] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:15:05] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:15:05] [HOUSE] Seeded 0x357A4507DD — 0.005 + 0.005 ETH
+[01:15:05] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:15:05] [HOUSE]   Chat: your ETH could double right now
+[01:19:28] [HOUSE] Seeding 0x31b2b627FA...
+[01:19:31] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:19:31] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:19:38] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:19:38] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:19:38] [HOUSE] Seeded 0x31b2b627FA — 0.005 + 0.005 ETH
+[01:19:38] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:19:38] [HOUSE]   Chat: house bot here. as always. with ETH. as always
+[01:22:33] [HOUSE] Seeding 0x71e9Fe6c9D...
+[01:22:36] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:22:36] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:22:41] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:22:41] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:22:41] [HOUSE] Seeded 0x71e9Fe6c9D — 0.005 + 0.005 ETH
+[01:22:42] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:22:42] [HOUSE]   Chat: round is live. 0.001 ETH on each side. fight me
+[01:27:41] [HOUSE] Seeding 0x7119C4DeBc...
+[01:27:46] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:27:46] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:27:51] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:27:51] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:27:51] [HOUSE] Seeded 0x7119C4DeBc — 0.005 + 0.005 ETH
+[01:27:51] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:27:51] [HOUSE]   Chat: AI is counting. you should be betting
+[01:31:03] [HOUSE] Seeding 0x1E489Ac8d2...
+[01:31:08] [HOUSE]   UNDER OK — 0.005 ETH ([{"address":)
+[01:31:08] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:31:13] [HOUSE]   OVER OK — 0.005 ETH ([{"address":)
+[01:31:13] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:bets/messages "HTTP/2 201 Created"
+[01:31:13] [HOUSE] Seeded 0x1E489Ac8d2 — 0.005 + 0.005 ETH
+[01:31:14] [HOUSE] HTTP Request: POST https://main.realtime.ably.net/channels/rush:chat/messages "HTTP/2 201 Created"
+[01:31:14] [HOUSE]   Chat: round is open. pool is warm. jump in

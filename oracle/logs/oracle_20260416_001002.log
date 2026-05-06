@@ -1,0 +1,777 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 1510222 (camera: peace-bridge, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Confidence override: 0.08
+[Camera] Peace Bridge — USA/Canada Border (Peace Bridge Authority) — YOUTUBE
+[Camera] Line zones: 1 (canonical sv.LineZone, threshold=2)
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=DnUFAShZKus
+  Camera: peace-bridge
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] Using cached URL (age 14060s)
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 1510370)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client disconnected (0 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 1510374
+[2026-04-16 00:10:08] INFO ============================================================
+[2026-04-16 00:10:08] INFO   Rush Oracle Watchdog
+[2026-04-16 00:10:08] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 00:10:08] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-16 00:10:08] INFO   Log: /tmp/rush_oracle.log
+[2026-04-16 00:10:08] INFO ============================================================
+[2026-04-16 00:10:08] INFO Running startup orphan scan...
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:10:09] INFO Orphan scan: 1 active market(s) found
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[2026-04-16 00:10:10] INFO No orphan markets found
+[2026-04-16 00:10:10] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-16 00:10:10] INFO Child started (PID 1510574)
+[2026-04-16 00:10:11] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-16 00:10:11] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-16 00:10:11] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-16 00:10:11] ============================================================
+[2026-04-16 00:10:11]   SinalBet Rush Round Manager
+[2026-04-16 00:10:11]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-16 00:10:11]   Duration: 150s per round
+[2026-04-16 00:10:11]   Cameras:  Peace Bridge — USA/Canada Border
+[2026-04-16 00:10:11] ============================================================
+[2026-04-16 00:10:11] Round #1 | Peace Bridge — USA/Canada Border | threshold=50
+[2026-04-16 00:10:11] Cancelling orphan market: 0x75e5B045396D8B32dbA998a18f4E18513860c564
+[2026-04-16 00:10:14] Market cancelled: 0x75e5B045396D8B32dbA998a18f4E18513860c564 (tx: 7d9e77d98d03eb0065b1786fddcc0ff18f75d1cdb49b2925f0b95837643b2063)
+[2026-04-16 00:10:14] Ably publish OK: market_cancelled
+[2026-04-16 00:10:15] Refunds distributed: 0x75e5B045396D8B32dbA998a18f4E18513860c564 (tx: 89fa110944481289ace87ae5332fc9aa227af85fe52874a74b5c3e2cc6457046)
+[2026-04-16 00:10:15] Cancelled 1 orphan market(s)
+[2026-04-16 00:10:16] createMarket tx sent: 6176e28145f8e52e2706b21a5606f1f24fedc9b3ae66f70f47824f88ebf617fb
+[2026-04-16 00:10:16] Market created: 0xecab0a145F99A846664CED9EAB05320c8536557e (tx: 6176e28145f8e52e2706b21a5606f1f24fedc9b3ae66f70f47824f88ebf617fb)
+[Prune] Removed 9 stale IDs (frame 200)
+[2026-04-16 00:10:17] Ably publish OK: market_created
+[2026-04-16 00:10:17] Counting vehicles for 150s...
+[2026-04-16 00:10:17] [StreamClient] Reconnecting...
+[WS] Client connected (3 total)
+[2026-04-16 00:10:17] [StreamClient] Connected to ws://localhost:9000
+[2026-04-16 00:10:17] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=DnUFAShZKus', 'state': 'idle', 'count': 1, 'cameraId': 'peace-bridge'}
+[STATE] betting — market=0xecab0a14... bet=150s count=150s round=1
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[Prune] Removed 9 stale IDs (frame 300)
+[WS] Client disconnected (2 total)
+[Prune] Removed 2 stale IDs (frame 400)
+[WS] Client connected (3 total)
+[Prune] Removed 1 stale IDs (frame 500)
+[Prune] Removed 1 stale IDs (frame 600)
+[Prune] Removed 1 stale IDs (frame 700)
+[Prune] Removed 3 stale IDs (frame 800)
+[Evidence] Saved evidence/1776309017_30s.jpg (103717 bytes, sha256:7f3cc80431fdc...)
+[Prune] Removed 1 stale IDs (frame 900)
+[Prune] Removed 6 stale IDs (frame 1000)
+[Prune] Removed 5 stale IDs (frame 1100)
+[Evidence] Saved evidence/1776309017_60s.jpg (98226 bytes, sha256:c0663337df3b3...)
+[Prune] Removed 2 stale IDs (frame 1900)
+[Prune] Removed 4 stale IDs (frame 2000)
+[Prune] Removed 4 stale IDs (frame 2100)
+[Prune] Removed 3 stale IDs (frame 2200)
+[Prune] Removed 4 stale IDs (frame 2500)
+[Evidence] Saved evidence/1776309017_90s.jpg (110087 bytes, sha256:7bb1d93389e16...)
+[Prune] Removed 8 stale IDs (frame 2700)
+[Prune] Removed 6 stale IDs (frame 2800)
+[Prune] Removed 3 stale IDs (frame 2900)
+[Prune] Removed 2 stale IDs (frame 3000)
+[Prune] Removed 4 stale IDs (frame 3200)
+[Prune] Removed 1 stale IDs (frame 3300)
+[Prune] Removed 2 stale IDs (frame 3400)
+[Evidence] Saved evidence/1776309017_120s.jpg (107629 bytes, sha256:cbc6c4975d8e0...)
+[Prune] Removed 2 stale IDs (frame 4200)
+[STATE] counting — market=0xecab0a14... duration=150s round=1
+[Prune] Removed 1 stale IDs (frame 4400)
+[Evidence] Saved evidence/1776309017_150s.jpg (105559 bytes, sha256:fee8baa27e9f1...)
+[Prune] Removed 3 stale IDs (frame 4600)
+[Prune] Removed 2 stale IDs (frame 4700)
+[Prune] Removed 2 stale IDs (frame 4900)
+[Prune] Removed 2 stale IDs (frame 5000)
+[Prune] Removed 1 stale IDs (frame 5100)
+[Prune] Removed 1 stale IDs (frame 5200)
+[Evidence] Saved evidence/1776309017_180s.jpg (104384 bytes, sha256:f2d554869c3aa...)
+[Prune] Removed 1 stale IDs (frame 5300)
+[Evidence] Saved evidence/1776309017_210s.jpg (105253 bytes, sha256:65cdcf11979ad...)
+[Prune] Removed 3 stale IDs (frame 6300)
+[Prune] Removed 7 stale IDs (frame 6400)
+[Prune] Removed 11 stale IDs (frame 6500)
+[Prune] Removed 4 stale IDs (frame 6600)
+[Evidence] Saved evidence/1776309017_240s.jpg (106843 bytes, sha256:5b59e81b64326...)
+[Prune] Removed 3 stale IDs (frame 7100)
+[Prune] Removed 3 stale IDs (frame 7200)
+[Prune] Removed 2 stale IDs (frame 7300)
+[WS] Client connected (4 total)
+[WS] Client disconnected (3 total)
+[Prune] Removed 1 stale IDs (frame 7900)
+[Evidence] Saved evidence/1776309017_270s.jpg (104783 bytes, sha256:5aa268e258398...)
+[Prune] Removed 1 stale IDs (frame 8000)
+[Prune] Removed 3 stale IDs (frame 8100)
+[Prune] Removed 2 stale IDs (frame 8300)
+[Prune] Removed 2 stale IDs (frame 8700)
+[Prune] Removed 1 stale IDs (frame 8800)
+[Evidence] Saved evidence/1776309017_final.jpg (109389 bytes, sha256:faa522ea369aa...)
+[Evidence] Saved evidence/1776309017_final.jpg (109348 bytes, sha256:7e874e89a13b5...)
+[Evidence] Saved evidence/1776309017_final.jpg (109338 bytes, sha256:9f41956e42a8a...)
+[Evidence] Saved evidence/1776309017_final.jpg (109250 bytes, sha256:0736d0bfc58f3...)
+[STATE] idle — round 1 complete: 31 vehicles
+[2026-04-16 00:15:17] Count complete: 31 vehicles (in=22 out=9)
+[2026-04-16 00:15:18] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:15:18] Market resolved: 31 vehicles → Under 50 wins
+[2026-04-16 00:15:19] resolveMarket tx sent: c2b9d05298b649d40c02b566d6c03d28d0ac966fc9097e89f06354c49ad35c89
+[2026-04-16 00:15:19] resolveMarket confirmed (tx: c2b9d05298b649d40c02b566d6c03d28d0ac966fc9097e89f06354c49ad35c89)
+[2026-04-16 00:15:19] Ably publish OK: market_resolved
+[2026-04-16 00:15:22] Winnings distributed: 0xecab0a145F99A846664CED9EAB05320c8536557e (tx: 6de080b958c6c0eaac297169d213edf8cf335bb009de3ad4f539b476b49395c6)
+[2026-04-16 00:15:22] Auto-distributed winnings (tx: 6de080b958c6c0eaac297169d213edf8cf335bb009de3ad4f539b476b49395c6)
+[2026-04-16 00:15:22] Ably publish OK: winnings_distributed
+[2026-04-16 00:15:22] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:15:22] New threshold: 31 (avg of [31])
+[2026-04-16 00:15:22] Waiting 15s before Round #2...
+[2026-04-16 00:15:37] Round #2 | Peace Bridge — USA/Canada Border | threshold=31
+[2026-04-16 00:15:39] createMarket tx sent: 60b572c58878b451c7cf92e9b022b8dacc30d86b480489220182f6a9e2b5fc97
+[2026-04-16 00:15:39] Market created: 0x399166b2793F3875f2A41d81436d20f06D18Cdf5 (tx: 60b572c58878b451c7cf92e9b022b8dacc30d86b480489220182f6a9e2b5fc97)
+[2026-04-16 00:15:40] Ably publish OK: market_created
+[2026-04-16 00:15:40] Counting vehicles for 150s...
+[2026-04-16 00:15:40] [StreamClient] Unexpected response: {'type': 'idle', 'state': 'waiting', 'cameraId': 'peace-bridge'}
+[STATE] betting — market=0x399166b2... bet=150s count=150s round=2
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[Prune] Removed 3 stale IDs (frame 300)
+[Prune] Removed 3 stale IDs (frame 400)
+[Prune] Removed 4 stale IDs (frame 500)
+[Prune] Removed 3 stale IDs (frame 600)
+[Prune] Removed 3 stale IDs (frame 700)
+[Prune] Removed 4 stale IDs (frame 800)
+[Evidence] Saved evidence/1776309340_30s.jpg (107134 bytes, sha256:81afadbf668f5...)
+[Prune] Removed 1 stale IDs (frame 1200)
+[Prune] Removed 3 stale IDs (frame 1300)
+[Prune] Removed 1 stale IDs (frame 1400)
+[Prune] Removed 1 stale IDs (frame 1500)
+[Prune] Removed 3 stale IDs (frame 1600)
+[Prune] Removed 2 stale IDs (frame 1700)
+[Evidence] Saved evidence/1776309340_60s.jpg (106944 bytes, sha256:84d95f536d79b...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Prune] Removed 2 stale IDs (frame 1900)
+[Prune] Removed 3 stale IDs (frame 2000)
+[Prune] Removed 3 stale IDs (frame 2100)
+[Evidence] Saved evidence/1776309340_90s.jpg (113300 bytes, sha256:6049d5fafec65...)
+[Prune] Removed 2 stale IDs (frame 3300)
+[Prune] Removed 2 stale IDs (frame 3400)
+[Evidence] Saved evidence/1776309340_120s.jpg (105104 bytes, sha256:67bd9bb2dc9c0...)
+[Prune] Removed 2 stale IDs (frame 3700)
+[Prune] Removed 2 stale IDs (frame 4300)
+[STATE] counting — market=0x399166b2... duration=150s round=2
+[Evidence] Saved evidence/1776309340_150s.jpg (105839 bytes, sha256:487ba552e9ec5...)
+[WS] Client disconnected (1 total)
+[Evidence] Saved evidence/1776309340_180s.jpg (106475 bytes, sha256:e33ff9e706fab...)
+[Prune] Removed 2 stale IDs (frame 5800)
+[Prune] Removed 2 stale IDs (frame 5900)
+[Evidence] Saved evidence/1776309340_210s.jpg (101581 bytes, sha256:c1188858200a7...)
+[Prune] Removed 2 stale IDs (frame 6200)
+[Prune] Removed 1 stale IDs (frame 6400)
+[Prune] Removed 4 stale IDs (frame 6500)
+[Prune] Removed 1 stale IDs (frame 6600)
+[Prune] Removed 1 stale IDs (frame 6700)
+[Evidence] Saved evidence/1776309340_240s.jpg (105716 bytes, sha256:58b80c0313ef8...)
+[Prune] Removed 1 stale IDs (frame 7100)
+[Prune] Removed 5 stale IDs (frame 7200)
+[Prune] Removed 2 stale IDs (frame 7300)
+[Prune] Removed 4 stale IDs (frame 7400)
+[Prune] Removed 1 stale IDs (frame 7500)
+[Prune] Removed 2 stale IDs (frame 7800)
+[Prune] Removed 1 stale IDs (frame 7900)
+[Evidence] Saved evidence/1776309340_270s.jpg (109408 bytes, sha256:e38863f55420d...)
+[Prune] Removed 4 stale IDs (frame 8100)
+[Prune] Removed 2 stale IDs (frame 8300)
+[Prune] Removed 1 stale IDs (frame 8400)
+[Evidence] Saved evidence/1776309340_final.jpg (113229 bytes, sha256:ece5151491e2c...)
+[Evidence] Saved evidence/1776309340_final.jpg (113236 bytes, sha256:a725073396364...)
+[Evidence] Saved evidence/1776309340_final.jpg (113210 bytes, sha256:7ce04c1fa9325...)
+[STATE] idle — round 2 complete: 20 vehicles
+[Prune] Removed 1 stale IDs (frame 9600)
+[2026-04-16 00:21:10] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:21:10] Count complete: 20 vehicles (in=15 out=5)
+[Prune] Removed 1 stale IDs (frame 9700)
+[2026-04-16 00:21:11] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:21:11] Market resolved: 20 vehicles → Under 31 wins
+[2026-04-16 00:21:12] resolveMarket tx sent: 004e63c0723f4bcf2e4c8932ac43d3d0e06ad4a5f7f6e4312fc2319ee091ff3a
+[2026-04-16 00:21:12] resolveMarket confirmed (tx: 004e63c0723f4bcf2e4c8932ac43d3d0e06ad4a5f7f6e4312fc2319ee091ff3a)
+[2026-04-16 00:21:12] Ably publish OK: market_resolved
+[2026-04-16 00:21:15] Winnings distributed: 0x399166b2793F3875f2A41d81436d20f06D18Cdf5 (tx: 0e70e94d1f2a5d50db1eaf1a2c91172ec1bb4403a8237853e8649baf958bcd81)
+[2026-04-16 00:21:15] Auto-distributed winnings (tx: 0e70e94d1f2a5d50db1eaf1a2c91172ec1bb4403a8237853e8649baf958bcd81)
+[2026-04-16 00:21:15] Ably publish OK: winnings_distributed
+[2026-04-16 00:21:15] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:21:15] New threshold: 25 (avg of [31, 20])
+[2026-04-16 00:21:15] Waiting 15s before Round #3...
+[Prune] Removed 1 stale IDs (frame 10100)
+[Prune] Removed 6 stale IDs (frame 10200)
+[2026-04-16 00:21:30] Round #3 | Peace Bridge — USA/Canada Border | threshold=25
+[2026-04-16 00:21:32] createMarket tx sent: 542013d4479b75e78bb967a4c488213e1961a5cfb2dad14ef493da73c49b65ea
+[2026-04-16 00:21:32] Market created: 0x4Bcc399BA20915aFc8456E028Ed94F9a9695dfc3 (tx: 542013d4479b75e78bb967a4c488213e1961a5cfb2dad14ef493da73c49b65ea)
+[2026-04-16 00:21:33] Ably publish OK: market_created
+[2026-04-16 00:21:33] Counting vehicles for 150s...
+[STATE] betting — market=0x4Bcc399B... bet=150s count=150s round=3
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:21:33] [StreamClient] Round 3 started on stream_server
+[Prune] Removed 1 stale IDs (frame 200)
+[Prune] Removed 5 stale IDs (frame 600)
+[WS] Client connected (2 total)
+[Evidence] Saved evidence/1776309693_30s.jpg (109578 bytes, sha256:ec064e8b220bd...)
+[Prune] Removed 1 stale IDs (frame 1400)
+[Prune] Removed 5 stale IDs (frame 1500)
+[Prune] Removed 1 stale IDs (frame 1600)
+[WS] Client connected (2 total)
+[Prune] Removed 1 stale IDs (frame 1700)
+[Evidence] Saved evidence/1776309693_60s.jpg (99515 bytes, sha256:fcc0c62eb249b...)
+[Prune] Removed 1 stale IDs (frame 1800)
+[Prune] Removed 2 stale IDs (frame 1900)
+[WS] Client disconnected (1 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[Evidence] Saved evidence/1776309693_90s.jpg (106789 bytes, sha256:0032f7951757b...)
+[Prune] Removed 2 stale IDs (frame 3100)
+[WS] Client connected (2 total)
+[Evidence] Saved evidence/1776309693_120s.jpg (105512 bytes, sha256:a7d80ea1ef4c2...)
+[Prune] Removed 1 stale IDs (frame 3800)
+[Prune] Removed 7 stale IDs (frame 3900)
+[Prune] Removed 3 stale IDs (frame 4000)
+[Prune] Removed 1 stale IDs (frame 4200)
+[STATE] counting — market=0x4Bcc399B... duration=150s round=3
+[Evidence] Saved evidence/1776309693_150s.jpg (107316 bytes, sha256:73401775ad5af...)
+[Evidence] Saved evidence/1776309693_180s.jpg (107511 bytes, sha256:56f7d2b2aed54...)
+[WS] Client disconnected (1 total)
+[Evidence] Saved evidence/1776309693_210s.jpg (103946 bytes, sha256:3c69c09a599ef...)
+[Prune] Removed 2 stale IDs (frame 6200)
+[Prune] Removed 4 stale IDs (frame 6300)
+[Prune] Removed 1 stale IDs (frame 6400)
+[Prune] Removed 4 stale IDs (frame 6500)
+[Prune] Removed 3 stale IDs (frame 6600)
+[Prune] Removed 1 stale IDs (frame 6700)
+[Evidence] Saved evidence/1776309693_240s.jpg (108849 bytes, sha256:b36fc55390317...)
+[Prune] Removed 2 stale IDs (frame 7300)
+[Prune] Removed 2 stale IDs (frame 7400)
+[Prune] Removed 1 stale IDs (frame 7500)
+[Prune] Removed 4 stale IDs (frame 7700)
+[Evidence] Saved evidence/1776309693_270s.jpg (104224 bytes, sha256:0154c91e7264b...)
+[Prune] Removed 1 stale IDs (frame 7900)
+[Prune] Removed 2 stale IDs (frame 8000)
+[Prune] Removed 1 stale IDs (frame 8200)
+[Evidence] Saved evidence/1776309693_final.jpg (98103 bytes, sha256:8f2c188f26f77...)
+[Evidence] Saved evidence/1776309693_final.jpg (98078 bytes, sha256:4a4783e140c9a...)
+[Evidence] Saved evidence/1776309693_final.jpg (97869 bytes, sha256:197c4eadcb456...)
+[STATE] idle — round 3 complete: 15 vehicles
+[Prune] Removed 3 stale IDs (frame 8900)
+[Prune] Removed 3 stale IDs (frame 9100)
+[Prune] Removed 3 stale IDs (frame 9300)
+[Prune] Removed 2 stale IDs (frame 9600)
+[2026-04-16 00:27:03] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:27:03] Count complete: 15 vehicles (in=8 out=7)
+[2026-04-16 00:27:05] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:27:05] Market resolved: 15 vehicles → Under 25 wins
+[2026-04-16 00:27:06] resolveMarket tx sent: e4ec80780a2735bc685f912892051cf970c102013a85f8021f5b7b110933b5c5
+[2026-04-16 00:27:08] resolveMarket confirmed (tx: e4ec80780a2735bc685f912892051cf970c102013a85f8021f5b7b110933b5c5)
+[2026-04-16 00:27:08] Ably publish OK: market_resolved
+[Prune] Removed 2 stale IDs (frame 9800)
+[2026-04-16 00:27:10] Winnings distributed: 0x4Bcc399BA20915aFc8456E028Ed94F9a9695dfc3 (tx: fdd82c42f54decf426874c462ca6da0b0b6c36ba5500d4ed36a84283fcd2fb1e)
+[2026-04-16 00:27:10] Auto-distributed winnings (tx: fdd82c42f54decf426874c462ca6da0b0b6c36ba5500d4ed36a84283fcd2fb1e)
+[2026-04-16 00:27:11] Ably publish OK: winnings_distributed
+[2026-04-16 00:27:11] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:27:11] New threshold: 17 (avg of [20, 15])
+[2026-04-16 00:27:11] Waiting 15s before Round #4...
+[Prune] Removed 1 stale IDs (frame 9900)
+[Prune] Removed 2 stale IDs (frame 10000)
+[2026-04-16 00:27:26] Round #4 | Peace Bridge — USA/Canada Border | threshold=17
+[Prune] Removed 2 stale IDs (frame 10300)
+[2026-04-16 00:27:27] createMarket tx sent: 0553266808dec83ba6437fb341913da1f917062de0799a8e7fd809c4406358b5
+[2026-04-16 00:27:27] Market created: 0x4359930F66bBd28E7C6902354908Af26c7C33A98 (tx: 0553266808dec83ba6437fb341913da1f917062de0799a8e7fd809c4406358b5)
+[2026-04-16 00:27:28] Ably publish OK: market_created
+[2026-04-16 00:27:28] Counting vehicles for 150s...
+[STATE] betting — market=0x4359930F... bet=150s count=150s round=4
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:27:28] [StreamClient] Round 4 started on stream_server
+[Prune] Removed 3 stale IDs (frame 300)
+[Prune] Removed 1 stale IDs (frame 400)
+[Prune] Removed 2 stale IDs (frame 800)
+[Evidence] Saved evidence/1776310048_30s.jpg (110145 bytes, sha256:4d0672704a449...)
+[Prune] Removed 2 stale IDs (frame 900)
+[Prune] Removed 1 stale IDs (frame 1400)
+[Prune] Removed 1 stale IDs (frame 1500)
+[Prune] Removed 3 stale IDs (frame 1600)
+[Prune] Removed 5 stale IDs (frame 1700)
+[Evidence] Saved evidence/1776310048_60s.jpg (109501 bytes, sha256:163a078456155...)
+[Prune] Removed 3 stale IDs (frame 1800)
+[Prune] Removed 5 stale IDs (frame 1900)
+[Prune] Removed 1 stale IDs (frame 2000)
+[Prune] Removed 1 stale IDs (frame 2200)
+[Prune] Removed 4 stale IDs (frame 2400)
+[WS] Client disconnected (1 total)
+[Prune] Removed 1 stale IDs (frame 2500)
+[Prune] Removed 1 stale IDs (frame 2600)
+[Evidence] Saved evidence/1776310048_90s.jpg (107521 bytes, sha256:d033d07723554...)
+[Prune] Removed 1 stale IDs (frame 3300)
+[Prune] Removed 1 stale IDs (frame 3400)
+[Prune] Removed 2 stale IDs (frame 3500)
+[Evidence] Saved evidence/1776310048_120s.jpg (103669 bytes, sha256:81bd95ad180ad...)
+[Prune] Removed 2 stale IDs (frame 3600)
+[Prune] Removed 2 stale IDs (frame 3800)
+[STATE] counting — market=0x4359930F... duration=150s round=4
+[Evidence] Saved evidence/1776310048_150s.jpg (106435 bytes, sha256:72a1d74d9d83b...)
+[Prune] Removed 2 stale IDs (frame 5200)
+[Evidence] Saved evidence/1776310048_180s.jpg (105117 bytes, sha256:8aa0ed8b2bd67...)
+[Prune] Removed 1 stale IDs (frame 5400)
+[Prune] Removed 1 stale IDs (frame 5700)
+[Prune] Removed 2 stale IDs (frame 5800)
+[Prune] Removed 1 stale IDs (frame 5900)
+[Prune] Removed 3 stale IDs (frame 6000)
+[Evidence] Saved evidence/1776310048_210s.jpg (105728 bytes, sha256:3cbbdea93a4f5...)
+[Prune] Removed 4 stale IDs (frame 6700)
+[Prune] Removed 5 stale IDs (frame 6800)
+[Prune] Removed 3 stale IDs (frame 6900)
+[Evidence] Saved evidence/1776310048_240s.jpg (105798 bytes, sha256:c214600d3ba77...)
+[Prune] Removed 1 stale IDs (frame 7600)
+[Prune] Removed 2 stale IDs (frame 7700)
+[Evidence] Saved evidence/1776310048_270s.jpg (106406 bytes, sha256:3492b2994859a...)
+[Prune] Removed 1 stale IDs (frame 8300)
+[Prune] Removed 2 stale IDs (frame 8400)
+[Prune] Removed 1 stale IDs (frame 8500)
+[Prune] Removed 2 stale IDs (frame 8700)
+[Evidence] Saved evidence/1776310048_final.jpg (109697 bytes, sha256:ab3134ad87180...)
+[Evidence] Saved evidence/1776310048_final.jpg (109699 bytes, sha256:24a85914178ee...)
+[Evidence] Saved evidence/1776310048_final.jpg (109702 bytes, sha256:7a33878441516...)
+[Evidence] Saved evidence/1776310048_final.jpg (109893 bytes, sha256:aad9e2e9cd1c2...)
+[STATE] idle — round 4 complete: 25 vehicles
+[Prune] Removed 2 stale IDs (frame 8800)
+[Prune] Removed 2 stale IDs (frame 8900)
+[Prune] Removed 2 stale IDs (frame 9300)
+[2026-04-16 00:32:58] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:32:58] Count complete: 25 vehicles (in=13 out=12)
+[2026-04-16 00:32:59] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:32:59] Market resolved: 25 vehicles → Over 17 wins
+[2026-04-16 00:33:00] resolveMarket tx sent: 408f755ad9cbd4cb6d933cb47685360c1288b6110aadbe939e363e0b242b07a9
+[2026-04-16 00:33:02] resolveMarket confirmed (tx: 408f755ad9cbd4cb6d933cb47685360c1288b6110aadbe939e363e0b242b07a9)
+[Prune] Removed 1 stale IDs (frame 9800)
+[2026-04-16 00:33:02] Ably publish OK: market_resolved
+[2026-04-16 00:33:03] Winnings distributed: 0x4359930F66bBd28E7C6902354908Af26c7C33A98 (tx: 10ea5e1200b5b9cf893101dfe048d665d7c31374a53fde0b31b8c5cbe5bab5a9)
+[2026-04-16 00:33:03] Auto-distributed winnings (tx: 10ea5e1200b5b9cf893101dfe048d665d7c31374a53fde0b31b8c5cbe5bab5a9)
+[2026-04-16 00:33:03] Ably publish OK: winnings_distributed
+[2026-04-16 00:33:04] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:33:04] New threshold: 20 (avg of [15, 25])
+[2026-04-16 00:33:04] Waiting 15s before Round #5...
+[Prune] Removed 2 stale IDs (frame 9900)
+[Prune] Removed 6 stale IDs (frame 10100)
+[Prune] Removed 2 stale IDs (frame 10200)
+[2026-04-16 00:33:19] Round #5 | Peace Bridge — USA/Canada Border | threshold=20
+[Prune] Removed 4 stale IDs (frame 10300)
+[2026-04-16 00:33:20] createMarket tx sent: e22891e40424a58bc1687f5794c04c654cbef3969e3632e105b6d3f520776559
+[2026-04-16 00:33:22] Market created: 0x0d190dD6b368C72Ea73e7E4F16d20e4f09dB2950 (tx: e22891e40424a58bc1687f5794c04c654cbef3969e3632e105b6d3f520776559)
+[2026-04-16 00:33:23] Ably publish OK: market_created
+[2026-04-16 00:33:23] Counting vehicles for 150s...
+[STATE] betting — market=0x0d190dD6... bet=150s count=150s round=5
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:33:23] [StreamClient] Round 5 started on stream_server
+[Prune] Removed 4 stale IDs (frame 700)
+[Evidence] Saved evidence/1776310403_30s.jpg (105145 bytes, sha256:098e8bfad73ef...)
+[Prune] Removed 3 stale IDs (frame 1300)
+[Prune] Removed 3 stale IDs (frame 1400)
+[Evidence] Saved evidence/1776310403_60s.jpg (104473 bytes, sha256:e0d6895030757...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Prune] Removed 1 stale IDs (frame 1900)
+[Evidence] Saved evidence/1776310403_90s.jpg (103365 bytes, sha256:b8b226300ee59...)
+[Evidence] Saved evidence/1776310403_120s.jpg (107816 bytes, sha256:d51e2625fec38...)
+[STATE] counting — market=0x0d190dD6... duration=150s round=5
+[Evidence] Saved evidence/1776310403_150s.jpg (109470 bytes, sha256:16fcdcd671f63...)
+[Prune] Removed 2 stale IDs (frame 5000)
+[Prune] Removed 3 stale IDs (frame 5100)
+[Prune] Removed 1 stale IDs (frame 5200)
+[Evidence] Saved evidence/1776310403_180s.jpg (110069 bytes, sha256:fd7ab438151f3...)
+[Prune] Removed 1 stale IDs (frame 5300)
+[Prune] Removed 3 stale IDs (frame 5400)
+[Prune] Removed 1 stale IDs (frame 5800)
+[Prune] Removed 3 stale IDs (frame 5900)
+[Prune] Removed 1 stale IDs (frame 6000)
+[Evidence] Saved evidence/1776310403_210s.jpg (98657 bytes, sha256:873f99b8c24ed...)
+[Prune] Removed 2 stale IDs (frame 6200)
+[Prune] Removed 1 stale IDs (frame 6300)
+[Prune] Removed 2 stale IDs (frame 6400)
+[Prune] Removed 5 stale IDs (frame 6500)
+[Prune] Removed 3 stale IDs (frame 6600)
+[Prune] Removed 2 stale IDs (frame 6700)
+[Evidence] Saved evidence/1776310403_240s.jpg (96221 bytes, sha256:37c89a6e59e64...)
+[Prune] Removed 1 stale IDs (frame 7200)
+[Prune] Removed 2 stale IDs (frame 7300)
+[Prune] Removed 6 stale IDs (frame 7400)
+[Prune] Removed 1 stale IDs (frame 7500)
+[Prune] Removed 4 stale IDs (frame 7600)
+[Prune] Removed 2 stale IDs (frame 7700)
+[Evidence] Saved evidence/1776310403_270s.jpg (106120 bytes, sha256:274bf0df7672a...)
+[Prune] Removed 1 stale IDs (frame 8400)
+[Prune] Removed 3 stale IDs (frame 8500)
+[Prune] Removed 1 stale IDs (frame 8600)
+[Prune] Removed 3 stale IDs (frame 8700)
+[Evidence] Saved evidence/1776310403_final.jpg (98132 bytes, sha256:c438bd0e50045...)
+[Prune] Removed 1 stale IDs (frame 8800)
+[Evidence] Saved evidence/1776310403_final.jpg (97965 bytes, sha256:a51a8607f21fe...)
+[Evidence] Saved evidence/1776310403_final.jpg (98052 bytes, sha256:08a4d0398c504...)
+[STATE] idle — round 5 complete: 17 vehicles
+[Prune] Removed 4 stale IDs (frame 8900)
+[Prune] Removed 2 stale IDs (frame 9000)
+[2026-04-16 00:38:53] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:38:53] Count complete: 17 vehicles (in=12 out=5)
+[2026-04-16 00:38:54] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:38:54] Market resolved: 17 vehicles → Under 20 wins
+[2026-04-16 00:38:55] resolveMarket tx sent: dd8e5369a5726b9a316b41988377d0c004576029e90334ea248d00f017f4f970
+[2026-04-16 00:38:55] resolveMarket confirmed (tx: dd8e5369a5726b9a316b41988377d0c004576029e90334ea248d00f017f4f970)
+[2026-04-16 00:38:55] Ably publish OK: market_resolved
+[2026-04-16 00:38:58] Winnings distributed: 0x0d190dD6b368C72Ea73e7E4F16d20e4f09dB2950 (tx: c52425b6201677ea04565408fac60aa85a454bcb37528ef82cc4eecd39156808)
+[2026-04-16 00:38:58] Auto-distributed winnings (tx: c52425b6201677ea04565408fac60aa85a454bcb37528ef82cc4eecd39156808)
+[2026-04-16 00:38:58] Ably publish OK: winnings_distributed
+[2026-04-16 00:38:58] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:38:58] New threshold: 21 (avg of [25, 17])
+[2026-04-16 00:38:58] Waiting 15s before Round #6...
+[Prune] Removed 1 stale IDs (frame 10200)
+[2026-04-16 00:39:13] Round #6 | Peace Bridge — USA/Canada Border | threshold=21
+[Prune] Removed 2 stale IDs (frame 10300)
+[2026-04-16 00:39:14] createMarket tx sent: 9396dda991cf9b3332b903541bac4541e01c7b1154a8673ba2ddc6a748133cb7
+[2026-04-16 00:39:17] Market created: 0x242f1fC79fcDfe7B5769224129f922271f3be05A (tx: 9396dda991cf9b3332b903541bac4541e01c7b1154a8673ba2ddc6a748133cb7)
+[2026-04-16 00:39:17] Ably publish OK: market_created
+[2026-04-16 00:39:17] Counting vehicles for 150s...
+[STATE] betting — market=0x242f1fC7... bet=150s count=150s round=6
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:39:17] [StreamClient] Round 6 started on stream_server
+[Prune] Removed 3 stale IDs (frame 200)
+[Prune] Removed 2 stale IDs (frame 400)
+[Prune] Removed 1 stale IDs (frame 600)
+[Prune] Removed 1 stale IDs (frame 800)
+[Evidence] Saved evidence/1776310757_30s.jpg (104464 bytes, sha256:26f2ff452c2c2...)
+[Prune] Removed 1 stale IDs (frame 1300)
+[Prune] Removed 2 stale IDs (frame 1400)
+[Prune] Removed 1 stale IDs (frame 1500)
+[Prune] Removed 2 stale IDs (frame 1700)
+[Evidence] Saved evidence/1776310757_60s.jpg (95567 bytes, sha256:863cb89f5fe46...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Evidence] Saved evidence/1776310757_90s.jpg (105230 bytes, sha256:75d4d2e8d3f38...)
+[Prune] Removed 2 stale IDs (frame 3000)
+[Prune] Removed 1 stale IDs (frame 3100)
+[Evidence] Saved evidence/1776310757_120s.jpg (104763 bytes, sha256:ae03e99e0d804...)
+[Prune] Removed 2 stale IDs (frame 4000)
+[Prune] Removed 1 stale IDs (frame 4100)
+[STATE] counting — market=0x242f1fC7... duration=150s round=6
+[Evidence] Saved evidence/1776310757_150s.jpg (104196 bytes, sha256:f0871c713e545...)
+[Evidence] Saved evidence/1776310757_180s.jpg (108181 bytes, sha256:a5a0ecd837fcc...)
+[Evidence] Saved evidence/1776310757_210s.jpg (106556 bytes, sha256:8fe9cda7a7a3b...)
+[Prune] Removed 3 stale IDs (frame 6600)
+[Prune] Removed 1 stale IDs (frame 6800)
+[Evidence] Saved evidence/1776310757_240s.jpg (106996 bytes, sha256:6db91edd9c704...)
+[Prune] Removed 1 stale IDs (frame 7400)
+[Prune] Removed 1 stale IDs (frame 7500)
+[Prune] Removed 1 stale IDs (frame 7900)
+[Evidence] Saved evidence/1776310757_270s.jpg (98980 bytes, sha256:0bc25e87c2541...)
+[Prune] Removed 3 stale IDs (frame 8000)
+[Prune] Removed 1 stale IDs (frame 8400)
+[Prune] Removed 3 stale IDs (frame 8600)
+[Evidence] Saved evidence/1776310757_final.jpg (91848 bytes, sha256:299d94accac55...)
+[Evidence] Saved evidence/1776310757_final.jpg (91566 bytes, sha256:cd713f5085d85...)
+[Evidence] Saved evidence/1776310757_final.jpg (91233 bytes, sha256:7ecb224253795...)
+[STATE] idle — round 6 complete: 12 vehicles
+[Prune] Removed 3 stale IDs (frame 8800)
+[Prune] Removed 1 stale IDs (frame 8900)
+[Prune] Removed 1 stale IDs (frame 9000)
+[Prune] Removed 5 stale IDs (frame 9100)
+[Prune] Removed 1 stale IDs (frame 9200)
+[Prune] Removed 1 stale IDs (frame 9300)
+[Prune] Removed 1 stale IDs (frame 9400)
+[Prune] Removed 1 stale IDs (frame 9600)
+[2026-04-16 00:44:47] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:44:47] Count complete: 12 vehicles (in=5 out=7)
+[2026-04-16 00:44:49] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:44:49] Market resolved: 12 vehicles → Under 21 wins
+[2026-04-16 00:44:49] resolveMarket tx sent: b2cc3ac2a795a9f4283ba73ec1ffa7f09b1eb5201a79e955733bb0d045c9a4be
+[2026-04-16 00:44:49] resolveMarket confirmed (tx: b2cc3ac2a795a9f4283ba73ec1ffa7f09b1eb5201a79e955733bb0d045c9a4be)
+[2026-04-16 00:44:50] Ably publish OK: market_resolved
+[2026-04-16 00:44:52] Winnings distributed: 0x242f1fC79fcDfe7B5769224129f922271f3be05A (tx: 9da7bfa6b1a557b7a2409bbaf5e3647e9969353fe97fb42138ed01287b7f2a99)
+[2026-04-16 00:44:52] Auto-distributed winnings (tx: 9da7bfa6b1a557b7a2409bbaf5e3647e9969353fe97fb42138ed01287b7f2a99)
+[2026-04-16 00:44:53] Ably publish OK: winnings_distributed
+[2026-04-16 00:44:53] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:44:53] New threshold: 14 (avg of [17, 12])
+[2026-04-16 00:44:53] Waiting 15s before Round #7...
+[Prune] Removed 1 stale IDs (frame 9900)
+[Prune] Removed 2 stale IDs (frame 10000)
+[Prune] Removed 3 stale IDs (frame 10100)
+[Prune] Removed 10 stale IDs (frame 10200)
+[2026-04-16 00:45:08] Round #7 | Peace Bridge — USA/Canada Border | threshold=14
+[Prune] Removed 8 stale IDs (frame 10300)
+[2026-04-16 00:45:09] createMarket tx sent: ab8de16e647da369f3985995177f0befeb32f1e8a6ce0e73a4d6416ed1b32230
+[2026-04-16 00:45:09] Market created: 0x4D6CcAc768e28Db401dfF3D4D7F9C6c6B42584Af (tx: ab8de16e647da369f3985995177f0befeb32f1e8a6ce0e73a4d6416ed1b32230)
+[2026-04-16 00:45:10] Ably publish OK: market_created
+[2026-04-16 00:45:10] Counting vehicles for 150s...
+[STATE] betting — market=0x4D6CcAc7... bet=150s count=150s round=7
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:45:10] [StreamClient] Round 7 started on stream_server
+[Prune] Removed 5 stale IDs (frame 200)
+[Prune] Removed 3 stale IDs (frame 300)
+[Prune] Removed 2 stale IDs (frame 400)
+[Prune] Removed 1 stale IDs (frame 500)
+[Evidence] Saved evidence/1776311110_30s.jpg (97556 bytes, sha256:86ea789758f68...)
+[Prune] Removed 2 stale IDs (frame 1300)
+[Prune] Removed 3 stale IDs (frame 1600)
+[Evidence] Saved evidence/1776311110_60s.jpg (97040 bytes, sha256:e4316b5e0c33e...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Prune] Removed 3 stale IDs (frame 1900)
+[Prune] Removed 3 stale IDs (frame 2000)
+[Prune] Removed 1 stale IDs (frame 2100)
+[Evidence] Saved evidence/1776311110_90s.jpg (99118 bytes, sha256:d4d2cf7ff22c2...)
+[Prune] Removed 1 stale IDs (frame 2700)
+[Prune] Removed 2 stale IDs (frame 2800)
+[Prune] Removed 2 stale IDs (frame 2900)
+[Prune] Removed 2 stale IDs (frame 3000)
+[Prune] Removed 4 stale IDs (frame 3100)
+[Prune] Removed 1 stale IDs (frame 3300)
+[Prune] Removed 4 stale IDs (frame 3400)
+[Prune] Removed 1 stale IDs (frame 3500)
+[Evidence] Saved evidence/1776311110_120s.jpg (89404 bytes, sha256:0460b50330054...)
+[Prune] Removed 2 stale IDs (frame 3700)
+[Prune] Removed 2 stale IDs (frame 3800)
+[Prune] Removed 4 stale IDs (frame 4100)
+[STATE] counting — market=0x4D6CcAc7... duration=150s round=7
+[Evidence] Saved evidence/1776311110_150s.jpg (95161 bytes, sha256:086e2b0e0f881...)
+[Prune] Removed 1 stale IDs (frame 4900)
+[Prune] Removed 1 stale IDs (frame 5000)
+[Prune] Removed 4 stale IDs (frame 5100)
+[Evidence] Saved evidence/1776311110_180s.jpg (88179 bytes, sha256:93ed7248a77fc...)
+[Prune] Removed 1 stale IDs (frame 5400)
+[Prune] Removed 2 stale IDs (frame 5500)
+[Prune] Removed 1 stale IDs (frame 5700)
+[Prune] Removed 1 stale IDs (frame 5800)
+[Evidence] Saved evidence/1776311110_210s.jpg (83394 bytes, sha256:c79f3496aefdf...)
+[Prune] Removed 1 stale IDs (frame 6300)
+[Prune] Removed 1 stale IDs (frame 6700)
+[Prune] Removed 1 stale IDs (frame 6800)
+[Evidence] Saved evidence/1776311110_240s.jpg (83032 bytes, sha256:af0631e1874f2...)
+[Prune] Removed 1 stale IDs (frame 7100)
+[Prune] Removed 1 stale IDs (frame 7200)
+[Prune] Removed 1 stale IDs (frame 7300)
+[Prune] Removed 2 stale IDs (frame 7400)
+[Prune] Removed 2 stale IDs (frame 7500)
+[Prune] Removed 1 stale IDs (frame 7600)
+[Prune] Removed 6 stale IDs (frame 7700)
+[Evidence] Saved evidence/1776311110_270s.jpg (82817 bytes, sha256:407909c3c9088...)
+[Prune] Removed 3 stale IDs (frame 8300)
+[Prune] Removed 2 stale IDs (frame 8400)
+[Prune] Removed 3 stale IDs (frame 8600)
+[Prune] Removed 1 stale IDs (frame 8700)
+[Evidence] Saved evidence/1776311110_final.jpg (85293 bytes, sha256:636df872978ef...)
+[Evidence] Saved evidence/1776311110_final.jpg (85172 bytes, sha256:a6438622e3f95...)
+[Evidence] Saved evidence/1776311110_final.jpg (85125 bytes, sha256:dbcd4a7117e64...)
+[Evidence] Saved evidence/1776311110_final.jpg (85147 bytes, sha256:682e133e6a79a...)
+[STATE] idle — round 7 complete: 18 vehicles
+[Prune] Removed 2 stale IDs (frame 8800)
+[Prune] Removed 3 stale IDs (frame 8900)
+[Prune] Removed 3 stale IDs (frame 9000)
+[Prune] Removed 2 stale IDs (frame 9100)
+[Prune] Removed 6 stale IDs (frame 9200)
+[Prune] Removed 2 stale IDs (frame 9400)
+[Prune] Removed 1 stale IDs (frame 9600)
+[2026-04-16 00:50:40] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:50:40] Count complete: 18 vehicles (in=14 out=4)
+[2026-04-16 00:50:41] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:50:41] Market resolved: 18 vehicles → Over 14 wins
+[2026-04-16 00:50:42] resolveMarket tx sent: d6d70c65251bf519882202d912c2478d6f774cb870a7da5f8ac06989d0781fba
+[2026-04-16 00:50:44] resolveMarket confirmed (tx: d6d70c65251bf519882202d912c2478d6f774cb870a7da5f8ac06989d0781fba)
+[2026-04-16 00:50:44] Ably publish OK: market_resolved
+[2026-04-16 00:50:45] Winnings distributed: 0x4D6CcAc768e28Db401dfF3D4D7F9C6c6B42584Af (tx: 4c44065c4f9321848b7a823087ef95cb4eafb576a1717243a318dcdc4ab581b3)
+[2026-04-16 00:50:45] Auto-distributed winnings (tx: 4c44065c4f9321848b7a823087ef95cb4eafb576a1717243a318dcdc4ab581b3)
+[2026-04-16 00:50:45] Ably publish OK: winnings_distributed
+[2026-04-16 00:50:45] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:50:45] New threshold: 15 (avg of [12, 18])
+[2026-04-16 00:50:45] Waiting 15s before Round #8...
+[Prune] Removed 1 stale IDs (frame 9800)
+[Prune] Removed 2 stale IDs (frame 10000)
+[Prune] Removed 1 stale IDs (frame 10200)
+[2026-04-16 00:51:00] Round #8 | Peace Bridge — USA/Canada Border | threshold=15
+[2026-04-16 00:51:02] createMarket tx sent: edaf6a8f158cc5b9d10c7e51dd79061b2f386993061e42df6690c5897f2e36cc
+[2026-04-16 00:51:04] Market created: 0x2b3C7F10359f9468BC7f03ad6bE60Cc336772eec (tx: edaf6a8f158cc5b9d10c7e51dd79061b2f386993061e42df6690c5897f2e36cc)
+[2026-04-16 00:51:05] Ably publish OK: market_created
+[2026-04-16 00:51:05] Counting vehicles for 150s...
+[STATE] betting — market=0x2b3C7F10... bet=150s count=150s round=8
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:51:05] [StreamClient] Round 8 started on stream_server
+[Prune] Removed 4 stale IDs (frame 300)
+[Prune] Removed 1 stale IDs (frame 400)
+[Prune] Removed 2 stale IDs (frame 700)
+[Evidence] Saved evidence/1776311465_30s.jpg (82859 bytes, sha256:6aeb2afb461e5...)
+[Prune] Removed 1 stale IDs (frame 1600)
+[Evidence] Saved evidence/1776311465_60s.jpg (76276 bytes, sha256:cd72ebb2aa7e6...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Prune] Removed 3 stale IDs (frame 1900)
+[Prune] Removed 2 stale IDs (frame 2100)
+[Prune] Removed 1 stale IDs (frame 2200)
+[Evidence] Saved evidence/1776311465_90s.jpg (77390 bytes, sha256:5252c18deab78...)
+[Prune] Removed 1 stale IDs (frame 3000)
+[Prune] Removed 1 stale IDs (frame 3100)
+[Evidence] Saved evidence/1776311465_120s.jpg (72452 bytes, sha256:1c34c1747c782...)
+[Prune] Removed 2 stale IDs (frame 3700)
+[Prune] Removed 1 stale IDs (frame 3800)
+[Prune] Removed 1 stale IDs (frame 3900)
+[Prune] Removed 1 stale IDs (frame 4000)
+[STATE] counting — market=0x2b3C7F10... duration=150s round=8
+[Evidence] Saved evidence/1776311465_150s.jpg (73706 bytes, sha256:da796582a2fd2...)
+[Prune] Removed 1 stale IDs (frame 4600)
+[Prune] Removed 1 stale IDs (frame 4700)
+[Prune] Removed 2 stale IDs (frame 4800)
+[Prune] Removed 2 stale IDs (frame 4900)
+[Evidence] Saved evidence/1776311465_180s.jpg (79754 bytes, sha256:9af3f275bf8f3...)
+[Evidence] Saved evidence/1776311465_210s.jpg (80943 bytes, sha256:ed8559898d114...)
+[Evidence] Saved evidence/1776311465_240s.jpg (75156 bytes, sha256:0405ac4f46de8...)
+[Prune] Removed 3 stale IDs (frame 7100)
+[Evidence] Saved evidence/1776311465_270s.jpg (71045 bytes, sha256:fde7f82b4f4d6...)
+[Evidence] Saved evidence/1776311465_final.jpg (76241 bytes, sha256:ac91480e4058e...)
+[Evidence] Saved evidence/1776311465_final.jpg (76214 bytes, sha256:3ddc49177a257...)
+[Evidence] Saved evidence/1776311465_final.jpg (76220 bytes, sha256:6f9859ecef3f6...)
+[Evidence] Saved evidence/1776311465_final.jpg (76185 bytes, sha256:a1b62e7e41dfc...)
+[STATE] idle — round 8 complete: 3 vehicles
+[Prune] Removed 1 stale IDs (frame 9100)
+[Prune] Removed 2 stale IDs (frame 9200)
+[2026-04-16 00:56:35] No round_complete via WS — reading result.json fallback
+[2026-04-16 00:56:35] Count complete: 3 vehicles (in=2 out=1)
+[Prune] Removed 2 stale IDs (frame 9700)
+[2026-04-16 00:56:37] Pool check OK: total=0.0100 ETH, under=0.0050, over=0.0050
+[2026-04-16 00:56:37] Market resolved: 3 vehicles → Under 15 wins
+[2026-04-16 00:56:40] resolveMarket tx sent: f884a984958004ef309a3859d94a02cd865df0461685f8032b2daaaabe4f4832
+[2026-04-16 00:56:41] resolveMarket confirmed (tx: f884a984958004ef309a3859d94a02cd865df0461685f8032b2daaaabe4f4832)
+[2026-04-16 00:56:41] Ably publish OK: market_resolved
+[2026-04-16 00:56:45] Winnings distributed: 0x2b3C7F10359f9468BC7f03ad6bE60Cc336772eec (tx: ebce2a123a3b91cfe62222fac7875c6f9c86d57c592d69998a5c30a69ee744bf)
+[2026-04-16 00:56:45] Auto-distributed winnings (tx: ebce2a123a3b91cfe62222fac7875c6f9c86d57c592d69998a5c30a69ee744bf)
+[2026-04-16 00:56:45] Ably publish OK: winnings_distributed
+[2026-04-16 00:56:45] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 00:56:45] New threshold: 10 (avg of [18, 3])
+[2026-04-16 00:56:45] Waiting 15s before Round #9...
+[Prune] Removed 2 stale IDs (frame 10000)
+[Prune] Removed 3 stale IDs (frame 10100)
+[2026-04-16 00:57:00] Round #9 | Peace Bridge — USA/Canada Border | threshold=10
+[2026-04-16 00:57:03] createMarket tx sent: d0b7d4ec3c1d40460ebfeed58387d5577f5de9cae9fb82a8524756c37990806f
+[2026-04-16 00:57:03] Market created: 0xfB91A0D1715e578874bE20f7E6541078a4f5e122 (tx: d0b7d4ec3c1d40460ebfeed58387d5577f5de9cae9fb82a8524756c37990806f)
+[2026-04-16 00:57:04] Ably publish OK: market_created
+[2026-04-16 00:57:04] Counting vehicles for 150s...
+[STATE] betting — market=0xfB91A0D1... bet=150s count=150s round=9
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 00:57:04] [StreamClient] Round 9 started on stream_server
+[Evidence] Saved evidence/1776311824_30s.jpg (81936 bytes, sha256:58b90962cd4d7...)
+[Prune] Removed 1 stale IDs (frame 1300)
+[Prune] Removed 1 stale IDs (frame 1400)
+[Evidence] Saved evidence/1776311824_60s.jpg (86818 bytes, sha256:039c56241638e...)
+[Prune] Removed 2 stale IDs (frame 1800)
+[Prune] Removed 2 stale IDs (frame 2100)
+[WS] Client connected (2 total)
+[Evidence] Saved evidence/1776311824_90s.jpg (83635 bytes, sha256:b8316d3c0d331...)
+[Prune] Removed 3 stale IDs (frame 3200)
+[Prune] Removed 3 stale IDs (frame 3300)
+[Evidence] Saved evidence/1776311824_120s.jpg (75528 bytes, sha256:46bb41e71b033...)
+[Prune] Removed 5 stale IDs (frame 4100)
+[Prune] Removed 2 stale IDs (frame 4300)
+[Prune] Removed 2 stale IDs (frame 4400)
+[STATE] counting — market=0xfB91A0D1... duration=150s round=9
+[Evidence] Saved evidence/1776311824_150s.jpg (85706 bytes, sha256:9205ca1a3ff44...)
+[Prune] Removed 1 stale IDs (frame 4500)
+[Prune] Removed 1 stale IDs (frame 4700)
+[Prune] Removed 1 stale IDs (frame 4800)
+[Evidence] Saved evidence/1776311824_180s.jpg (86340 bytes, sha256:a419c8d7e705a...)
+[Prune] Removed 1 stale IDs (frame 5300)
+[Prune] Removed 5 stale IDs (frame 5400)
+[Prune] Removed 2 stale IDs (frame 5800)
+[Prune] Removed 1 stale IDs (frame 5900)
+[Evidence] Saved evidence/1776311824_210s.jpg (83820 bytes, sha256:c9f5b3b6a17fd...)
+[Prune] Removed 5 stale IDs (frame 6500)
+[Prune] Removed 1 stale IDs (frame 6700)
+[Evidence] Saved evidence/1776311824_240s.jpg (74062 bytes, sha256:bb1e822925940...)
+[Prune] Removed 2 stale IDs (frame 7600)
+[Evidence] Saved evidence/1776311824_270s.jpg (73573 bytes, sha256:84c4967c3f529...)
+[Prune] Removed 3 stale IDs (frame 8100)
+[Prune] Removed 2 stale IDs (frame 8300)
+[Evidence] Saved evidence/1776311824_final.jpg (85022 bytes, sha256:72ea84effd025...)
+[Evidence] Saved evidence/1776311824_final.jpg (85027 bytes, sha256:51a4ca1182fe7...)
+[Evidence] Saved evidence/1776311824_final.jpg (85028 bytes, sha256:ab5277d584ef0...)
+[Evidence] Saved evidence/1776311824_final.jpg (85023 bytes, sha256:093de1498b6cc...)
+[STATE] idle — round 9 complete: 7 vehicles
+[Prune] Removed 1 stale IDs (frame 9000)
+[Prune] Removed 1 stale IDs (frame 9200)
+[Prune] Removed 1 stale IDs (frame 9600)
+[2026-04-16 01:02:34] No round_complete via WS — reading result.json fallback
+[2026-04-16 01:02:34] Count complete: 7 vehicles (in=6 out=1)
+[2026-04-16 01:02:36] Pool check OK: total=0.0110 ETH, under=0.0060, over=0.0050
+[2026-04-16 01:02:36] Market resolved: 7 vehicles → Under 10 wins
+[2026-04-16 01:02:37] resolveMarket tx sent: a3e1a7a7a6bb2935c3e6abf283cfc63e937d96686897071fe00df6abe0f43669
+[2026-04-16 01:02:37] resolveMarket confirmed (tx: a3e1a7a7a6bb2935c3e6abf283cfc63e937d96686897071fe00df6abe0f43669)
+[2026-04-16 01:02:37] Ably publish OK: market_resolved
+[Prune] Removed 1 stale IDs (frame 9700)
+[2026-04-16 01:02:40] Winnings distributed: 0xfB91A0D1715e578874bE20f7E6541078a4f5e122 (tx: 62aef9d0019d7d13fbbbea94a98b9a2912009da275d94324ec776aa7f5cda14a)
+[2026-04-16 01:02:40] Auto-distributed winnings (tx: 62aef9d0019d7d13fbbbea94a98b9a2912009da275d94324ec776aa7f5cda14a)
+[2026-04-16 01:02:40] Ably publish OK: winnings_distributed
+[2026-04-16 01:02:40] Ledger POST failed (non-fatal): HTTP Error 400: Bad Request
+[2026-04-16 01:02:40] New threshold: 5 (avg of [3, 7])
+[2026-04-16 01:02:40] Waiting 15s before Round #10...
+[Prune] Removed 3 stale IDs (frame 9800)
+[Prune] Removed 4 stale IDs (frame 9900)
+[WS] Client connected (3 total)
+[2026-04-16 01:02:55] Round #10 | Peace Bridge — USA/Canada Border | threshold=5
+[2026-04-16 01:02:56] createMarket tx sent: ebc7ae35157a1ed2b7fa13174d607442f1dc36fc76748d6048d6a8254c208531
+[2026-04-16 01:02:59] Market created: 0x435117C9102f83363a0A7CD17004B3773C89c3d4 (tx: ebc7ae35157a1ed2b7fa13174d607442f1dc36fc76748d6048d6a8254c208531)
+[2026-04-16 01:02:59] Ably publish OK: market_created
+[2026-04-16 01:02:59] Counting vehicles for 150s...
+[STATE] betting — market=0x435117C9... bet=150s count=150s round=10
+[LineZone] (307,432) -> (960,432)
+[Counter] Line: (579, 10) -> (701, 710)
+[2026-04-16 01:02:59] [StreamClient] Round 10 started on stream_server
+[Prune] Removed 1 stale IDs (frame 300)
+[Prune] Removed 1 stale IDs (frame 400)
+[Evidence] Saved evidence/1776312179_30s.jpg (82335 bytes, sha256:573efb5e7c7a3...)

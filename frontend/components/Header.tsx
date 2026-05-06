@@ -73,17 +73,6 @@ export default function Header() {
             MARKETS
           </a>
 
-          {/* TILES — highlighted with gold color */}
-          <Link
-            href="/tiles"
-            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#ffd700", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffe44d")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffd700")}
-          >
-            TILES S1
-          </Link>
-
           <Link
             href="/series2"
             className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"

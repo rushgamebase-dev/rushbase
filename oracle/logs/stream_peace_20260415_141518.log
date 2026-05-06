@@ -1,0 +1,19 @@
+[Camera] Confidence override: 0.08
+[Camera] Peace Bridge — USA/Canada Border (Peace Bridge Authority) — YOUTUBE
+[Camera] Line zones: 1 (canonical sv.LineZone, threshold=2)
+[Startup] Killed stale process 42735 on port 9000
+[Startup] Killed stale process 385118 on port 9000
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=DnUFAShZKus
+  Camera: peace-bridge
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] OK: https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1776294922/ei/...
+
+[Stream] Probing stream...

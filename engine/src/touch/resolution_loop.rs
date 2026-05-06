@@ -72,37 +72,40 @@ impl ResolutionLoop {
                     // an inconsistent row, which we log loudly and
                     // refuse to broadcast (the client would fail to
                     // verify and end up confused).
-                    let reveal = (
-                        outcome.bet.revealed_seed.as_deref().map(hex::encode),
-                        outcome.bet.path_points_hash.clone(),
-                        outcome.bet.path_config_version.clone(),
+                    // Post-VRF era: `revealed_seed` is always NULL
+                    // (the resolver uses the global arena_index path,
+                    // not a per-bet seed). `path_points_hash` is set
+                    // for arena_index resolutions. Broadcast whatever
+                    // we have; clients drop missing fields gracefully.
+                    self.broadcaster.broadcast_to_channel(
+                        &format!("bets:{}", outcome.bet.user_id),
+                        ServerMessage::BetResolved {
+                            bet_id: outcome.bet.id,
+                            status: outcome.bet.status.as_str().to_string(),
+                            touched_at: outcome
+                                .bet
+                                .touched_at
+                                .map(|t| t.timestamp_millis()),
+                            realized_pnl_wei: outcome.realized_pnl_wei.to_string(),
+                            revealed_seed_hex: outcome
+                                .bet
+                                .revealed_seed
+                                .as_deref()
+                                .map(hex::encode)
+                                .unwrap_or_default(),
+                            path_points_hash: outcome
+                                .bet
+                                .path_points_hash
+                                .clone()
+                                .unwrap_or_default(),
+                            path_config_version: outcome
+                                .bet
+                                .path_config_version
+                                .clone()
+                                .unwrap_or_default(),
+                            path_regime: outcome.bet.path_regime.clone(),
+                        },
                     );
-                    match reveal {
-                        (Some(seed_hex), Some(path_hash), Some(cfg_ver)) => {
-                            self.broadcaster.broadcast_to_channel(
-                                &format!("bets:{}", outcome.bet.user_id),
-                                ServerMessage::BetResolved {
-                                    bet_id: outcome.bet.id,
-                                    status: outcome.bet.status.as_str().to_string(),
-                                    touched_at: outcome
-                                        .bet
-                                        .touched_at
-                                        .map(|t| t.timestamp_millis()),
-                                    realized_pnl_wei: outcome.realized_pnl_wei.to_string(),
-                                    revealed_seed_hex: seed_hex,
-                                    path_points_hash: path_hash,
-                                    path_config_version: cfg_ver,
-                                    path_regime: outcome.bet.path_regime.clone(),
-                                },
-                            );
-                        }
-                        _ => {
-                            tracing::error!(
-                                bet = %outcome.bet.id,
-                                "Resolved bet missing reveal columns — VRF row inconsistent"
-                            );
-                        }
-                    }
                     record(
                         self.engine.bet_repo().pool(),
                         Some(outcome.bet.user_id),

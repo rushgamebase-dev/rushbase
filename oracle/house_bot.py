@@ -83,16 +83,16 @@ RPC_URL = os.environ.get("RPC_URL", "https://base-mainnet.core.chainstack.com/97
 FACTORY = os.environ.get("FACTORY_ADDRESS", "0x5b04F3DFaE780A7e109066E754d27f491Af55Af9")
 ABLY_KEY = os.environ.get("ABLY_API_KEY", "")
 
-# 0.01 ETH per side — base visibility seed
-BET_ETH = "0.01"
-BET_ETH_WEI = "10000000000000000"
+# 0.001 ETH per side — base visibility seed
+BET_ETH = "0.001"
+BET_ETH_WEI = "1000000000000000"
 POLL_INTERVAL = 2
 
-# Reactive matching: when real players create pool imbalance, house bets on
-# the smaller side to keep odds sane. Bounded per-round to cap losses.
-REACTIVE_IMBALANCE_THRESHOLD = 10**16        # 0.01 ETH — trigger when |pool0-pool1| above this
-REACTIVE_CAP_WEI = 5 * 10**16                # 0.05 ETH — max reactive spend per market
-REACTIVE_MIN_WEI = 2 * 10**15                # 0.002 ETH — don't bet below min
+# Reactive matching DISABLED — cap=0 short-circuits react_to_imbalance.
+# Re-enable by raising REACTIVE_CAP_WEI when treasury is healthier.
+REACTIVE_IMBALANCE_THRESHOLD = 10**16
+REACTIVE_CAP_WEI = 0
+REACTIVE_MIN_WEI = 2 * 10**15
 CHAT_URL = "https://www.rushgame.vip/api/chat/messages"
 
 if not HOUSE_KEY:
@@ -159,16 +159,77 @@ def publish_bet(side, tx_hash, amount_eth=float(BET_ETH)):
         pass
 
 def get_active_markets():
-    r = subprocess.run(
-        ["cast", "call", FACTORY, "getActiveMarkets()(address[])", "--rpc-url", RPC_URL],
-        capture_output=True, text=True, timeout=15,
-    )
-    if r.returncode != 0:
-        return []
-    raw = r.stdout.strip().strip("[]")
-    if not raw:
-        return []
-    return [a.strip() for a in raw.split(",") if a.strip()]
+    """
+    Mirrors the frontend fix from 59ce935 — factory.getActiveMarkets() iterates
+    every market ever created and now exceeds the 50M gas allowance on most
+    RPC providers. Bootstrap from MarketCreated logs in the last ~500 blocks
+    (~16 min on Base) instead, then filter by on-chain state.
+    """
+    market_created_topic = "0x" + subprocess.run(
+        ["cast", "keccak", "MarketCreated(uint256,address,string,uint256,bool)"],
+        capture_output=True, text=True, timeout=5,
+    ).stdout.strip().removeprefix("0x")
+
+    for rpc in RPCS:
+        try:
+            head_r = subprocess.run(
+                ["cast", "block-number", "--rpc-url", rpc],
+                capture_output=True, text=True, timeout=10,
+            )
+            if head_r.returncode != 0:
+                continue
+            head = int(head_r.stdout.strip())
+            from_block = max(0, head - 500)
+
+            logs_r = subprocess.run(
+                ["cast", "logs", "--from-block", str(from_block),
+                 "--to-block", str(head), "--address", FACTORY,
+                 market_created_topic, "--rpc-url", rpc, "--json"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if logs_r.returncode != 0:
+                continue
+
+            import json as _json
+            try:
+                events = _json.loads(logs_r.stdout or "[]")
+            except _json.JSONDecodeError:
+                continue
+
+            # MarketCreated(roundId, market, ...): market is the 2nd indexed topic.
+            candidates = []
+            for ev in events:
+                topics = ev.get("topics", [])
+                if len(topics) < 3:
+                    continue
+                # topic[2] = bytes32-padded address
+                addr = "0x" + topics[2][-40:]
+                candidates.append(addr)
+
+            # Walk newest-first; return only markets that are not Resolved/Cancelled
+            active = []
+            for addr in reversed(candidates):
+                state_r = subprocess.run(
+                    ["cast", "call", addr, "state()(uint8)", "--rpc-url", rpc],
+                    capture_output=True, text=True, timeout=10,
+                )
+                if state_r.returncode != 0:
+                    continue
+                try:
+                    state_int = int(state_r.stdout.strip().split()[0])
+                except (ValueError, IndexError):
+                    continue
+                # 0 = Pending, 1 = Locked, 2 = Resolved, 3 = Cancelled
+                if state_int in (0, 1):
+                    active.append(addr)
+            return active
+        except subprocess.TimeoutExpired:
+            log.warning("  RPC %s timeout on getActiveMarkets fallback", rpc[:25])
+            continue
+        except Exception as exc:
+            log.warning("  RPC %s failed on getActiveMarkets fallback: %s", rpc[:25], str(exc)[:120])
+            continue
+    return []
 
 def read_pool(market, side):
     for rpc in RPCS:

@@ -12,6 +12,9 @@ export const metadata = {
     title: "Rush",
     statusBarStyle: "black-translucent" as const,
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",

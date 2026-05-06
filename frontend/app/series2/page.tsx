@@ -1136,13 +1136,6 @@ function S1ProofLink() {
           >
             Verify S1 on Basescan <ExternalLink size={11} />
           </a>
-          <a
-            href="/tiles"
-            className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
-            style={{ color: "#00ff88", fontFamily: "monospace" }}
-          >
-            View Series 1 Tiles →
-          </a>
         </div>
       </div>
     </section>

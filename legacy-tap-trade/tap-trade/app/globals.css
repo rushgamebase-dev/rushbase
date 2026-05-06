@@ -1,0 +1,310 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-text-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-light rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary-500/30;
+  }
+
+  /* Input number spinner removal */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500;
+  }
+
+  .btn-long {
+    @apply btn bg-long text-white hover:bg-long-dark focus:ring-long active:scale-95 shadow-glow;
+  }
+
+  .btn-short {
+    @apply btn bg-short text-white hover:bg-short-dark focus:ring-short active:scale-95 shadow-glow-red;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary hover:bg-background-elevated hover:text-text-primary;
+  }
+
+  .btn-outline {
+    @apply btn border border-border bg-transparent text-text-primary hover:bg-background-elevated;
+  }
+
+  /* Card variants */
+  .card {
+    @apply rounded-2xl bg-background-card border border-border p-4;
+  }
+
+  .card-elevated {
+    @apply card bg-background-elevated shadow-card;
+  }
+
+  /* Input styling */
+  .input {
+    @apply w-full rounded-xl bg-background-secondary border border-border px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+  }
+
+  /* Badge styling */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-long {
+    @apply badge bg-long-muted text-long;
+  }
+
+  .badge-short {
+    @apply badge bg-short-muted text-short;
+  }
+
+  /* Trading specific */
+  .price-display {
+    @apply font-mono text-2xl font-bold tracking-tight;
+  }
+
+  .pnl-positive {
+    @apply text-long font-semibold;
+  }
+
+  .pnl-negative {
+    @apply text-short font-semibold;
+  }
+
+  /* Tap button specific */
+  .tap-button {
+    @apply relative overflow-hidden rounded-3xl font-bold text-2xl py-8 px-12 transition-all duration-150 active:scale-95;
+  }
+
+  .tap-button::before {
+    content: "";
+    @apply absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-150;
+  }
+
+  .tap-button:active::before {
+    @apply opacity-100;
+  }
+
+  /* Streak fire effect */
+  .streak-fire {
+    @apply inline-block animate-bounce-subtle;
+  }
+
+  /* Glass morphism */
+  .glass {
+    @apply bg-background-card/80 backdrop-blur-md border border-border/50;
+  }
+
+  /* Leverage selector */
+  .leverage-option {
+    @apply px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer;
+  }
+
+  .leverage-option-active {
+    @apply leverage-option bg-primary-500 text-white;
+  }
+
+  .leverage-option-inactive {
+    @apply leverage-option bg-background-secondary text-text-secondary hover:bg-background-elevated hover:text-text-primary;
+  }
+}
+
+@layer utilities {
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-accent-purple;
+  }
+
+  /* Neon text effects */
+  .text-neon-pink {
+    text-shadow: 0 0 10px rgba(236, 72, 153, 0.5), 0 0 20px rgba(236, 72, 153, 0.3);
+  }
+
+  .text-neon-purple {
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.3);
+  }
+
+  .text-neon-cyan {
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5), 0 0 20px rgba(34, 211, 238, 0.3);
+  }
+
+  .text-neon-green {
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.5), 0 0 20px rgba(74, 222, 128, 0.3);
+  }
+
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Animate on scroll */
+  .animate-on-scroll {
+    @apply opacity-0 translate-y-4 transition-all duration-500;
+  }
+
+  .animate-on-scroll.visible {
+    @apply opacity-100 translate-y-0;
+  }
+
+  /* Glow effects */
+  .glow-sm {
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  .glow-md {
+    box-shadow: 0 0 20px currentColor;
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 30px currentColor;
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+  }
+
+  /* Pulsing animations */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Slow spin for effects */
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+}
+
+/* Custom keyframes */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 25px currentColor;
+    opacity: 0.8;
+  }
+}
+
+/* Slider thumb styling */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.7);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Game-specific styles */
+.game-container {
+  background: linear-gradient(135deg, #0d0a12 0%, #1a0f24 50%, #0d0a12 100%);
+}
+
+/* Touch-friendly tap targets */
+@media (hover: none) and (pointer: coarse) {
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

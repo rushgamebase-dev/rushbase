@@ -1,0 +1,289 @@
+[Launcher] Loaded .env from /home/lumen/.gemini/antigravity/scratch/rush/.env
+[Launcher] Cleaning previous instances (preserving named tunnel)...
+═══════════════════════════════════════════════════
+  Rush Oracle Launcher
+  WebSocket port: 9000
+  Public hostname: wss://oracle.rushgame.vip (named tunnel)
+═══════════════════════════════════════════════════
+[Launcher] Named tunnel cloudflared is up — WS will be reachable at oracle.rushgame.vip
+[Launcher] Starting persistent stream server...
+[Launcher] Stream server PID: 3670688 (camera: midway-airport-chicago, port: 9000)
+[Launcher] Waiting for stream server to be ready...
+[Camera] Line from config: 0.05,0.75,0.95,0.75
+[Camera] Midway Airport — Chicago 4K (nova import) — YOUTUBE
+[Camera] Classes override: [4] (airplane)
+
+=======================================================
+  SinalBet Live Oracle Server (v4 — Persistent)
+  WebSocket: ws://0.0.0.0:9000
+  Stream: https://www.youtube.com/watch?v=67BCsiW-1Io
+  Camera: midway-airport-chicago
+  Model: yolo12s.pt
+  Mode: persistent (rounds via WS control)
+  Target FPS: 8
+=======================================================
+
+[yt-dlp] OK: https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1776470859/ei/...
+
+[Stream] Probing stream...
+[Stream] 1280x720 @ 30.0fps
+[Stream] ffmpeg spawned (PID 3671255)
+[STATE] idle — waiting for round
+[Stream] Throttle target: 30.0 fps
+[WS] Client connected (1 total)
+[WS] Client connected (2 total)
+[WS] Client connected (3 total)
+[WS] Client connected (4 total)
+[WS] Client connected (5 total)
+[WS] Client connected (6 total)
+opening handshake failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 356, in conn_handler
+    await connection.handshake(
+    ...<3 lines>...
+    )
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 142, in handshake
+    async with self.send_context(expected_state=CONNECTING):
+               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/contextlib.py", line 214, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 957, in send_context
+    raise self.protocol.close_exc from original_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[WS] Client disconnected (5 total)
+[Launcher] Stream server ready!
+[Launcher] Starting watchdog (round manager)...
+[Launcher] Mode: Supervised Round Manager (watchdog.py)
+[Launcher] Watchdog PID: 3671271
+[2026-04-17 15:07:44] INFO ============================================================
+[2026-04-17 15:07:44] INFO   Rush Oracle Watchdog
+[2026-04-17 15:07:44] INFO   Managing: /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-17 15:07:44] INFO   Heartbeat: /tmp/rush_oracle_heartbeat.json
+[2026-04-17 15:07:44] INFO   Log: /tmp/rush_oracle.log
+[2026-04-17 15:07:44] INFO ============================================================
+[2026-04-17 15:07:44] INFO Running startup orphan scan...
+[2026-04-17 15:07:45] INFO Orphan scan: 1 active market(s) found
+[Counter] Line: (64, 540) -> (1216, 540)
+[2026-04-17 15:07:46] INFO No orphan markets found
+[2026-04-17 15:07:46] INFO Starting child: /home/lumen/miniconda3/bin/python3 -u /home/lumen/.gemini/antigravity/scratch/rush/oracle/round_manager_rush.py
+[2026-04-17 15:07:46] INFO Child started (PID 3671561)
+[2026-04-17 15:07:47] Chain: connected to https://base-mainnet.core.chainstack.com/977532e58b2430d1f01739e7d209d236 (chain_id=8453)
+[2026-04-17 15:07:47] Oracle wallet: 0x4c385830c2E241EfeEd070Eb92606B6AedeDA277
+[2026-04-17 15:07:47] Loaded 23 cameras from /home/lumen/.gemini/antigravity/scratch/rush/oracle/cameras.json
+[2026-04-17 15:07:47] ============================================================
+[2026-04-17 15:07:47]   SinalBet Rush Round Manager
+[2026-04-17 15:07:47]   Factory:  0x5b04F3DFaE780A7e109066E754d27f491Af55Af9
+[2026-04-17 15:07:47]   Duration: 150s per round
+[2026-04-17 15:07:47]   Cameras:  Midway Airport — Chicago 4K
+[2026-04-17 15:07:47] ============================================================
+[2026-04-17 15:07:47] Round #1 | Midway Airport — Chicago 4K | threshold=50
+[2026-04-17 15:07:48] Cancelling orphan market: 0x7910C91A99D9946C0bFB2fffE9f186377395b5ca
+[WS] Client disconnected (4 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[2026-04-17 15:07:51] Market cancelled: 0x7910C91A99D9946C0bFB2fffE9f186377395b5ca (tx: 02ace1519b1e53a784bddb2b4bce12d342d74dfd41798a674f79644279fb6a4b)
+[2026-04-17 15:07:51] Ably publish OK: market_cancelled
+[2026-04-17 15:07:52] Refunds distributed: 0x7910C91A99D9946C0bFB2fffE9f186377395b5ca (tx: e17d7019f6d67b494f391782c3dd63b49d513b55d1fc1fe04f6928483afdf627)
+[2026-04-17 15:07:52] Cancelled 1 orphan market(s)
+[2026-04-17 15:07:52] createMarket tx sent: aec28329ceb4e9eff519e76027973b938795990a21127b2709a49b16a0f8436b
+[2026-04-17 15:07:55] Market created: 0xeE5a39D3289Ab8b86E242Ed8E9093B87B7D74444 (tx: aec28329ceb4e9eff519e76027973b938795990a21127b2709a49b16a0f8436b)
+[2026-04-17 15:07:55] Ably publish OK: market_created
+[2026-04-17 15:07:55] Counting vehicles for 150s...
+[2026-04-17 15:07:55] [StreamClient] Reconnecting...
+[WS] Client connected (5 total)
+[2026-04-17 15:07:55] [StreamClient] Connected to ws://localhost:9000
+[2026-04-17 15:07:55] [StreamClient] Unexpected response: {'type': 'init', 'stream': 'https://www.youtube.com/watch?v=67BCsiW-1Io', 'state': 'idle', 'count': 0, 'cameraId': 'midway-airport-chicago'}
+[STATE] betting — market=0xeE5a39D3... bet=150s count=150s round=1
+[Counter] Line: (64, 540) -> (1216, 540)
+[Prune] Removed 1 stale IDs (frame 300)
+[Prune] Removed 1 stale IDs (frame 400)
+[Evidence] Saved evidence/1776449276_30s.jpg (109811 bytes, sha256:41868f60dd074...)
+[Prune] Removed 1 stale IDs (frame 600)
+[Prune] Removed 1 stale IDs (frame 800)
+[Evidence] Saved evidence/1776449276_60s.jpg (127118 bytes, sha256:5ffc61e41ed3f...)
+[Prune] Removed 1 stale IDs (frame 1100)
+[Prune] Removed 2 stale IDs (frame 1300)
+[Prune] Removed 3 stale IDs (frame 1400)
+[Evidence] Saved evidence/1776449276_90s.jpg (123236 bytes, sha256:5495e72b01bdf...)
+[Prune] Removed 2 stale IDs (frame 1700)
+[Prune] Removed 1 stale IDs (frame 1800)
+[Prune] Removed 1 stale IDs (frame 1900)
+[Prune] Removed 1 stale IDs (frame 2100)
+[Prune] Removed 2 stale IDs (frame 2200)
+[Evidence] Saved evidence/1776449276_120s.jpg (122340 bytes, sha256:252f495f394be...)
+[Prune] Removed 1 stale IDs (frame 2300)
+[Prune] Removed 1 stale IDs (frame 2400)
+[Prune] Removed 2 stale IDs (frame 2500)
+[Prune] Removed 1 stale IDs (frame 2600)
+[Prune] Removed 1 stale IDs (frame 2700)
+[STATE] counting — market=0xeE5a39D3... duration=150s round=1
+[Evidence] Saved evidence/1776449276_150s.jpg (119586 bytes, sha256:3af8645ba191e...)
+[Prune] Removed 1 stale IDs (frame 2900)
+[Prune] Removed 1 stale IDs (frame 3100)
+[Prune] Removed 1 stale IDs (frame 3200)
+[Prune] Removed 2 stale IDs (frame 3400)
+[Evidence] Saved evidence/1776449276_180s.jpg (112936 bytes, sha256:2fd7e46d0545b...)
+[Prune] Removed 2 stale IDs (frame 3500)
+[Prune] Removed 3 stale IDs (frame 3700)
+[Prune] Removed 1 stale IDs (frame 3900)
+[Evidence] Saved evidence/1776449276_210s.jpg (108496 bytes, sha256:e6f34722b55e4...)
+[Prune] Removed 1 stale IDs (frame 4500)
+[Evidence] Saved evidence/1776449276_240s.jpg (113333 bytes, sha256:2eefb6ba92b4d...)
+[Prune] Removed 1 stale IDs (frame 4900)
+[Prune] Removed 1 stale IDs (frame 5200)
+[Prune] Removed 1 stale IDs (frame 5400)
+[Evidence] Saved evidence/1776449276_270s.jpg (113770 bytes, sha256:3d5e43c753482...)
+[Prune] Removed 2 stale IDs (frame 5600)
+[Prune] Removed 1 stale IDs (frame 5800)
+[Prune] Removed 1 stale IDs (frame 6000)
+[Prune] Removed 1 stale IDs (frame 6100)
+[Evidence] Saved evidence/1776449276_final.jpg (118416 bytes, sha256:00b32f150a655...)
+[Evidence] Saved evidence/1776449276_final.jpg (118378 bytes, sha256:b73f55e32fc8e...)
+[Evidence] Saved evidence/1776449276_final.jpg (118400 bytes, sha256:95838d2a47ab3...)
+[STATE] idle — round 1 complete: 0 vehicles
+[2026-04-17 15:12:56] Count complete: 0 vehicles (in=0 out=0)
+[2026-04-17 15:12:57] Pool check OK: total=0.0030 ETH, under=0.0020, over=0.0010
+[2026-04-17 15:12:57] Market resolved: 0 vehicles → Under 50 wins
+[2026-04-17 15:12:58] resolveMarket tx sent: 4a66ddddeb9352e3060d9ec31d9e7427867dd15d5d81b0c0c89a6d642e239412
+[2026-04-17 15:12:58] resolveMarket confirmed (tx: 4a66ddddeb9352e3060d9ec31d9e7427867dd15d5d81b0c0c89a6d642e239412)
+[2026-04-17 15:12:58] Ably publish OK: market_resolved
+[2026-04-17 15:12:59] Winnings distributed: 0xeE5a39D3289Ab8b86E242Ed8E9093B87B7D74444 (tx: 9a6423ade929daa88fab0e069ed665b0ca83d626826ed48e02a6c1c302389938)
+[2026-04-17 15:12:59] Auto-distributed winnings (tx: 9a6423ade929daa88fab0e069ed665b0ca83d626826ed48e02a6c1c302389938)
+[2026-04-17 15:12:59] Ably publish OK: winnings_distributed
+[2026-04-17 15:12:59] Ledger POST OK: {"ok":true}
+[2026-04-17 15:12:59] New threshold: 1 (avg of [0])
+[2026-04-17 15:12:59] Waiting 15s before Round #2...
+[Prune] Removed 1 stale IDs (frame 6500)
+[2026-04-17 15:13:14] Round #2 | Midway Airport — Chicago 4K | threshold=1
+[2026-04-17 15:13:16] createMarket tx sent: c3afa2711c3c92df69a327ddd3a9fb9f21fa3c9e27a4fe421fb988e9b7537f32
+[2026-04-17 15:13:18] Market created: 0xb691b27EeC89BCD961807C23C12615e3bF6261f5 (tx: c3afa2711c3c92df69a327ddd3a9fb9f21fa3c9e27a4fe421fb988e9b7537f32)
+[2026-04-17 15:13:19] Ably publish OK: market_created
+[2026-04-17 15:13:19] Counting vehicles for 150s...
+[2026-04-17 15:13:19] [StreamClient] Unexpected response: {'type': 'idle', 'state': 'waiting', 'cameraId': 'midway-airport-chicago'}
+[STATE] betting — market=0xb691b27E... bet=150s count=150s round=2
+[Counter] Line: (64, 540) -> (1216, 540)
+[Prune] Removed 1 stale IDs (frame 400)
+[Prune] Removed 1 stale IDs (frame 600)
+[Prune] Removed 1 stale IDs (frame 700)
+[Evidence] Saved evidence/1776449599_30s.jpg (102548 bytes, sha256:942fc0ec58ff6...)
+[Prune] Removed 1 stale IDs (frame 800)
+[Prune] Removed 1 stale IDs (frame 900)
+[Prune] Removed 1 stale IDs (frame 1200)
+[Prune] Removed 1 stale IDs (frame 1300)
+[Evidence] Saved evidence/1776449599_60s.jpg (111086 bytes, sha256:81355ea3c35f4...)
+[WS] Client connected (3 total)
+[Prune] Removed 3 stale IDs (frame 1600)
+[WS] Client disconnected (2 total)
+connection handler failed
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/asyncio/selector_events.py", line 1067, in write
+    n = self._sock.send(data)
+BrokenPipeError: [Errno 32] Broken pipe
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+  File "/home/lumen/.gemini/antigravity/scratch/rush/oracle/stream_server.py", line 1261, in handler
+    async for msg in ws:
+    ...<37 lines>...
+            pass
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/lumen/miniconda3/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 322, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+[Prune] Removed 1 stale IDs (frame 1900)
+[Prune] Removed 1 stale IDs (frame 2100)
+[Evidence] Saved evidence/1776449599_90s.jpg (105683 bytes, sha256:2588d31c0b950...)
+[Prune] Removed 1 stale IDs (frame 2200)
+[Prune] Removed 2 stale IDs (frame 2300)
+[Prune] Removed 1 stale IDs (frame 2500)
+[Prune] Removed 2 stale IDs (frame 2600)
+[Prune] Removed 9 stale IDs (frame 2700)
+[Prune] Removed 2 stale IDs (frame 2800)
+[Evidence] Saved evidence/1776449599_120s.jpg (106939 bytes, sha256:1016e03ad4a00...)
+[Prune] Removed 2 stale IDs (frame 3000)
+[Prune] Removed 2 stale IDs (frame 3200)
+[Prune] Removed 1 stale IDs (frame 3300)
+[Prune] Removed 1 stale IDs (frame 3400)
+[Prune] Removed 1 stale IDs (frame 3600)
+[STATE] counting — market=0xb691b27E... duration=150s round=2
+[Evidence] Saved evidence/1776449599_150s.jpg (109984 bytes, sha256:ac880065aa636...)
+[Prune] Removed 2 stale IDs (frame 3700)
+[Prune] Removed 1 stale IDs (frame 3900)
+[Prune] Removed 3 stale IDs (frame 4000)
+[Prune] Removed 1 stale IDs (frame 4100)
+[Evidence] Saved evidence/1776449599_180s.jpg (115438 bytes, sha256:1a96ded3e4b54...)
+[Prune] Removed 1 stale IDs (frame 4500)
+[Prune] Removed 1 stale IDs (frame 4800)
+[Prune] Removed 3 stale IDs (frame 4900)
+[Prune] Removed 1 stale IDs (frame 5000)
+[Prune] Removed 2 stale IDs (frame 5100)
+[Evidence] Saved evidence/1776449599_210s.jpg (109928 bytes, sha256:09318218a9cd5...)
+[Prune] Removed 2 stale IDs (frame 5200)
+[Prune] Removed 2 stale IDs (frame 5300)
+[Prune] Removed 1 stale IDs (frame 5400)
+[Prune] Removed 1 stale IDs (frame 5700)
+[Prune] Removed 1 stale IDs (frame 5800)
+[Evidence] Saved evidence/1776449599_240s.jpg (115568 bytes, sha256:a91eb23c6a8ca...)
+[Prune] Removed 2 stale IDs (frame 6300)
+[Prune] Removed 5 stale IDs (frame 6400)
+[Evidence] Saved evidence/1776449599_270s.jpg (108407 bytes, sha256:1985f4598ad72...)
+[Prune] Removed 2 stale IDs (frame 7000)
+[WS] Client connected (3 total)
+[Prune] Removed 1 stale IDs (frame 7200)
+[Evidence] Saved evidence/1776449599_final.jpg (116534 bytes, sha256:509708f6c07ca...)
+[Evidence] Saved evidence/1776449599_final.jpg (116419 bytes, sha256:75d84c01dec21...)
+[Evidence] Saved evidence/1776449599_final.jpg (116305 bytes, sha256:b5dae191d04bc...)
+[STATE] idle — round 2 complete: 0 vehicles
+[Prune] Removed 4 stale IDs (frame 7300)
+[Prune] Removed 1 stale IDs (frame 7400)
+[Prune] Removed 1 stale IDs (frame 7600)
+[Prune] Removed 1 stale IDs (frame 7700)
+[2026-04-17 15:18:49] No round_complete via WS — reading result.json fallback
+[2026-04-17 15:18:49] Count complete: 0 vehicles (in=0 out=0)
+[2026-04-17 15:18:50] Pool check OK: total=0.0030 ETH, under=0.0020, over=0.0010
+[2026-04-17 15:18:50] Market resolved: 0 vehicles → Under 1 wins
+[2026-04-17 15:18:51] resolveMarket tx sent: 6a528642d672f9dc95788b850a3419376aae22e2a3028595258445e0f578d171
+[Prune] Removed 1 stale IDs (frame 7900)
+[2026-04-17 15:18:53] resolveMarket confirmed (tx: 6a528642d672f9dc95788b850a3419376aae22e2a3028595258445e0f578d171)
+[2026-04-17 15:18:54] Ably publish OK: market_resolved
+[2026-04-17 15:18:57] Winnings distributed: 0xb691b27EeC89BCD961807C23C12615e3bF6261f5 (tx: 86adb1d070e854a8fb253b9fc3feef2a706eefc9c766b75480cd55f3534e7883)
+[2026-04-17 15:18:57] Auto-distributed winnings (tx: 86adb1d070e854a8fb253b9fc3feef2a706eefc9c766b75480cd55f3534e7883)
+[2026-04-17 15:18:57] Ably publish OK: winnings_distributed
+[2026-04-17 15:18:57] Ledger POST OK: {"ok":true}
+[2026-04-17 15:18:57] New threshold: 1 (avg of [0, 0])
+[2026-04-17 15:18:57] Waiting 15s before Round #3...
+[Prune] Removed 1 stale IDs (frame 8100)
+[Prune] Removed 1 stale IDs (frame 8200)
+[2026-04-17 15:19:12] Round #3 | Midway Airport — Chicago 4K | threshold=1
+[2026-04-17 15:19:13] createMarket tx sent: 8bcec7f2813f0031cf541ea53a19d13af3bffc68614d8c418e192163b9b71915
+[2026-04-17 15:19:14] Market created: 0xeB7aE5633DB5206Ec1A2AAFe2cD89D23b1DEDA36 (tx: 8bcec7f2813f0031cf541ea53a19d13af3bffc68614d8c418e192163b9b71915)
+[2026-04-17 15:19:14] Ably publish OK: market_created
+[2026-04-17 15:19:14] Counting vehicles for 150s...
+[STATE] betting — market=0xeB7aE563... bet=150s count=150s round=3
+[2026-04-17 15:19:15] [StreamClient] Round 3 started on stream_server
+[Counter] Line: (64, 540) -> (1216, 540)

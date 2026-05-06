@@ -156,182 +156,166 @@
           0.4416
         ]
       ],
-      "notes": "Direct HLS. 2 counting lines + ROI mask on road surface. Excludes sky, camera housing, timestamp."
+      "notes": "Direct HLS. 2 counting lines + ROI mask on road surface. Excludes sky, camera housing, timestamp.",
+      "lines": [
+        "0.269,0.694,0.777,0.656",
+        "0.397,0.550,0.645,0.500"
+      ],
+      "crossingThreshold": 2,
+      "enabled": false
     },
     {
       "id": "netherlands-highway",
-      "name": "Netherlands Highway \u2014 Live Traffic",
+      "name": "Netherlands Highway — Live Traffic",
       "region": "Netherlands, EU",
       "source": "Axis Communications",
       "streamUrl": "https://www.youtube.com/watch?v=Jy1Y9f8NEY0",
       "type": "youtube",
       "resolution": "1280x720",
-      "linePoints": "0.936,0.394,0.963,0.473",
-      "linePoints2": "0.775,0.414,0.825,0.527",
+      "lines": [
+        "0.936,0.394,0.963,0.473",
+        "0.775,0.414,0.825,0.527",
+        "0.690,0.435,0.740,0.570"
+      ],
+      "crossingThreshold": 2,
       "roi": [
         [
-          0.9688,
-          0.3819
-        ],
-        [
-          0.4766,
-          0.4167
-        ],
-        [
-          0.4727,
-          0.4514
-        ],
-        [
-          0.4727,
-          0.4861
-        ],
-        [
-          0.457,
-          0.5208
-        ],
-        [
-          0.418,
-          0.5556
-        ],
-        [
-          0.375,
-          0.5903
-        ],
-        [
-          0.332,
-          0.625
-        ],
-        [
-          0.293,
-          0.6597
-        ],
-        [
-          0.2656,
-          0.6944
-        ],
-        [
-          0.2422,
-          0.7292
-        ],
-        [
-          0.2148,
-          0.7639
-        ],
-        [
-          0.1914,
-          0.7986
-        ],
-        [
-          0.1719,
-          0.8333
-        ],
-        [
-          0.1602,
-          0.8681
-        ],
-        [
-          0.1523,
-          0.9028
-        ],
-        [
-          0.1523,
-          0.9375
-        ],
-        [
-          0.1563,
-          0.9722
-        ],
-        [
-          0.6016,
-          0.9861
-        ],
-        [
-          0.6055,
-          0.9514
-        ],
-        [
-          0.6211,
-          0.9167
-        ],
-        [
-          0.6367,
-          0.8819
-        ],
-        [
-          0.6406,
-          0.8472
-        ],
-        [
-          0.6484,
-          0.8125
-        ],
-        [
-          0.6563,
-          0.7778
-        ],
-        [
-          0.6641,
-          0.7431
-        ],
-        [
-          0.6719,
-          0.7083
-        ],
-        [
-          0.6797,
-          0.6736
-        ],
-        [
-          0.6875,
-          0.6389
-        ],
-        [
-          0.7109,
-          0.6042
-        ],
-        [
-          0.7734,
-          0.5694
-        ],
-        [
-          0.8125,
-          0.5347
-        ],
-        [
-          0.8438,
-          0.5
-        ],
-        [
-          0.9492,
-          0.4653
-        ],
-        [
-          0.9922,
-          0.4306
-        ],
-        [
-          0.9922,
-          0.3958
+          [
+            0.7188,
+            0.3958
+          ],
+          [
+            0.6992,
+            0.4097
+          ],
+          [
+            0.6914,
+            0.4236
+          ],
+          [
+            0.6875,
+            0.4375
+          ],
+          [
+            0.6914,
+            0.4514
+          ],
+          [
+            0.6953,
+            0.4653
+          ],
+          [
+            0.7031,
+            0.4792
+          ],
+          [
+            0.7109,
+            0.4931
+          ],
+          [
+            0.7148,
+            0.5069
+          ],
+          [
+            0.7188,
+            0.5208
+          ],
+          [
+            0.7266,
+            0.5347
+          ],
+          [
+            0.7383,
+            0.5486
+          ],
+          [
+            0.7461,
+            0.5625
+          ],
+          [
+            0.75,
+            0.5764
+          ],
+          [
+            0.7734,
+            0.5833
+          ],
+          [
+            0.7852,
+            0.5694
+          ],
+          [
+            0.8203,
+            0.5556
+          ],
+          [
+            0.8398,
+            0.5417
+          ],
+          [
+            0.8477,
+            0.5278
+          ],
+          [
+            0.8789,
+            0.5139
+          ],
+          [
+            0.8984,
+            0.5
+          ],
+          [
+            0.957,
+            0.4861
+          ],
+          [
+            0.9688,
+            0.4722
+          ],
+          [
+            0.9688,
+            0.4583
+          ],
+          [
+            0.9688,
+            0.4444
+          ],
+          [
+            0.9609,
+            0.4306
+          ],
+          [
+            0.957,
+            0.4167
+          ],
+          [
+            0.9492,
+            0.4028
+          ]
         ]
       ],
       "notes": "Dutch highway, ROI mask on road surface only. Short line on main lanes."
     },
     {
       "id": "peace-bridge",
-      "name": "Peace Bridge \u2014 USA/Canada Border",
+      "name": "Peace Bridge — USA/Canada Border",
       "region": "Buffalo, NY / Fort Erie, ON",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=DnUFAShZKus",
       "type": "youtube",
       "resolution": "1280x720",
       "primary": true,
-      "linePoints": "0.15,0.75,0.85,0.75",
-      "linePoints2": "0.330,0.451,0.646,0.448",
-      "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) \u2014 catches both directions"
+      "notes": "Line 1 at 75% Y (bottom), Line 2 at 45% Y (mid-bridge) — catches both directions",
+      "confidence": 0.08,
+      "lines": [
+        "0.24,0.60,0.75,0.60"
+      ],
+      "crossingThreshold": 2,
+      "enabled": true
     },
     {
       "id": "peace-bridge-plaza",
-      "name": "Peace Bridge \u2014 CND Inspection Plaza",
+      "name": "Peace Bridge — CND Inspection Plaza",
       "region": "Fort Erie, ON, Canada",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=WPMgP2C3_co",
@@ -342,7 +326,7 @@
     },
     {
       "id": "peace-bridge-qew",
-      "name": "Peace Bridge \u2014 QEW to CND Duty Free",
+      "name": "Peace Bridge — QEW to CND Duty Free",
       "region": "Fort Erie, ON, Canada",
       "source": "Peace Bridge Authority",
       "streamUrl": "https://www.youtube.com/watch?v=SETJ79HmwI0",
@@ -350,7 +334,8 @@
       "resolution": "1280x720",
       "linePoints": "0.794,0.541,0.836,0.190",
       "linePoints2": "0.648,0.360,0.792,0.186",
-      "notes": "Duas linhas: direita (line1) + esquerda (line2) pra pegar ambas as vias"
+      "notes": "Duas linhas: direita (line1) + esquerda (line2) pra pegar ambas as vias",
+      "confidence": 0.08
     },
     {
       "id": "caltrans-100",
@@ -444,7 +429,7 @@
     },
     {
       "id": "levi-ski-finland",
-      "name": "Levi Ski Resort \u2014 Finland",
+      "name": "Levi Ski Resort — Finland",
       "region": "Levi, Finland",
       "source": "Levi Ski Resort Live Cam",
       "streamUrl": "https://www.youtube.com/watch?v=Wr9b5aYA4mI",
@@ -453,13 +438,17 @@
       "classes": [
         0
       ],
-      "linePoints": "0.996,0.471,0.068,0.804",
-      "linePoints2": "0.257,0.440,0.822,0.340",
-      "notes": "Ski slope descent. Detects class 0 (person) \u2014 skiers crossing the calibrated lines."
+      "notes": "Ski slope descent. Detects class 0 (person) — skiers crossing the calibrated lines.",
+      "lines": [
+        "0.231,0.792,0.997,0.466"
+      ],
+      "confidence": 0.05,
+      "crossingThreshold": 1,
+      "enabled": false
     },
     {
       "id": "bird-feeder-live",
-      "name": "Bird Feeder \u2014 Snow Birds 24/7",
+      "name": "Bird Feeder — Snow Birds 24/7",
       "region": "Live cam",
       "source": "YouTube Live",
       "streamUrl": "https://www.youtube.com/watch?v=QaGCkKIPAZU",
@@ -467,21 +456,44 @@
       "classes": [
         14
       ],
-      "linePoints": "0.296,0.553,0.393,0.429",
-      "linePoints2": "0.444,0.433,0.563,0.536",
-      "notes": "Bird feeder. COCO class 14 (bird). Lines from nova config (subset of 5 \u2014 using opposite diagonals)."
+      "notes": "Bird feeder. COCO class 14 (bird). Lines from nova config (subset of 5 — using opposite diagonals).",
+      "enabled": false,
+      "roi": [
+        [
+          [
+            0.38,
+            0.32
+          ],
+          [
+            0.72,
+            0.32
+          ],
+          [
+            0.72,
+            0.72
+          ],
+          [
+            0.38,
+            0.72
+          ]
+        ]
+      ]
     },
     {
       "id": "konya-turkey-19",
-      "name": "Konya, Turkey \u2014 City Road",
+      "name": "Konya, Turkey — City Road",
       "region": "Konya, Turkey",
       "source": "TrafficVision",
       "streamUrl": "https://content.tvkur.com/l/c77i5e384cnrb6mlji10/master.m3u8",
       "type": "hls",
       "primary": true,
       "resolution": "1920x1080",
-      "linePoints": "0.175,0.789,0.809,0.792",
-      "linePoints2": "0.260,0.624,0.715,0.624",
+      "lines": [
+        "0.120,0.788,0.865,0.794",
+        "0.200,0.624,0.780,0.624",
+        "0.290,0.525,0.700,0.525"
+      ],
+      "crossingThreshold": 2,
       "roi": [
         [
           0.3336,
@@ -625,12 +637,18 @@
         ]
       ],
       "referer": "https://trafficvision.live/",
-      "notes": "Konya Turkey 1920x1080 HD. Requires Referer header."
+      "notes": "Konya Turkey 1920x1080 HD. Requires Referer header.",
+      "confidence": 0.08,
+      "dedup": {
+        "radius": 160,
+        "window": 15
+      },
+      "enabled": false
     },
     {
       "id": "korea-yangju-tunnel",
-      "name": "Yangju Tunnel \u2014 Korea Expressway",
-      "region": "Yangju Tunnel \u2014 Korea Expressway",
+      "name": "Yangju Tunnel — Korea Expressway",
+      "region": "Yangju Tunnel — Korea Expressway",
       "source": "nova import",
       "streamUrl": "https://live11.exmobile.hscdn.com/exlive/cctv1878.stream/chunklist_w392982620.m3u8",
       "type": "hls",
@@ -651,8 +669,8 @@
     },
     {
       "id": "korea-ciclovia-kbs9965",
-      "name": "Korea \u2014 Ciclovia & Pedestres",
-      "region": "Korea \u2014 Ciclovia & Pedestres",
+      "name": "Korea — Ciclovia & Pedestres",
+      "region": "Korea — Ciclovia & Pedestres",
       "source": "nova import",
       "streamUrl": "https://kbscctv-cache.loomex.net/lowStream/_definst_/9965_low.stream/playlist.m3u8?wowzatokenendtime=1775757600&wowzatokenstarttime=1775671200&wowzatokenhash=XSLuoK_z5QRFuc6Yf3zW-hkWmTX7CgExOVp-iCQyDvg=",
       "type": "hls",
@@ -668,187 +686,174 @@
     },
     {
       "id": "tokyo-shinjuku-crossing",
-      "name": "Tokyo Shinjuku \u2014 \u5927\u30ac\u30fc\u30c9\u4ea4\u5dee\u70b9",
-      "region": "Tokyo Shinjuku \u2014 \u5927\u30ac\u30fc\u30c9\u4ea4\u5dee\u70b9",
+      "name": "Tokyo Shinjuku — 大ガード交差点",
+      "region": "Tokyo Shinjuku — 大ガード交差点",
       "source": "nova import",
       "streamUrl": "https://www.youtube.com/watch?v=6dp-bvQ7RWo",
       "type": "youtube",
       "classes": [
         0,
-        1
+        1,
+        2,
+        3
       ],
       "notes": "Shinjuku pedestrian crossing, Tokyo. YouTube live. Classes: person + bicycle only. Dedup 30px for pedestrian scale.",
-      "enabled": true,
       "roi": [
         [
           [
-            0.6353,
-            0.251
+            0.457,
+            0.1597
           ],
           [
-            0.5894,
-            0.2887
+            0.4258,
+            0.2083
           ],
           [
-            0.5612,
+            0.3984,
+            0.2569
+          ],
+          [
+            0.3945,
+            0.3056
+          ],
+          [
+            0.4219,
+            0.3542
+          ],
+          [
+            0.4375,
+            0.4028
+          ],
+          [
+            0.4766,
+            0.4514
+          ],
+          [
+            0.4492,
+            0.5
+          ],
+          [
+            0.4258,
+            0.5486
+          ],
+          [
+            0.3906,
+            0.5972
+          ],
+          [
+            0.3555,
+            0.6458
+          ],
+          [
+            0.3359,
+            0.6944
+          ],
+          [
+            0.3047,
+            0.7431
+          ],
+          [
+            0.293,
+            0.7917
+          ],
+          [
+            0.3047,
+            0.8403
+          ],
+          [
+            0.3438,
+            0.8889
+          ],
+          [
+            0.3711,
+            0.9375
+          ],
+          [
+            0.4102,
+            0.9861
+          ],
+          [
+            0.9961,
+            0.9583
+          ],
+          [
+            0.9961,
+            0.9097
+          ],
+          [
+            0.9961,
+            0.8611
+          ],
+          [
+            0.9961,
+            0.8125
+          ],
+          [
+            0.9961,
+            0.7639
+          ],
+          [
+            0.9961,
+            0.7153
+          ],
+          [
+            0.9961,
+            0.6667
+          ],
+          [
+            0.9961,
+            0.6181
+          ],
+          [
+            0.9961,
+            0.5694
+          ],
+          [
+            0.9961,
+            0.5208
+          ],
+          [
+            0.9961,
+            0.4722
+          ],
+          [
+            0.9688,
+            0.4236
+          ],
+          [
+            0.8906,
+            0.375
+          ],
+          [
+            0.8008,
             0.3264
           ],
           [
-            0.54,
-            0.364
+            0.6836,
+            0.2778
           ],
           [
-            0.5224,
-            0.4017
+            0.5938,
+            0.2292
           ],
           [
-            0.5012,
-            0.4393
-          ],
-          [
-            0.48,
-            0.477
-          ],
-          [
-            0.4553,
-            0.5146
-          ],
-          [
-            0.4306,
-            0.5523
-          ],
-          [
-            0.4059,
-            0.59
-          ],
-          [
-            0.3847,
-            0.6276
-          ],
-          [
-            0.3635,
-            0.6653
-          ],
-          [
-            0.3212,
-            0.7029
-          ],
-          [
-            0.2824,
-            0.7406
-          ],
-          [
-            0.2753,
-            0.7782
-          ],
-          [
-            0.2929,
-            0.8159
-          ],
-          [
-            0.3141,
-            0.8536
-          ],
-          [
-            0.3388,
-            0.8912
-          ],
-          [
-            0.36,
-            0.9289
-          ],
-          [
-            0.3812,
-            0.9665
-          ],
-          [
-            0.8294,
-            0.9979
-          ],
-          [
-            0.8471,
-            0.9603
-          ],
-          [
-            0.8576,
-            0.9226
-          ],
-          [
-            0.8612,
-            0.8849
-          ],
-          [
-            0.8718,
-            0.8473
-          ],
-          [
-            0.8894,
-            0.8096
-          ],
-          [
-            0.9035,
-            0.772
-          ],
-          [
-            0.9141,
-            0.7343
-          ],
-          [
-            0.9212,
-            0.6967
-          ],
-          [
-            0.9247,
-            0.659
-          ],
-          [
-            0.9318,
-            0.6213
-          ],
-          [
-            0.9388,
-            0.5837
-          ],
-          [
-            0.9459,
-            0.546
-          ],
-          [
-            0.9529,
-            0.5084
-          ],
-          [
-            0.96,
-            0.4707
-          ],
-          [
-            0.96,
-            0.4331
-          ],
-          [
-            0.9282,
-            0.3954
-          ],
-          [
-            0.8506,
-            0.3577
-          ],
-          [
-            0.78,
-            0.3201
-          ],
-          [
-            0.7341,
-            0.2824
+            0.5,
+            0.1806
           ]
         ]
       ],
-      "countMode": "uid"
+      "enabled": false,
+      "lines": [
+        "0.503,0.463,0.905,0.690",
+        "0.276,0.782,0.633,0.265"
+      ],
+      "crossingThreshold": 2,
+      "confidence": 0.1
     },
     {
       "id": "midway-airport-chicago",
-      "name": "Midway Airport \u2014 Chicago 4K",
-      "region": "Midway Airport \u2014 Chicago 4K",
+      "name": "Midway Airport — Chicago 4K",
+      "region": "Midway Airport — Chicago 4K",
       "source": "nova import",
       "streamUrl": "https://www.youtube.com/watch?v=67BCsiW-1Io",
       "type": "youtube",
@@ -857,6 +862,173 @@
       ],
       "linePoints": "0.05,0.75,0.95,0.75",
       "notes": "Midway Airport Chicago. Fixed runway cam. Class 4 = airplane. High dedup for slow-moving planes."
+    },
+    {
+      "id": "canmore-mainst",
+      "name": "Canmore Main Street — Alberta",
+      "region": "Canmore, AB, Canada",
+      "source": "CanmoreAlberta.com",
+      "streamUrl": "https://www.youtube.com/watch?v=_0wPODlF9wU",
+      "type": "youtube",
+      "resolution": "1280x720",
+      "classes": [
+        2,
+        3,
+        5,
+        7
+      ],
+      "confidence": 0.08,
+      "dedup": {
+        "radius": 120,
+        "window": 12
+      },
+      "lines": [
+        "0.355,0.776,0.916,0.664",
+        "0.808,0.914,0.618,0.646"
+      ],
+      "crossingThreshold": 2,
+      "roi": [
+        [
+          [
+            0.2773,
+            0.5347
+          ],
+          [
+            0.2422,
+            0.5625
+          ],
+          [
+            0.2344,
+            0.5903
+          ],
+          [
+            0.2305,
+            0.6181
+          ],
+          [
+            0.2344,
+            0.6458
+          ],
+          [
+            0.2422,
+            0.6736
+          ],
+          [
+            0.2656,
+            0.7014
+          ],
+          [
+            0.3242,
+            0.7292
+          ],
+          [
+            0.3789,
+            0.7569
+          ],
+          [
+            0.3555,
+            0.7847
+          ],
+          [
+            0.3398,
+            0.8125
+          ],
+          [
+            0.3242,
+            0.8403
+          ],
+          [
+            0.3203,
+            0.8681
+          ],
+          [
+            0.1914,
+            0.8958
+          ],
+          [
+            0.1211,
+            0.9236
+          ],
+          [
+            0.1055,
+            0.9514
+          ],
+          [
+            0.0977,
+            0.9792
+          ],
+          [
+            0.7227,
+            0.9861
+          ],
+          [
+            0.7305,
+            0.9583
+          ],
+          [
+            0.7695,
+            0.9306
+          ],
+          [
+            0.7813,
+            0.9028
+          ],
+          [
+            0.8672,
+            0.875
+          ],
+          [
+            0.9492,
+            0.8472
+          ],
+          [
+            0.9727,
+            0.8194
+          ],
+          [
+            0.9805,
+            0.7917
+          ],
+          [
+            0.9844,
+            0.7639
+          ],
+          [
+            0.9805,
+            0.7361
+          ],
+          [
+            0.9727,
+            0.7083
+          ],
+          [
+            0.9375,
+            0.6806
+          ],
+          [
+            0.9023,
+            0.6528
+          ],
+          [
+            0.9023,
+            0.625
+          ],
+          [
+            0.8945,
+            0.5972
+          ],
+          [
+            0.8711,
+            0.5694
+          ],
+          [
+            0.3047,
+            0.5417
+          ]
+        ]
+      ],
+      "notes": "Main Street Canmore intersection. Cars only (car, motorcycle, bus, truck). 2 lines: Main St horizontal + cross street.",
+      "enabled": false
     }
   ]
 }

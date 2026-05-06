@@ -16,16 +16,16 @@ const BASESCAN = "https://basescan.org";
 
 const CONTRACTS = [
   {
-    name: "$RUSH Token",
-    address: RUSH_TOKEN_ADDRESS,
-    desc: "Deflationary ERC-20 — betting currency",
+    name: "MarketFactory",
+    address: FACTORY_ADDRESS,
+    desc: "Creates ETH prediction markets",
+    tag: "production",
     highlight: true,
   },
   {
-    name: "BurnMarketFactory",
-    address: FACTORY_ADDRESS,
-    desc: "Creates $RUSH prediction markets (30% burn)",
-    tag: "production",
+    name: "$RUSH Token",
+    address: RUSH_TOKEN_ADDRESS,
+    desc: "ERC-20 on Flaunch — trading fee revenue",
   },
   {
     name: "RushTiles Series 1",
@@ -79,8 +79,8 @@ export default function StatsPage() {
     { label: "Settlement", value: "AI Oracle" },
     { label: "Round Duration", value: "5 minutes" },
     { label: "Betting Window", value: "2:30" },
-    { label: "Burn Rate ($RUSH)", value: "30% per pool" },
-    { label: "Protocol Fee ($RUSH)", value: "0%" },
+    { label: "Currency", value: "ETH" },
+    { label: "Protocol Fee", value: "0%" },
     { label: "Total Tiles", value: "200 (Series 1 + 2)" },
     { label: "Founder Shares", value: "5x per tile" },
   ];
@@ -141,23 +141,19 @@ export default function StatsPage() {
           </div>
         </section>
 
-        {/* Burn Mechanic Highlight */}
-        <section aria-label="Burn mechanics" className="mb-10">
+        {/* Payout Model */}
+        <section aria-label="Payout model" className="mb-10">
           <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
-            $RUSH BURN MODEL
+            PAYOUT MODEL
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg p-4 text-center" style={{ background: "#0a150a", border: "1px solid #00ff8822" }}>
-              <div className="text-2xl font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>70%</div>
+              <div className="text-2xl font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>100%</div>
               <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>TO WINNERS</div>
-            </div>
-            <div className="rounded-lg p-4 text-center" style={{ background: "#1a0a0a", border: "1px solid #ff444422" }}>
-              <div className="text-2xl font-black" style={{ color: "#ff6666", fontFamily: "monospace" }}>30%</div>
-              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>BURNED</div>
             </div>
             <div className="rounded-lg p-4 text-center" style={{ background: "#0d0d0d", border: "1px solid #ffd70022" }}>
               <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>0%</div>
-              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>FEES</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>PROTOCOL FEES</div>
             </div>
           </div>
         </section>

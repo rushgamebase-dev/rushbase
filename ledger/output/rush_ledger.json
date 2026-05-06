@@ -1,6 +1,6 @@
 {
-  "extracted_at": "2026-04-12T13:43:03.167021+00:00",
-  "latest_block": 44604399,
+  "extracted_at": "2026-04-12T17:37:20.399059+00:00",
+  "latest_block": 44611373,
   "contracts": {
     "tiles_v1": "0x6cE3873e31Ab5440fA6AF1860F8E36110504c9C4",
     "tiles_v2": "0x5b7b2a6AC4f3A017fb943C9F550d609174532fFF",
@@ -128134,6 +128134,1766 @@
         }
       ],
       "refunds": []
+    },
+    {
+      "address": "0xBAB065f67628Be45d97f0D0143539063584e554C",
+      "index": 649,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44604722,
+      "timestamp": 1775998791,
+      "datetime": "2026-04-12 12:59:51 UTC",
+      "txHash": "0xcf20df5f38de7ea81438d2706ca044536de4c648c2afffcbafc82a7091199328",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 7,
+      "resolveTxHash": "0x0bcbfea0f85f2e1844a43a78e811164ff529c0f2bcca2a46d88b65fbfd5040b7",
+      "resolveTimestamp": 1775999123,
+      "resolveDatetime": "2026-04-12 13:05:23 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x645ae7c33731d79712070b9c56cc5ef83a67cb00c745136e0d6724d2c17c2633"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x1a234b6315ba2a4d817fae5f68ba24ed6e0eae89cef3b9f9af625c9c8c4b17a6"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xd504004a4cf57ae912507b8c2942d80aa8cdefb3e9b43342f170556b11f0331d"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x81A96f4c2F74A21f1D11D82f4Aee6242fc5Ccd70",
+      "index": 650,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44604897,
+      "timestamp": 1775999141,
+      "datetime": "2026-04-12 13:05:41 UTC",
+      "txHash": "0xc1d3c21e93b17d47063f80cfec4886c4d1c8f809a88dbe12faa71b09473f7928",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 14,
+      "resolveTxHash": "0x457765d99a97e765dcdf19363bb3d3765cba10a6a81fbba6244dacf57c774df7",
+      "resolveTimestamp": 1775999475,
+      "resolveDatetime": "2026-04-12 13:11:15 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x62abc2365bbf9239d240a68e582c34a1dc35c072b1f8db65064b47773678a04f"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x57d9446e239d5142a631e137e9485b80dcd4b52cc2a0e709ec9dbb480579aa39"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x922ba38fdbb7548ca022c6ce6137d4ec9062e2139a6cf424c647cc29e930822d"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x9Cb13812138c633442976C4cE2f463E374E1d91D",
+      "index": 651,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605074,
+      "timestamp": 1775999495,
+      "datetime": "2026-04-12 13:11:35 UTC",
+      "txHash": "0x84251ea9c909d632a17d513106caec19d9dcb7ce0d8b56c0259b8c519955baaf",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 10,
+      "resolveTxHash": "0xab41b48cad3e87e364ec7fa30d03e8ed9efea4eafbeb22ef2ce063541ae3eeac",
+      "resolveTimestamp": 1775999829,
+      "resolveDatetime": "2026-04-12 13:17:09 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xd0e0c954b15f2c2d19c974072e759723bc06f20b5d2a2944459a8845f9e5117a"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x9b9a05db37c51bb3f92cb0023be809629c02ae370c079ab36cf83f0dd2175b61"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xfe979b436e28588c14a6f9007c18d8b12df11370c9a976b9cd92e655b95fdc8a"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x0B7bA857Dd1aF77f1624385e53840AAADa14D686",
+      "index": 652,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605252,
+      "timestamp": 1775999851,
+      "datetime": "2026-04-12 13:17:31 UTC",
+      "txHash": "0x5cbea9399af64ba7e31e5c4dac32bc78db894aedc01f5829f6edc00f5afacb4b",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 7,
+      "resolveTxHash": "0x594254b4da33bb6d5616cdef1610436e03b58c159a36066b9615d9edc4060b48",
+      "resolveTimestamp": 1776000185,
+      "resolveDatetime": "2026-04-12 13:23:05 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x66135923b13cc8a616e5650a501a0f74762fbcfe76595d4344f861511b0b1623"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x86b702db93f8eec40a2a808823c2ad496b89e72a8db8231e2019b7e53b6601fb"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x807fceed5c26d6b7540904623a5de639ace0270a4e1878e7d12baff1f36b7feb"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x80A6e86533ff0B157B4885344760E0271c87CC3C",
+      "index": 653,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605429,
+      "timestamp": 1776000205,
+      "datetime": "2026-04-12 13:23:25 UTC",
+      "txHash": "0x224ab32c58954188b45822b59e00c11a3347c80605f9d2f245810a56119685ce",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 4,
+      "resolveTxHash": "0xe5a7c641ddc173286e332857c8504da01eb1f1202f7b2b2c435d0e57b6cd6430",
+      "resolveTimestamp": 1776000539,
+      "resolveDatetime": "2026-04-12 13:28:59 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x9bc03caefbbdba3865c00bbd2c6d6633e0ade51b6cba08d88a6015ca9d5c0aca"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x725506a884a50e66bc8c3630c5bef025538b885082956c2dd3b7482bb8d14c2a"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xf8a15fbea81e9056c0467d33cf71750ed838d3ee08d4480292110b3d7bc76f47"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x31144aeCc0F0c12278032d73a0c951392CF8C740",
+      "index": 654,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605606,
+      "timestamp": 1776000559,
+      "datetime": "2026-04-12 13:29:19 UTC",
+      "txHash": "0x4998771d867118074d0be127210b636b3ca89a8e5f64f91118c754b24feab421",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 14,
+      "resolveTxHash": "0x0b35493a305e27602c08ab3b0a696fe9835f17ba66d619c4a74f5c07ba53dfce",
+      "resolveTimestamp": 1776000893,
+      "resolveDatetime": "2026-04-12 13:34:53 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xdc7cbd9b2c1ddd695c0326c2084c6620c252520d2a38dba0e7eb8008a8e6b005"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x8c01c133dc796766f374e7a277839e50080af9321cf255c94d20971d376e706d"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x5032438799fe0cdf1a9b2017b616b44f1bfa7434a57b55fbf40042ab0c9d08f5"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xa44301b9B9D4Ff60305F452237Ae279fc56487eD",
+      "index": 655,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605782,
+      "timestamp": 1776000911,
+      "datetime": "2026-04-12 13:35:11 UTC",
+      "txHash": "0x3b425fac4f58bc36c6a09a04fae196d25697bfa9279bc2bd79ae1a7e94ebf9fa",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 5,
+      "resolveTxHash": "0x5d397e5ab2c729cd83a752d3225d900f552af1bd33c639934cca725171bec7ee",
+      "resolveTimestamp": 1776001245,
+      "resolveDatetime": "2026-04-12 13:40:45 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x245000555eb2dd86544014809008a77dbb902f67d2548fa617b4862f4a76b9fb"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x94e4b4c3c2f52e0ccb2b2b1b72548b059ed51282417558e87253d2965854fdac"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0ab85a12a415811666416caff03716ab6a1418488b01305ed0a396afaea37c6d"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x241A94CD95cc957865A6794F7e87aa492F5ddBe2",
+      "index": 656,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44605959,
+      "timestamp": 1776001265,
+      "datetime": "2026-04-12 13:41:05 UTC",
+      "txHash": "0x36a1602da26a4f34d656d46c00ed363069bce296bbebf07bf2590bc94ad98c04",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 5,
+      "resolveTxHash": "0x6043a41430af4a606210f129aa4aa437cbb56769d81e370fa038762464ca3ebf",
+      "resolveTimestamp": 1776001597,
+      "resolveDatetime": "2026-04-12 13:46:37 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x16493a944e27d8da86ea9d10ea70163a0b0e1ac3df0fddbb9770ad9019f5cf87"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x6702ff91dbe7bebe2918d64e1f9dcaf235046c5e28c8d1a0d83c0e4f617c30cb"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x4d81e07f2553705a03005bb807494932c4fcf0cfc4f53431c1b3335c3ec8b473"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xcdAdf72eb62D78347aa6d96823EA570F70d940B2",
+      "index": 657,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44606134,
+      "timestamp": 1776001615,
+      "datetime": "2026-04-12 13:46:55 UTC",
+      "txHash": "0x67da29c2133265e89d8eaa49710cf369940dada3ac9e3efa2c8f110c80cda66a",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 6,
+      "resolveTxHash": "0x144a23ab5b53615bdbe64cb0de56100755cb686f3a2eee3ae173dc9e641dd47c",
+      "resolveTimestamp": 1776001949,
+      "resolveDatetime": "2026-04-12 13:52:29 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xe9fde391f3a2190762d026789d390851b3ed6694197dab971c0531cf335cc6f0"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x1ed360f95b8d7a918983db03a53e1b9d5e337d5d77767a194fe7c359a5aded35"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x4865c57a626dfe180c8816418740f6860e7c5616ac8472831ddddea1f1c57e5d"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x831402FACe5a636F80c6899A8F27278dea279395",
+      "index": 658,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44606310,
+      "timestamp": 1776001967,
+      "datetime": "2026-04-12 13:52:47 UTC",
+      "txHash": "0xf158836dc3de2bd2845b9b083770b33b6aa5fb905bc360d87b8cbdc1d0d0f6fb",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 9,
+      "resolveTxHash": "0x48dd556e10325e2454905da85c422e5eb4c48c1ea7ebfffc1ad6d8c8005d4cfe",
+      "resolveTimestamp": 1776002303,
+      "resolveDatetime": "2026-04-12 13:58:23 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x64fb7a1e5b261b0b54d2b0cf259edf243ba6be654dfcde93a99f7a3e368d11f5"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x9c42c1decbed5c98e70c652bd7abfa632560850b2d690e3d218f53080bdb1aec"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x3b398301191308b3769d523840d723037ab93feecb1fd3a502551776f801c5c6"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x42B52f573624D9c43123a3af44B528d4F8E1C934",
+      "index": 659,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44606488,
+      "timestamp": 1776002323,
+      "datetime": "2026-04-12 13:58:43 UTC",
+      "txHash": "0x88dd8b960d6745acabaea9260d01dd9f436d75473d7dd2bf986f9b838c7e446c",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 10,
+      "resolveTxHash": "0xd4551c812c01fd871ead47ddab5c66cf785250f962478a31295e2ff6d021b9de",
+      "resolveTimestamp": 1776002655,
+      "resolveDatetime": "2026-04-12 14:04:15 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xa0eedc1b6f3ad0046d75652f73959168099474f4f9549251ca15ec4aaae712e8"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x4fd2b2ddacf266bfd2ed1201bfa227c8a07b028619358b9ad8abd0298f00a7fa"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0c2a054c0ed47543441ff31cdbe8f61bedb18f131d87a3973a1dc03b0f1a63cf"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x25442c096Fb1488B3046c2a96c226F230Baeb34A",
+      "index": 660,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44606664,
+      "timestamp": 1776002675,
+      "datetime": "2026-04-12 14:04:35 UTC",
+      "txHash": "0x9920a3447c0d58c2a4afd7591fb74cd0fc27cd3b070045656f3b8c0c13a9201e",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 12,
+      "resolveTxHash": "0xbefc49783b345ba77a961c007f94cda903c7e7d0286f401f4ea30ad191b677b9",
+      "resolveTimestamp": 1776003007,
+      "resolveDatetime": "2026-04-12 14:10:07 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x5761900f4c977b8ff44e9e039a622e0caf4a0e6f49c728b71656c37cb4b6fca1"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xfd71f443cb407f7373cc0035b1c820f865774e4fc4d5954ef1b9002d1cbb1b23"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xba3d4ae191adcdd885ed569827e650b7fb6355e49130a460d69b1f573924bbbc"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x42eADB63Ac8A72F74E22A19C4BD8f7De62889d5d",
+      "index": 661,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44606839,
+      "timestamp": 1776003025,
+      "datetime": "2026-04-12 14:10:25 UTC",
+      "txHash": "0xcdf33935abfc93f770b180cff12a1c585a059e39ceb5cf8d9d72698e5eb7fbf9",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 12,
+      "resolveTxHash": "0xaa56dc26570b2991a4f303596a3e5bb229852189b2ec0917fc7ee3e97923d30e",
+      "resolveTimestamp": 1776003359,
+      "resolveDatetime": "2026-04-12 14:15:59 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x06eaca766275e1ca5d81b3fce36e86453c5592d25d21df4fea946ed599976456"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x4e26d648155571b37fe1e9f75a1598a280d2baf6ce546fbf245b687056dbe8e8"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x22c2c7d2ce5fcce10c0e647186bff5163d887deb4c1bc17c7e7909bf8ef3fdd8"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x192Ec1EB7b4A1575A0Db18232041fa4e141DF87F",
+      "index": 662,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607016,
+      "timestamp": 1776003379,
+      "datetime": "2026-04-12 14:16:19 UTC",
+      "txHash": "0xa9a2ed4b25ed71b88f567e00f3e0b0f649489c41e915e79c2278e082d9f9e9ef",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 9,
+      "resolveTxHash": "0x2e9d0d5210c479606a2ba5ba6870f71e5d787fecd51038fe49a393478b58d775",
+      "resolveTimestamp": 1776003713,
+      "resolveDatetime": "2026-04-12 14:21:53 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x46a4d20ccf5f10d0c156c1432539d58c2d136b3e861cb59f270bbf8917494ac2"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xfa90d2c11a730569e8880f96847b692835ee1b711074374125d801ba2b024bad"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x3de0aa6867e1359db144cba626ab48251c04f961b13d6ad8e465f6ba1c465468"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x0afe4aDe50628eC00D58B0bb533323cd2695c5F6",
+      "index": 663,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607193,
+      "timestamp": 1776003733,
+      "datetime": "2026-04-12 14:22:13 UTC",
+      "txHash": "0xf3b0945d67a1cc5e3e040001ddf876a5431f7deb1bf99b4f8b34fa47c5585581",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 25,
+      "resolveTxHash": "0xe8d085deadbf0a9e72d8cb5dd9480974b1efd60728e31afebe903aa6a99a3cef",
+      "resolveTimestamp": 1776004067,
+      "resolveDatetime": "2026-04-12 14:27:47 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xfe9441f4a5b76375949396585dc65c98c0c143547bf285473654edbdee689efb"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x5598ab6a49f80c2f2dbcabfc35c9c58ca1c4e0712ba6f2cf03b25cd1c0c056c3"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x01412d80a1e07d1c85a113bd37640318c69b91c920cc29d09d24b0671070b5ae"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xCeAcE42F1DE859004A1E85d3B90F9cf7AE08f590",
+      "index": 664,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607370,
+      "timestamp": 1776004087,
+      "datetime": "2026-04-12 14:28:07 UTC",
+      "txHash": "0x608c73f467f4294b1b266dfd957bebec473ca92038834e98cfc117c05071fa7c",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 9,
+      "resolveTxHash": "0x748a9fb0d84e8018eecc986e7be7ae41174a2835bce6039ff388485f4e5eb31d",
+      "resolveTimestamp": 1776004419,
+      "resolveDatetime": "2026-04-12 14:33:39 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xc021a7bfc0cf0c35cb9a5eb022c661f168ab04401cf493ac0df815c203aa5b37"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x9044f9801292c8b80d9b674f55ab48ea25ec215250f25dd338e4e781029ab3b8"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xdf9b026796b86fa1ec90aecf90f1a4cfa361894a603b19a2c35d17724f70986a"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x926d7bE6567e06E2F9AF3aA85E1209f67A43BC43",
+      "index": 665,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607546,
+      "timestamp": 1776004439,
+      "datetime": "2026-04-12 14:33:59 UTC",
+      "txHash": "0x3b12c7ee3042b2153799986f5a225d978eaa6c7e2dee8532719885c855722234",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 6,
+      "resolveTxHash": "0x336de150cb705c3a8b84cf594141fc98dd69488a69bb8cda0cbd4fae52dadc76",
+      "resolveTimestamp": 1776004775,
+      "resolveDatetime": "2026-04-12 14:39:35 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x85de96ee02363d9309dffb524aca0976f14de933f4e0b358baa16c440decc068"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x60cf29313ef1d11c49851e06379c833102f6e6e0445234374079a407edd0b715"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x277ceceaf541156171ec924c44cb3f39d44bc57d57865a30cfb8cfe9cdb8e6eb"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xa80200ec0C894BeE06F55d636ef88B2DFbc3b008",
+      "index": 666,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607725,
+      "timestamp": 1776004797,
+      "datetime": "2026-04-12 14:39:57 UTC",
+      "txHash": "0x7938d17fe8cc169b468a5c53c58fbf713cd892f70c7e7dff1f8ae4c70873cfc8",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 1,
+      "actualCarCount": 13,
+      "resolveTxHash": "0xcf5c0d1953b9c49ac3baec3143874dd89b425c991e75b93ef2acebdfb6a181db",
+      "resolveTimestamp": 1776005131,
+      "resolveDatetime": "2026-04-12 14:45:31 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xa64cdb81d4feb56c817df98cc1e06514ba586ad9f647537d9a0a984d6e4bca15"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xec702ba7decb5aa95d0fc4b83fcf899c4cd7388550c8ce594897531c9c8bdd17"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0cbceaa304b1e2a9141add021d475c40975c0788bc2b680e8d1a5222eb540fd7"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x155ddeCd8Aef2B094C2d6159F1E115CECa97bD24",
+      "index": 667,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44607902,
+      "timestamp": 1776005151,
+      "datetime": "2026-04-12 14:45:51 UTC",
+      "txHash": "0xf978966d8f704b5151f0752d58dedfa61e2c25436e68d2ae9ef4a62d33ee7335",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x84d2d64f178e68f20ce0707ecf8ce4f12e33eeed822042214557e5e5402a0de8",
+      "resolveTimestamp": 1776005483,
+      "resolveDatetime": "2026-04-12 14:51:23 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x3aebc09307bcdcfbfb06007ea20eacd22b3b982a75ae2e89b73182f6cfe99a11"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x54d009eefa3f29657a3da3ae3bfe9f46fcf4f336a61951c0ad61b014fcdc0380"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xaf42eb54c389f1227cf36868e20754a6e61feb827567be6fa4dbbf4175e22d07"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xD0Abb2eF8234D3020690711510ac29c1C2D2Dd36",
+      "index": 668,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608078,
+      "timestamp": 1776005503,
+      "datetime": "2026-04-12 14:51:43 UTC",
+      "txHash": "0xa7fd1ea9d558509a3c4ebab92a6bbd9634fbebbcb5e28c5c86c5a886976ba128",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xc1fe943b8f361f31fd8a7f3be602cf5301a76743206e7e38583547f9cfed5939",
+      "resolveTimestamp": 1776005837,
+      "resolveDatetime": "2026-04-12 14:57:17 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xf5e913dabd7aeaefac0b25979c553ff132412181aa1cf9fb83b3d7520dd5b7d1"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x3efb35e62fc03a7eaec90d5d43acf990b284274dbd9a5c1122772b325207cad4"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xe0f0c8583c63e68d1c723ef786dcfa8425a1aa88ace31229a05558cd40a8821c"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x8273925970d9C4547D193f47A527b7f5E6BC3ca1",
+      "index": 669,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608255,
+      "timestamp": 1776005857,
+      "datetime": "2026-04-12 14:57:37 UTC",
+      "txHash": "0xe67364abc0f8eed7dcf6e9ca0bc9d19b4b0ea56888f8e043db2020f1f5566602",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x5e7d5cd1f4a88f975cd67086bd81d54eb11d505d13c269209530ffcfb4009725",
+      "resolveTimestamp": 1776006191,
+      "resolveDatetime": "2026-04-12 15:03:11 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x7379fc344b36b007764506a40b22d36a8217e124720899202ce3cc74ce2cb512"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x757a2cfa77aca2e326e76d81da65b74fe3b59ad8cde495a461bce796b327ef81"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xaccea974834c685a86408788c78334899bc6fae5a3b8f1c079f28ed9775c14bb"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x1348d6767401D330f780C5E693C29B4f6020eE53",
+      "index": 670,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608433,
+      "timestamp": 1776006213,
+      "datetime": "2026-04-12 15:03:33 UTC",
+      "txHash": "0xc53470aa400121f0ad74a9c05ea0120edc989d2bfea31013c644ee331024f3a4",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x5a78bb8d479c53d34478b6f6702327cab1109a97b5be3c1a5b8eb4b0ffbbaac3",
+      "resolveTimestamp": 1776006547,
+      "resolveDatetime": "2026-04-12 15:09:07 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x180700470ca4629e3710e2069c54fc2dec8a0796d4bc17b97a168848b409c926"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xf1a34d1d45b5e00572ad635514b9fd150734ce9657b6acafe7233ab712faec3d"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x4ae60161eabc8576f4eab7171964f7dfd86852197ba6b60f67b11b8a5e0bf21a"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x48E36898d47A6aAd372066659538113F61e474f3",
+      "index": 671,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608611,
+      "timestamp": 1776006569,
+      "datetime": "2026-04-12 15:09:29 UTC",
+      "txHash": "0xda5e3c4899789b5f4d53f24832bc4071ad813987363c94a67a8f671e5385806c",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xdf164e2e267742420015536f77d1755f3ff6e2d21b193a6c2546915853252ef5",
+      "resolveTimestamp": 1776006901,
+      "resolveDatetime": "2026-04-12 15:15:01 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x93cbbf2f2631744eb0b4b2c96d0fe9dc0c9609621f87be0a9c822b2da8f1aeab"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x6f0b185dc282739f668f199bebe08746edb415ddf3da17f169a719b80b841a6f"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x2a98b1ebb510a7f3d4ed25e46bf0de5ae99f8e883c7054e673f8e4475ac2336b"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xcC418d6DAd2Ffe436088218FD500C179bF9c353b",
+      "index": 672,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608787,
+      "timestamp": 1776006921,
+      "datetime": "2026-04-12 15:15:21 UTC",
+      "txHash": "0xd1df12745271167e7eab196569c30691ebc2115f773bd141fa51c26b97f2e8c7",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x9a66aab29c646f2b71b0ceae1594b5bb47a5ebd8701d87061ea6c15ae16b5c44",
+      "resolveTimestamp": 1776007255,
+      "resolveDatetime": "2026-04-12 15:20:55 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xae94587491fd152fcbb8ffd62e6c5b0d45a59dec4c7e9f47551c4fcdfebdb2c5"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xe419fe71509c587923b792e12ad2afbbb0bf40c54b10ae7655bc44772d90c769"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xe9b8fe872a5f0ee1ce611dcdde7155b11f182b85cede9921b469eb8e7f68080b"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x6eA4B6402e447ee0B9D4cdf945403EDC7A5b5d50",
+      "index": 673,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44608963,
+      "timestamp": 1776007273,
+      "datetime": "2026-04-12 15:21:13 UTC",
+      "txHash": "0xc8dcda667c3faf3420b9f5a4a67251f9abc5229ea5afc2562e9eab1bdbe73d35",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x43732bd883db1037b0082c868e5f918224a7f7d825ccc562bf1263dcad5a6e66",
+      "resolveTimestamp": 1776007605,
+      "resolveDatetime": "2026-04-12 15:26:45 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x974a6c473b4037d9b18fe72c4b1991a59c79e6fd2cb59d549b82b5d566265119"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x248148608cbda44c39bf04daea5766bea55b647b60d6b3aff29e658d2b311428"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xc9be34210b416708fd6f8f9b68d1a3a8a57388b62c758cd21279f8a4f1e9b065"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x399d5404289c4D18b67Fcf6444AD1F6a8ed60a27",
+      "index": 674,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44609139,
+      "timestamp": 1776007625,
+      "datetime": "2026-04-12 15:27:05 UTC",
+      "txHash": "0xacecb8d6d98fe3f4e771b95b52bdbaa3e70bddd7dfff3ab257d75ab9a86a9a40",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xe804f0ca56851852af119b5097393e0d18a67f40e72968da907f025e5c666db1",
+      "resolveTimestamp": 1776007959,
+      "resolveDatetime": "2026-04-12 15:32:39 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x8cb6eaf1a8a9b89421cd3a455a9c55371c5f0f9b193042c33fc085948c62f297"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x8620e4de266a61d7b051c672dd3707a0be3704e08d65b9e8a7782c94e5d89e6b"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xd00017d9c78fc81ea410d05dcf27987afecdff82fdd57fe228387dde837e5878"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x58955a8D120B352F80BD300EaB2D9b49716ad649",
+      "index": 675,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44609315,
+      "timestamp": 1776007977,
+      "datetime": "2026-04-12 15:32:57 UTC",
+      "txHash": "0xf15ffc43a6871fdcc3e8aeac916850f960f1dc232bf97a7bf1b6b74dc95ecbc5",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x62c1dbecf539b07c0931273d68f47115b06c192fbce87e2174bcfe165214f28e",
+      "resolveTimestamp": 1776008311,
+      "resolveDatetime": "2026-04-12 15:38:31 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xcccc1c733359dd3797f521cd2f3a0f0654a50131e24f12f1b62c145c720c164e"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xb9d78f0af2db32dcf721210387f7b8f881c7eb8aecd97017604fc0938f4e713f"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x38b0223449e0728f4da86068626f280e6615aa6d77eaaa1068fe6d10cd60d208"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x97Ce3bF84A743329156D28D88A106efd57500f45",
+      "index": 676,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44609492,
+      "timestamp": 1776008331,
+      "datetime": "2026-04-12 15:38:51 UTC",
+      "txHash": "0xbc8c0b01f5527a34c6098dd0fab3a5da00a079226e9b29508b283ec66e21b430",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xd7a0d26764ca957c24ffea1ca1c69b6c11079b43295052ca83e021acd0fd2ef8",
+      "resolveTimestamp": 1776008663,
+      "resolveDatetime": "2026-04-12 15:44:23 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x21f71b20f6811e471804867b2e848b6477d44167d43be13e2f894c293292942c"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x821d0c8adb09be5fe8465e6dbf3f6c6f2383f196ee9252b7f625eb7822efd502"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x6970ed024d0224af87b5ab2d6a482607ba11937ecc6549ab89f22dcc8d158470"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x33A526E537Cb7a2aBAa8376bBE493B0EC9961313",
+      "index": 677,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44609669,
+      "timestamp": 1776008685,
+      "datetime": "2026-04-12 15:44:45 UTC",
+      "txHash": "0xbbfa0671bbc8616db9db7e1cfd665da5d268a9d71bc1cae4d047d29c40d5af56",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x4f8dee3727d98fd6c652fc7e5c5887a5122f6c35f5a6aa18f66c16111a012043",
+      "resolveTimestamp": 1776009019,
+      "resolveDatetime": "2026-04-12 15:50:19 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x6437803f879d7cffd429592f86446d7bac83d5438377182d4bf79342ca21ad13"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x91674c709df31a752f12598a6580e0786780b484e185ec292a248e41959e16a5"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x5356f849f154ecb2c25d4e6d501b114f3bfb981c5053b6890126605705acc924"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x3bA6EeecCB0Ed950B85fB34CF7bE5801FB2A869b",
+      "index": 678,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44609845,
+      "timestamp": 1776009037,
+      "datetime": "2026-04-12 15:50:37 UTC",
+      "txHash": "0xdf9ab77540422067cf5f23d8e6e28520394ad3c1a89cb82def2ed0dac1d910f2",
+      "state": "CANCELLED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 0,
+      "totalRefunded": 2000000000000000000000,
+      "totalBurned": 0,
+      "winningRangeIndex": -1,
+      "actualCarCount": -1,
+      "resolveTxHash": "",
+      "resolveTimestamp": 0,
+      "resolveDatetime": "",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xb5b85fac11b90b05adfe6fa846f122839cba641f1f75aa72615359eed0b42bac"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x56399c95b3f9c3b8cf39e3339d02262db7c66363687904b77f2de6b2621e1fe1"
+        }
+      ],
+      "claims": [],
+      "refunds": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "2000000000000000000000",
+          "txHash": "0x1f42ba22c521430df0799540610f3f8d86851e8695c52dce0e1b76ac6c6ba15e"
+        }
+      ]
+    },
+    {
+      "address": "0x6C88E50ce2ed4309C12BB5C29c50A41ca076F46C",
+      "index": 679,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610021,
+      "timestamp": 1776009389,
+      "datetime": "2026-04-12 15:56:29 UTC",
+      "txHash": "0xf9eb99982248861f2d8a575e037f6eba8636fb47ca14f7259304c86c67c6a321",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 1,
+      "resolveTxHash": "0x550d9c81eabd1cdbb3a9c9cece1d25e5a667bcc0f932806a0ddb3f151a7db8a7",
+      "resolveTimestamp": 1776009721,
+      "resolveDatetime": "2026-04-12 16:02:01 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x761b317be75d971d3fc828383a02907bdc19a79e7dd409868f61c7da57aed659"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x1b687a7041f5ba676497964894ba9d0a0f0899c346de06b7be9b5ff9776e6d80"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0a42966a1cc63b11964ebcf9b5f1a45bbe1c1032bfdeb6cbba82f38bf115ec61"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x96F6A99f0cdDC0eFd29A1C9Ed05048D0A668Af9b",
+      "index": 680,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610197,
+      "timestamp": 1776009741,
+      "datetime": "2026-04-12 16:02:21 UTC",
+      "txHash": "0xd3665ae08a056fc278749b02c93e18f5561722e10ea8e4476f4a1d22638cfc68",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x4371a1d6cc27ffa19f6176ed6714707849b526ee10d17b437f5b447759083216",
+      "resolveTimestamp": 1776010075,
+      "resolveDatetime": "2026-04-12 16:07:55 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xb561357b420b0010e346d54e4f0b1c27738e89325bfe92d24e48c19f1b1133fa"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x6226fdde1209ac08544483592d9db2c1557a92dd39cc6d463f5a80e8a04317bb"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xa8844f6297ff3494a3cecdec931cc6ac93b99428e23cc934fa675a97163d573d"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x390908C66d72A699eAe77bD3a81adBe18013ADF3",
+      "index": 681,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610375,
+      "timestamp": 1776010097,
+      "datetime": "2026-04-12 16:08:17 UTC",
+      "txHash": "0x2e677737dd3e77d01ff6ca711ebce524ed57de87683140f4770d7d94462e6a86",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x27a5a3777d35c007d9f03dc0e59bf9aa38ddc2621e7ed28b06f4bb0377b9d67e",
+      "resolveTimestamp": 1776010431,
+      "resolveDatetime": "2026-04-12 16:13:51 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xd746d36b7d6369b94069e4fae491b703bac0838424cebd988c152c4a98bb84df"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x9c41cee19cbfe7df05d80cafd8cab366adb94c80698b6de1d154d64e376ccc56"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xa9e8f851c9208f90e4682dcb19b95d80592beeb753d390bd16979c6ed5d686a2"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xa41C95F4195C40aC02a472471204a90baa80f8ee",
+      "index": 682,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610552,
+      "timestamp": 1776010451,
+      "datetime": "2026-04-12 16:14:11 UTC",
+      "txHash": "0xfac87859ac9215e0b16b121d776269270837379999ccca56bea28a69f686488b",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xe5b389fffb74d4fd1fc466d8d3ae09683f3ca79a23cae6ced7e4f3e7db0dce07",
+      "resolveTimestamp": 1776010783,
+      "resolveDatetime": "2026-04-12 16:19:43 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xcf11e3cac511cbc507db85b74a4dc34a31a2f68cc13afee2d5882f62e83dc5cc"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x92c9af0b3766984b817d4506faa93023cab14526b43b1a12a49704248866c036"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x9f109b8b3219998ab0cc859b26d49770ca658e47eccb2450519a8179fbe370f9"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x4E5e7Ba764C91aE1f71002717146b60668403574",
+      "index": 683,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610728,
+      "timestamp": 1776010803,
+      "datetime": "2026-04-12 16:20:03 UTC",
+      "txHash": "0xcac8449c01dab7c72765599054910760798b40e1b8e1a1ee2413e8a9c6a717a9",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x2af8d01d2affa6ef0fab4a5991d28c7c96c52e3404c348b4d468d7ab5932d0bb",
+      "resolveTimestamp": 1776011135,
+      "resolveDatetime": "2026-04-12 16:25:35 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x5e5eaff87d5214d000839833c0d2b98eb8254134e201b7f44c8f5920b8fb02a6"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x14ce8c322828a952ac3d29919ef4766da03839e7004387655554d1df3c7cb293"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0174bd0bf6269ecf6ff82e7319e6cde29aa5e631942d51accc6a4ab8d7f11057"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xb21Ad2890CAbF75403458ee71193bD65588e82A4",
+      "index": 684,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44610905,
+      "timestamp": 1776011157,
+      "datetime": "2026-04-12 16:25:57 UTC",
+      "txHash": "0x3c7cf2579d5989bd7d35b9ca3d229197685dd81f98629d4f6f7296798479ef04",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x7873251a31fac9589f49866a63d6a7c97788008c0f609cc0f84b9c31e5ca6ea0",
+      "resolveTimestamp": 1776011491,
+      "resolveDatetime": "2026-04-12 16:31:31 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xf7e364ef6cd457d122c1d1d6fdd3cd31b0d9d36596a1d9d4281922db4952ad6d"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x08e4ad6b2873bb3a4aac2f839cda2f64f656b6a24089555f6cb606fa6f4c4fdb"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0dd3109597f667e15e0d93312d6a12ab5e2661767915d9dd382cedfd37323af3"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xf511Eb8Fc4169772e6Ce1CbCD66cC54Afe64E4a7",
+      "index": 685,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44611082,
+      "timestamp": 1776011511,
+      "datetime": "2026-04-12 16:31:51 UTC",
+      "txHash": "0x905b7551df3181751f3afd75cb009507c1d68dbe112c3fed6377da398fed4e95",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x70df5bd8dfc75c3ad36c36de3925a07140bd41d520b95affaa4e4e56d3c91761",
+      "resolveTimestamp": 1776011845,
+      "resolveDatetime": "2026-04-12 16:37:25 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xc966108fa7d9ff017d37a8a98a413937ff89054cc03fd474ea01cba3ecbeeba7"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x6dbc234411491ea0bb4a48dc79a36e353319d512e1931ead0084b934478ddda1"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xf45416495e0abadcf0279f5f63552dd6a022179956c766a650606f41f1b9bfe7"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xf93729b6382569db5645787DEcF4d810bE447A49",
+      "index": 686,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44611258,
+      "timestamp": 1776011863,
+      "datetime": "2026-04-12 16:37:43 UTC",
+      "txHash": "0x1b91523bad5f4e09c5f36010277035461b3d87481aa4c474897e28eb8f7a18f4",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x2418ba9264d7aced204e7cb20f1184af2e67febb3c9858745db551680bdcff3b",
+      "resolveTimestamp": 1776012195,
+      "resolveDatetime": "2026-04-12 16:43:15 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x277b46afb74ab9424f4bb4300ecfeafeaa1852e4be492517b72fcc237ea36baa"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x280f8b19f39761f9c9c61de145d2f56c1dd078bf6d9174e21be4878adaf3455a"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x0ef585029b25e8973558864ccf8d0fb6d24bc86766e2a479910628e36975ae95"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0x3373124c4AA2CB7c2E9402539266588f3b503B02",
+      "index": 687,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44611434,
+      "timestamp": 1776012215,
+      "datetime": "2026-04-12 16:43:35 UTC",
+      "txHash": "0x2b0313f71a8bdac1da907e45bc49e260e0caad4144de9618a5d497769fdd03e2",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0xdbcfdf106ea76acd4f576b497435c544e7325716774f35ba3fd00873e1de50d1",
+      "resolveTimestamp": 1776012547,
+      "resolveDatetime": "2026-04-12 16:49:07 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xf150c7afd8524c4b14f8cdfb32d93a46c57fc62af2f316cd51071bacc635cf84"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x35df49c226b62999c27c2690a961a4936ee1033b6468fd650c6563480a5d69fa"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0x1bf95d51be457c4aa6ca4c3e816fc6b0bfa9c2a46a95b7469c33d530b498872b"
+        }
+      ],
+      "refunds": []
+    },
+    {
+      "address": "0xc9CD30f2A35c37790F6609351ff93c19b5e819fa",
+      "index": 688,
+      "description": "Levi Ski Resort \u2014 Finland \u2014 How many vehicles in 5 min?",
+      "isTokenMode": true,
+      "blockNumber": 44611610,
+      "timestamp": 1776012567,
+      "datetime": "2026-04-12 16:49:27 UTC",
+      "txHash": "0x7a8cbb1ec0d5c8dcfe889fe28e8d32c4776874db83947f99c4de2915e46600ba",
+      "state": "RESOLVED",
+      "totalPool": 2000000000000000000000,
+      "totalClaimed": 1400000000000000000000,
+      "totalRefunded": 0,
+      "totalBurned": 600000000000000000000,
+      "winningRangeIndex": 0,
+      "actualCarCount": 0,
+      "resolveTxHash": "0x780d41539b0d3f5f3333297789e86cadfeb98801d409cb3525099ba26d5d83bf",
+      "resolveTimestamp": 1776012901,
+      "resolveDatetime": "2026-04-12 16:55:01 UTC",
+      "bettorCount": 1,
+      "totalPool_wei": "2000000000000000000000",
+      "bets": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 0,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0xab8aee0ef12b7aa8e7bf12d1d65eff64a920a4fab003c4972af66b8797c56a10"
+        },
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "rangeIndex": 1,
+          "amount_wei": "1000000000000000000000",
+          "txHash": "0x5b059737a1fca3cd54ddfad7f91f5b330e30eb859b0491e6445dd3f11a18fb67"
+        }
+      ],
+      "claims": [
+        {
+          "user": "0x2d882a197c15B8b3b544b8B131AE229B52643A73",
+          "amount_wei": "1400000000000000000000",
+          "txHash": "0xe2652e31b146f28c96eea11192614143dfb68d7165443215711e5753615c4e82"
+        }
+      ],
+      "refunds": []
     }
   ],
   "betting_pnl": {
@@ -128654,14 +130414,14 @@
     },
     "burn": {
       "0x2d882a197c15B8b3b544b8B131AE229B52643A73": {
-        "wagered": "433000000000000000000000",
-        "won": "287000000000000000000000",
-        "refunded": "20000000000000000000000",
-        "net": "-126000000000000000000000",
-        "bets": 433,
-        "wins": 205,
+        "wagered": "513000000000000000000000",
+        "won": "341600000000000000000000",
+        "refunded": "22000000000000000000000",
+        "net": "-149400000000000000000000",
+        "bets": 513,
+        "wins": 244,
         "burned": 0,
-        "markets": 219
+        "markets": 259
       }
     }
   },
@@ -128685,10 +130445,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 22564301587301585,
       "buyout_revenue": 209650408399470908,
-      "fees_claimed": 392892109051331165,
+      "fees_claimed": 396759371935955341,
       "tax_paid": 6021455357142847,
       "appreciation_tax_paid": 78900000000000000,
-      "net": 452578215863500488
+      "net": 456445478748124664
     },
     "0x2fD16c010EE9dd787e509111353669F82db1a1A1": {
       "deposits_in": 39000000000000000,
@@ -128697,10 +130457,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 0,
       "buyout_revenue": 116863407738095242,
-      "fees_claimed": 372717898957039981,
+      "fees_claimed": 380452424726288334,
       "tax_paid": 6145626653439145,
       "appreciation_tax_paid": 84000000000000000,
-      "net": 366581306695135223
+      "net": 374315832464383576
     },
     "0x6Edbc15990f256666538644fc439cc1bf5B62f96": {
       "deposits_in": 48500000000000000,
@@ -128709,10 +130469,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 0,
       "buyout_revenue": 39327933201058202,
-      "fees_claimed": 544413471316871822,
+      "fees_claimed": 559882522855368528,
       "tax_paid": 455161210317454,
       "appreciation_tax_paid": 115500000000000000,
-      "net": 419741404517930024
+      "net": 435210456056426730
     },
     "0xABE2180F3995347e64ED96c6fA272596DE4c6Cf1": {
       "deposits_in": 20000000000000000,
@@ -129057,10 +130817,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 81345375661375658,
       "buyout_revenue": 21999774470899472,
-      "fees_claimed": 542355278679707417,
+      "fees_claimed": 561691593102828300,
       "tax_paid": 504364583333328,
       "appreciation_tax_paid": 119400000000000000,
-      "net": 363609677489231231
+      "net": 382945991912352114
     },
     "0x4Ba6b053a2993732d6B5054Aa7aeaf157033d613": {
       "deposits_in": 0,
@@ -129117,10 +130877,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 97768287037037036,
       "buyout_revenue": 54496197089947093,
-      "fees_claimed": 223632818351969547,
+      "fees_claimed": 235234607005842076,
       "tax_paid": 8443048941798932,
       "appreciation_tax_paid": 74100000000000000,
-      "net": 83260728404879604
+      "net": 94862517058752133
     },
     "0x858E9483bd0cD7a53f78040A4342Dc79F239e930": {
       "deposits_in": 0,
@@ -129375,16 +131135,16 @@
       "net": -3729958622192950
     },
     "0x1d652df2a24cf2C6c6B7f3e71fB95b094500B85a": {
-      "deposits_in": 0,
+      "deposits_in": 2000000000000000,
       "deposits_out": 0,
       "claim_fees_paid": 0,
       "tier_price_paid": 0,
       "buyout_cost": 339278523280423276,
       "buyout_revenue": 0,
-      "fees_claimed": 270167029311123069,
-      "tax_paid": 985100859788355,
+      "fees_claimed": 289503343734243952,
+      "tax_paid": 8357738095238090,
       "appreciation_tax_paid": 38700000000000000,
-      "net": -107811493969300207
+      "net": -90475179546179324
     },
     "0x0291074CC5A1dcB60FeDfafaCc00773909A8121C": {
       "deposits_in": 0,
@@ -129393,10 +131153,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 399335504232804230,
       "buyout_revenue": 60999152777777778,
-      "fees_claimed": 270167029311123069,
+      "fees_claimed": 289503343734243952,
       "tax_paid": 122899470899466,
       "appreciation_tax_paid": 37500000000000000,
-      "net": -105669322143903383
+      "net": -86333007720782500
     },
     "0x8e0872f4d89521951Cf741c9bA149f332aEc57dD": {
       "deposits_in": 0,
@@ -129417,10 +131177,10 @@
       "tier_price_paid": 0,
       "buyout_cost": 332077379894179891,
       "buyout_revenue": 0,
-      "fees_claimed": 270167029311123069,
+      "fees_claimed": 289503343734243952,
       "tax_paid": 1721395502643,
       "appreciation_tax_paid": 42600000000000000,
-      "net": -104510350583056822
+      "net": -85174036159935939
     },
     "0x370fF523436aF6811F201DA65a981Fc02415e5de": {
       "deposits_in": 0,
@@ -129441,13 +131201,13 @@
       "tier_price_paid": 0,
       "buyout_cost": 309756634656084654,
       "buyout_revenue": 0,
-      "fees_claimed": 151899051616630962,
+      "fees_claimed": 171235366039751845,
       "tax_paid": 283970568783065,
       "appreciation_tax_paid": 30900000000000000,
-      "net": -188757583039453692
+      "net": -169421268616332809
     },
     "0xA3962b204c018FC3f4cFD7196aBc776beB3F72f7": {
-      "deposits_in": 26000000000000000,
+      "deposits_in": 36000000000000000,
       "deposits_out": 0,
       "claim_fees_paid": 0,
       "tier_price_paid": 0,
@@ -129456,7 +131216,7 @@
       "fees_claimed": 124708239446626344,
       "tax_paid": 8638227513224,
       "appreciation_tax_paid": 69900000000000000,
-      "net": -303115654468717568
+      "net": -313115654468717568
     },
     "0x1E241Ac5C3a2863417e292c40385E3c21732E31b": {
       "deposits_in": 10000000000000000,
@@ -129632,7 +131392,7 @@
   "dev_fees": {
     "total_claimed_wei": 8597148339996692444,
     "total_claim_fee_cuts_wei": 51000000000000000,
-    "total_tax_cuts_wei": 139360224123676799,
+    "total_tax_cuts_wei": 143046542741401666,
     "claims": [
       {
         "contract": "V1",
@@ -130324,6 +132084,20 @@
       "txHash": "0x6d476aef33014bf91ad271083e0ad2350ae3c86b617c24ab65f7ad863e0feb75",
       "datetime": "2026-04-10 15:24:07 UTC",
       "timestamp": 1775834647
+    },
+    {
+      "contract": "V1",
+      "amount": 314101902743000473,
+      "txHash": "0xc644456602fb0690d151338dcb23dce2b818f41824dd2b312fb7384a78890484",
+      "datetime": "2026-04-12 16:36:41 UTC",
+      "timestamp": 1776011801
+    },
+    {
+      "contract": "V1",
+      "amount": 53288071296296310,
+      "txHash": "0x26d79c43b27ff769ee173e019b31f2bffc4d4852198ee9c4b96587de9190fae2",
+      "datetime": "2026-04-12 16:36:55 UTC",
+      "timestamp": 1776011815
     }
   ],
   "foreclosures": [
@@ -130402,8 +132176,8 @@
   ],
   "summary": {
     "total_eth_markets": 2808,
-    "total_burn_markets": 649,
-    "total_v1_events": 2812,
+    "total_burn_markets": 689,
+    "total_v1_events": 2828,
     "total_v2_events": 22
   }
 }
