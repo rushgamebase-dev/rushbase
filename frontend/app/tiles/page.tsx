@@ -729,19 +729,19 @@ function TileModal({
                   </div>
                 </div>
 
-                {/* Abandon — dangerous, muted */}
+                {/* Last Claim — recovers deposit, releases tile (V1 wind-down) */}
                 <button onClick={() => onAction("abandon")} disabled={busy}
                   className="w-full py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all"
                   style={{
-                    background: "rgba(255,40,40,0.04)",
-                    border: "1px solid rgba(255,40,40,0.1)",
-                    color: "#884444",
+                    background: "rgba(0,255,136,0.04)",
+                    border: "1px solid rgba(0,255,136,0.15)",
+                    color: "#00ff88",
                     fontFamily: "monospace",
                   }}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#ff4444"; (e.target as HTMLElement).style.borderColor = "rgba(255,68,68,0.25)"; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "#884444"; (e.target as HTMLElement).style.borderColor = "rgba(255,40,40,0.1)"; }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "rgba(0,255,136,0.08)"; (e.target as HTMLElement).style.borderColor = "rgba(0,255,136,0.3)"; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "rgba(0,255,136,0.04)"; (e.target as HTMLElement).style.borderColor = "rgba(0,255,136,0.15)"; }}
                 >
-                  ABANDON TILE
+                  LAST CLAIM
                 </button>
               </>
             )}
