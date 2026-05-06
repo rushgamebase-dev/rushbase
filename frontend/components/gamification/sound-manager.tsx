@@ -234,23 +234,37 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleSound = useCallback(() => {
+    // ALWAYS warm up the AudioContext inside this user-gesture handler,
+    // regardless of which way the toggle is going. Default state is
+    // enabled=true, so the first click toggles OFF (newValue=false) —
+    // if we only init on the ON branch, the very first user click
+    // burns the only reliable user-gesture moment without warming
+    // the audio pipeline. Subsequent attempts may fail silently in
+    // Chrome / Safari / mobile WebKit.
+    try {
+      const ctx = (audioContextRef.current ??=
+        new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)());
+      if (ctx.state === "suspended") {
+        // Resume returns a Promise — fire-and-forget is fine; the
+        // context will be running by the time the user clicks a
+        // cell or a bet resolves.
+        void ctx.resume();
+      }
+    } catch {
+      // No audio API in this environment.
+    }
+
     setEnabled((prev) => {
       const newValue = !prev;
       localStorage.setItem("taptrader-sound-enabled", String(newValue));
-      // Browsers require the AudioContext to be created or resumed
-      // inside a user gesture (Chrome, Safari, all mobile WebKit).
-      // Doing it here on toggle means the very first click warms up
-      // the audio pipeline AND plays back a confirmation tone, so the
-      // user gets immediate feedback the sound actually works.
-      if (newValue) {
+      // Confirmation tone only when toggling ON, so the user can
+      // hear that audio is alive. OFF→silence (don't fight the
+      // user's intent).
+      if (newValue && audioContextRef.current) {
         try {
-          const ctx = (audioContextRef.current ??=
-            new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)());
-          if (ctx.state === "suspended") void ctx.resume();
-          // Quick neon-tap as a "sound is on" affordance.
-          createNeonTap(ctx, 0.45);
+          createNeonTap(audioContextRef.current, 0.45);
         } catch {
-          // Audio API unavailable — leave silently.
+          // ignore
         }
       }
       return newValue;
@@ -269,6 +283,23 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
       const ctx = initAudioContext();
       const vol = volume * 0.34; // Present, but still short and UI-safe.
 
+      // If the context is still suspended (Chrome / Safari pre-gesture
+      // state, or just after creation), we'd schedule oscillators in
+      // a paused timeline and they'd never play. Defer the actual
+      // sound construction until resume() resolves — synchronous code
+      // returns immediately and the user hears the sound a few ms
+      // later, which is imperceptible.
+      if (ctx.state === "suspended") {
+        void ctx.resume().then(() => playInternal(type, ctx, vol));
+        return;
+      }
+
+      playInternal(type, ctx, vol);
+    },
+    [enabled, volume, initAudioContext]
+  );
+
+  function playInternal(type: SoundType, ctx: AudioContext, vol: number) {
       switch (type) {
         case "tap":
           createNeonTap(ctx, vol);
@@ -332,9 +363,7 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
           createPluck(ctx, 1000, vol * 0.3);
           break;
       }
-    },
-    [enabled, volume, initAudioContext]
-  );
+  }
 
   return (
     <SoundManagerContext.Provider
