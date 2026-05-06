@@ -64,10 +64,10 @@ export default function StakePage() {
     ],
     query: { refetchInterval: 4_000 },
   });
-  const totalStaked = (pool?.[0]?.result as bigint | undefined) ?? 0n;
-  const rewardRate = (pool?.[1]?.result as bigint | undefined) ?? 0n;
-  const periodFinish = (pool?.[2]?.result as bigint | undefined) ?? 0n;
-  const rewardsDuration = (pool?.[3]?.result as bigint | undefined) ?? 604800n;
+  const totalStaked = (pool?.[0]?.result as bigint | undefined) ?? BigInt(0);
+  const rewardRate = (pool?.[1]?.result as bigint | undefined) ?? BigInt(0);
+  const periodFinish = (pool?.[2]?.result as bigint | undefined) ?? BigInt(0);
+  const rewardsDuration = (pool?.[3]?.result as bigint | undefined) ?? BigInt(604800);
 
   const { data: user, refetch: refetchUser } = useReadContracts({
     contracts: address
@@ -84,10 +84,10 @@ export default function StakePage() {
       : [],
     query: { enabled: !!address, refetchInterval: 2_000 },
   });
-  const userStake = (user?.[0]?.result as bigint | undefined) ?? 0n;
-  const earnedSnap = (user?.[1]?.result as bigint | undefined) ?? 0n;
-  const rushBalance = (user?.[2]?.result as bigint | undefined) ?? 0n;
-  const allowance = (user?.[3]?.result as bigint | undefined) ?? 0n;
+  const userStake = (user?.[0]?.result as bigint | undefined) ?? BigInt(0);
+  const earnedSnap = (user?.[1]?.result as bigint | undefined) ?? BigInt(0);
+  const rushBalance = (user?.[2]?.result as bigint | undefined) ?? BigInt(0);
+  const allowance = (user?.[3]?.result as bigint | undefined) ?? BigInt(0);
 
   const ethBal = useBalance({ address, query: { refetchInterval: 4_000 } });
 
@@ -96,9 +96,9 @@ export default function StakePage() {
   //    between snapshots. The contract's accumulator is exactly
   //    `userBalance × rewardRate / totalStaked × dt`, so we apply
   //    the same formula client-side between RPC calls. ──────────────
-  const [liveEarned, setLiveEarned] = useState<bigint>(0n);
+  const [liveEarned, setLiveEarned] = useState<bigint>(BigInt(0));
   const snapshotRef = useRef<{ value: bigint; takenAt: number }>({
-    value: 0n,
+    value: BigInt(0),
     takenAt: 0,
   });
 
@@ -120,9 +120,9 @@ export default function StakePage() {
           ? Math.max(0, periodFinishMs - snap.takenAt)
           : elapsedMs;
       // delta_eth = userStake * rewardRate * (elapsedMs / 1000) / totalStaked
-      let delta = 0n;
-      if (totalStaked > 0n && userStake > 0n && rewardRate > 0n) {
-        delta = (userStake * rewardRate * BigInt(cappedAtFinish)) / (totalStaked * 1000n);
+      let delta = BigInt(0);
+      if (totalStaked > BigInt(0) && userStake > BigInt(0) && rewardRate > BigInt(0)) {
+        delta = (userStake * rewardRate * BigInt(cappedAtFinish)) / (totalStaked * BigInt(1000));
       }
       setLiveEarned(snap.value + delta);
       raf = requestAnimationFrame(tick);
@@ -144,7 +144,7 @@ export default function StakePage() {
   }, [amount]);
 
   const needsApproval =
-    mode === "stake" && parsed != null && parsed > 0n && allowance < parsed;
+    mode === "stake" && parsed != null && parsed > BigInt(0) && allowance < parsed;
 
   const max = mode === "stake" ? rushBalance : userStake;
   const setMax = () => setAmount(formatUnits(max, 18));
@@ -202,15 +202,15 @@ export default function StakePage() {
 
   // ── Derived metrics ────────────────────────────────────────────
   const sharePct =
-    totalStaked > 0n ? Number((userStake * 10000n) / totalStaked) / 100 : 0;
+    totalStaked > BigInt(0) ? Number((userStake * BigInt(10000)) / totalStaked) / 100 : 0;
   const periodFinishMs = Number(periodFinish) * 1000;
   const periodActive = periodFinishMs > Date.now();
   const periodLeftMs = Math.max(0, periodFinishMs - Date.now());
   const periodLeftStr = formatDuration(periodLeftMs);
   // ETH per year per RUSH wei (under current stream rate)
   const apr = useMemo(() => {
-    if (!periodActive || totalStaked === 0n || rewardRate === 0n) return null;
-    const ethPerYearWei = rewardRate * 31_536_000n;
+    if (!periodActive || totalStaked === BigInt(0) || rewardRate === BigInt(0)) return null;
+    const ethPerYearWei = rewardRate * BigInt(31_536_000);
     // ETH per RUSH staked, per year — UI then lets user reason about
     // it in their own terms (knowing ETH and RUSH prices).
     const ethPerRushPerYear = Number(formatEther(ethPerYearWei)) / Number(formatEther(totalStaked));
@@ -368,7 +368,7 @@ export default function StakePage() {
                     <ActionButton
                       label="stake"
                       onClick={onStake}
-                      disabled={!parsed || parsed === 0n || parsed > rushBalance || isWritePending || isMining}
+                      disabled={!parsed || parsed === BigInt(0) || parsed > rushBalance || isWritePending || isMining}
                       loading={isWritePending || isMining}
                       tone="primary"
                     />
@@ -377,7 +377,7 @@ export default function StakePage() {
                   <ActionButton
                     label="unstake"
                     onClick={onUnstake}
-                    disabled={!parsed || parsed === 0n || parsed > userStake || isWritePending || isMining}
+                    disabled={!parsed || parsed === BigInt(0) || parsed > userStake || isWritePending || isMining}
                     loading={isWritePending || isMining}
                     tone="warn"
                   />
@@ -386,7 +386,7 @@ export default function StakePage() {
                 <ActionButton
                   label={`claim ${fmtEth(liveEarned)} ETH`}
                   onClick={onClaim}
-                  disabled={liveEarned === 0n || isWritePending || isMining}
+                  disabled={liveEarned === BigInt(0) || isWritePending || isMining}
                   loading={isWritePending || isMining}
                   tone="claim"
                 />
@@ -415,7 +415,7 @@ export default function StakePage() {
               reward rate
             </div>
             <div className="mt-1 font-mono text-base font-black text-white">
-              {fmtEth(rewardRate * 86400n, 6)} <span className="text-xs text-[#8aa393]">ETH/day</span>
+              {fmtEth(rewardRate * BigInt(86400), 6)} <span className="text-xs text-[#8aa393]">ETH/day</span>
             </div>
             <div className="mt-1 font-mono text-[10px] text-[#5a8068]">
               streamed continuously over {Number(rewardsDuration) / 86400} days
