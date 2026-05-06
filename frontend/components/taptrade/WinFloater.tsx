@@ -73,9 +73,14 @@ export function WinFloater({
       ? `transform ${FLY_DURATION_MS}ms cubic-bezier(0.65, 0.05, 0.36, 1), opacity ${FLY_DURATION_MS}ms ease-in`
       : `transform ${POP_DURATION_MS}ms cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity ${POP_DURATION_MS - 200}ms ease-out`;
 
+  // Variable precision: tiny micro-wins (sub-0.0001 ETH) are common
+  // now that min stake is 0.0001 — round to 6 decimals so a
+  // 0.0001 × 1.6 = 0.00006 net gain renders as "0.000060", not
+  // "0.0001". For larger wins (≥ 0.001), 4 decimals stays cleaner.
+  const decimals = amountEth < 0.001 ? 6 : 4;
   const formatted = amountEth.toLocaleString("en-US", {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   });
 
   return (

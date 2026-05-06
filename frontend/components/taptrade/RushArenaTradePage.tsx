@@ -685,11 +685,18 @@ export default function RushArenaTradePage({
           const rect = balanceRef.current?.getBoundingClientRect();
           const toX = rect ? rect.left + rect.width / 2 : window.innerWidth - 60;
           const toY = rect ? rect.top + rect.height / 2 : 32;
+          // Floater shows the NET profit only — `potentialWin` is the
+          // gross payout (stake × multiplier), so subtracting the stake
+          // gives the actual ETH the player gained on this bet. Otherwise
+          // a 0.0001 stake at 1.7× displays "+0.0002" and the player
+          // assumes that's pure profit when half of it is just the stake
+          // coming back from the lock.
+          const netGain = Math.max(0, bet.potentialWin - bet.stake);
           setWinFloaters((prev) => [
             ...prev,
             {
               id: bet.id,
-              amountEth: bet.potentialWin,
+              amountEth: netGain,
               multiplier: bet.multiplier ?? 0,
               from: { x: fromX, y: fromY },
               to: { x: toX, y: toY },
