@@ -35,11 +35,9 @@ export const CLOSED_TILE_IDS = new Set<number>([
 
 /**
  * Tiles reserved — sale not authorized via UI.
- * These tiles are owned but buyout is blocked until further notice.
+ * V1 officially dead 2026-05-06 — no UI gates, holders free to exit.
  */
-export const RESERVED_TILE_IDS = new Set<number>([
-  2, 4, 9, 20, 21, 22, 26, 57, 60, 62, 63, 64, 72, 73, 75, 85, 91, 95, 96, 97,
-]);
+export const RESERVED_TILE_IDS = new Set<number>([]);
 
 /** 20 raccoon tile images */
 const TILE_IMAGE_COUNT = 20;
