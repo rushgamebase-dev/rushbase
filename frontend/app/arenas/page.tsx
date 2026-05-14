@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RushArenasPage from "@/components/arenas/RushArenasPage";
+import RushArenasPlayPage from "@/components/arenas/RushArenasPlayPage";
 
 export const metadata: Metadata = {
   title: "Rush Arenas — Mainnet Battle Arena",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ArenasPage() {
-  return <RushArenasPage section="join" />;
+  return <RushArenasPlayPage section="join" />;
 }
