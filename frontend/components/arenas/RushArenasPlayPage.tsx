@@ -66,6 +66,7 @@ type ReadResult = { status: "success" | "failure"; result?: unknown };
 type ArenaSummary = { arena: RushArena; participantCount: bigint; result: RushBattleResult | undefined };
 type ArenaNotice = { arenaId: bigint; tone: "info" | "error" | "success"; message: string };
 type ActionNotice = { tone: "info" | "error" | "success"; message: string };
+type RefundNotice = { arenaId: bigint; agentId: bigint; amount: bigint; txHash?: `0x${string}` };
 
 const ZERO_HASH =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -260,6 +261,7 @@ export default function RushArenasPlayPage({ section = "join", initialArenaId }:
   const [followedArenaId, setFollowedArenaId] = useState<bigint | undefined>();
   const [arenaNotice, setArenaNotice] = useState<ArenaNotice | null>(null);
   const [fighterNotice, setFighterNotice] = useState<ActionNotice | null>(null);
+  const [refundNotice, setRefundNotice] = useState<RefundNotice | null>(null);
   const refreshTimersRef = useRef<number[]>([]);
   const autoWatchArenaRef = useRef<string | null>(null);
   const [arenaForm, setArenaForm] = useState({
@@ -541,6 +543,44 @@ export default function RushArenasPlayPage({ section = "join", initialArenaId }:
         if (args.arenaId) addLiveArenaId(args.arenaId);
       });
       queueRefresh();
+    },
+  });
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "RefundClaimed",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      let matchedCurrentWallet = false;
+
+      logs.forEach((log) => {
+        const args = log.args as {
+          arenaId?: bigint;
+          agentId?: bigint;
+          owner?: `0x${string}`;
+          amount?: bigint;
+        };
+        if (args.arenaId) addLiveArenaId(args.arenaId);
+        if (!address || !args.arenaId || !args.agentId || args.amount === undefined) return;
+        if (args.owner?.toLowerCase() !== address.toLowerCase()) return;
+
+        matchedCurrentWallet = true;
+        setSelectedArenaId(args.arenaId);
+        setRefundNotice({
+          arenaId: args.arenaId,
+          agentId: args.agentId,
+          amount: args.amount,
+          txHash: log.transactionHash,
+        });
+        showArenaNotice(
+          args.arenaId,
+          `Refund received for fighter #${args.agentId.toString()}.`,
+          "success",
+        );
+      });
+
+      queueRefresh(matchedCurrentWallet ? [0, 800, 1800, 4000, 8000] : undefined);
     },
   });
 
@@ -854,6 +894,7 @@ export default function RushArenasPlayPage({ section = "join", initialArenaId }:
 
         <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
           <TxStatus label={txLabel} hash={txHash} busy={txBusy} success={txSuccess} error={txError} />
+          <RefundNoticeBanner notice={refundNotice} />
 
           {section === "join" && (
             <JoinPanel
@@ -1405,9 +1446,12 @@ function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, se
             </div>
             {refundable.length > 0 && (
               <div className="mt-4 rounded-lg border border-red-500/25 bg-red-500/10 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-red-200" style={{ fontFamily: "monospace" }}>refund available</div>
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-red-200" style={{ fontFamily: "monospace" }}>auto-refund pending</div>
+                <div className="mt-2 text-xs leading-5 text-red-100/80">
+                  Rush submits cancelled-arena refunds automatically. The buttons below are only a manual fallback if the executor has not confirmed the refund yet.
+                </div>
                 <div className="mt-3 grid gap-2">
-                  {refundable.map((participant) => <ActionButton key={participant.agentId.toString()} disabled={txBusy} onClick={() => claimRefund(selectedArena.arenaId, participant.agentId)} icon={CircleDollarSign}>Claim fighter #{participant.agentId} refund</ActionButton>)}
+                  {refundable.map((participant) => <ActionButton key={participant.agentId.toString()} disabled={txBusy} onClick={() => claimRefund(selectedArena.arenaId, participant.agentId)} icon={CircleDollarSign}>Manual fallback for fighter #{participant.agentId.toString()}</ActionButton>)}
                 </div>
               </div>
             )}
@@ -1736,6 +1780,29 @@ function TxStatus({ label, hash, busy, success, error }: { label: string | null;
           {error && <div className="mt-2 max-w-3xl text-xs text-red-300">{friendlyError(error)}</div>}
         </div>
         {hash && <a href={`https://basescan.org/tx/${hash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md border border-neutral-800 px-3 py-2 text-xs font-bold text-neutral-300 hover:text-white">{shortHash(hash)}<ExternalLink size={13} /></a>}
+      </div>
+    </div>
+  );
+}
+
+function RefundNoticeBanner({ notice }: { notice: RefundNotice | null }) {
+  if (!notice) return null;
+  return (
+    <div className="mb-6 rounded-lg border border-[#00ff88]/35 bg-[#00ff88]/10 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-[#9dffc9]" style={{ fontFamily: "monospace" }}>refund received</div>
+          <div className="mt-1 text-sm font-bold text-white">
+            Fighter #{notice.agentId.toString()} received {formatEthValue(notice.amount)} from arena #{notice.arenaId.toString()}.
+          </div>
+          <div className="mt-1 text-xs text-neutral-400">Rush executor submitted the refund automatically. No holder action was required.</div>
+        </div>
+        {notice.txHash && (
+          <a href={`https://basescan.org/tx/${notice.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md border border-[#00ff88]/25 px-3 py-2 text-xs font-bold text-[#9dffc9] hover:text-white">
+            {shortHash(notice.txHash)}
+            <ExternalLink size={13} />
+          </a>
+        )}
       </div>
     </div>
   );

@@ -27,6 +27,9 @@ export class ArenaScannerService implements OnModuleInit {
   // Track arenas we've already attempted to cancel (cooldown)
   private cancellingArenas: Set<string> = new Set();
 
+  // Track arenas currently being bulk-refunded to avoid duplicate txs
+  private refundingArenas: Set<string> = new Set();
+
   // Number of recent arenas to scan each cycle
   private readonly SCAN_BATCH_SIZE = 50;
 
@@ -212,6 +215,7 @@ export class ArenaScannerService implements OnModuleInit {
         this.logger.log(
           `Arena ${arena.arenaId} cancelled (expired, min players not reached): txHash=${result.hash}`,
         );
+        await this.refundCancelledArena(arena.arenaId, 'expired arena');
       } else {
         this.logger.warn(`Failed to cancel arena ${arena.arenaId}: ${result.error}`);
       }
@@ -221,6 +225,38 @@ export class ArenaScannerService implements OnModuleInit {
       // 5 minute cooldown before retrying cancel
       setTimeout(() => {
         this.cancellingArenas.delete(arenaKey);
+      }, 5 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Bulk-refund a cancelled arena using the executor wallet.
+   * This keeps holders from needing to press Claim Refund manually.
+   */
+  private async refundCancelledArena(arenaId: bigint, reason: string): Promise<void> {
+    const arenaKey = arenaId.toString();
+
+    if (this.refundingArenas.has(arenaKey)) {
+      return;
+    }
+
+    this.refundingArenas.add(arenaKey);
+
+    try {
+      const result = await this.writer.bulkRefund(arenaId);
+
+      if (result.success) {
+        this.logger.log(
+          `Arena ${arenaId} bulk-refunded (${reason}): txHash=${result.hash}`,
+        );
+      } else {
+        this.logger.warn(`Failed to bulk-refund arena ${arenaId}: ${result.error}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error bulk-refunding arena ${arenaId}`, error);
+    } finally {
+      setTimeout(() => {
+        this.refundingArenas.delete(arenaKey);
       }, 5 * 60 * 1000);
     }
   }

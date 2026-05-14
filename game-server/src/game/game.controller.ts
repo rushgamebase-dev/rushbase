@@ -1016,12 +1016,24 @@ export class GameController implements OnModuleInit {
       const result = await this.contractWriter.cancelArena(arenaId);
 
       if (result.success) {
+        let refundResult;
+        try {
+          refundResult = await this.contractWriter.bulkRefund(arenaId);
+        } catch (refundError) {
+          this.logger.error(`Arena ${arenaId} cancelled but bulk refund failed`, refundError);
+        }
+
         return {
-          status: 'cancelled',
+          status: refundResult?.success ? 'cancelled_and_refunded' : 'cancelled_refund_pending',
           arenaId: arenaId.toString(),
           txHash: result.hash,
-          message: 'Arena cancelled. Participants can claim refunds.',
+          cancelTxHash: result.hash,
+          refundTxHash: refundResult?.hash,
+          message: refundResult?.success
+            ? 'Arena cancelled and participant refunds were submitted by the executor.'
+            : 'Arena cancelled. Bulk refund did not confirm yet; retry bulk-refund.',
           explorerLink: `https://basescan.org/tx/${result.hash}`,
+          refundExplorerLink: refundResult?.hash ? `https://basescan.org/tx/${refundResult.hash}` : undefined,
         };
       } else {
         return {
@@ -1103,7 +1115,54 @@ export class GameController implements OnModuleInit {
   }
 
   /**
-   * Claim refund for a participant in a cancelled arena
+   * Bulk refund all unclaimed participants in a cancelled arena
+   * POST /game/admin/bulk-refund?arenaId=19
+   */
+  @Post('admin/bulk-refund')
+  @UseGuards(AdminGuard)
+  async bulkRefund(@Query('arenaId') arenaIdStr: string) {
+    if (!arenaIdStr) {
+      return { error: 'arenaId query parameter is required' };
+    }
+
+    const arenaId = BigInt(arenaIdStr);
+
+    this.logger.warn(`Admin bulk-refunding arena ${arenaId}`);
+
+    try {
+      const result = await this.contractWriter.bulkRefund(arenaId);
+
+      if (result.success) {
+        return {
+          status: 'bulk_refunded',
+          arenaId: arenaId.toString(),
+          txHash: result.hash,
+          message: 'Bulk refund submitted. The contract paid all unclaimed participants directly.',
+          explorerLink: `https://basescan.org/tx/${result.hash}`,
+        };
+      }
+
+      return {
+        error: 'bulk_refund_failed',
+        arenaId: arenaId.toString(),
+        message: result.error || 'Transaction failed',
+      };
+    } catch (error) {
+      this.logger.error(`Failed to bulk refund arena ${arenaId}`, error);
+      return {
+        error: 'bulk_refund_failed',
+        arenaId: arenaId.toString(),
+        message: (error as Error).message,
+      };
+    }
+  }
+
+  /**
+   * Bulk-refund a cancelled arena.
+   *
+   * Kept at the old claim-refund path for admin compatibility. Per-agent
+   * claimRefund requires the holder signature, so backend/admin must use
+   * bulkRefund and let the contract send refunds to the recorded owners.
    * POST /game/admin/claim-refund?arenaId=19&agentId=7
    */
   @Post('admin/claim-refund')
@@ -1119,17 +1178,18 @@ export class GameController implements OnModuleInit {
     const arenaId = BigInt(arenaIdStr);
     const agentId = BigInt(agentIdStr);
 
-    this.logger.warn(`Admin claiming refund: arenaId=${arenaId}, agentId=${agentId}`);
+    this.logger.warn(`Admin bulk-refunding arena=${arenaId} after claim-refund request for agent=${agentId}`);
 
     try {
-      const result = await this.contractWriter.claimRefund(arenaId, agentId);
+      const result = await this.contractWriter.bulkRefund(arenaId);
 
       if (result.success) {
         return {
-          status: 'refunded',
+          status: 'bulk_refunded',
           arenaId: arenaId.toString(),
           agentId: agentId.toString(),
           txHash: result.hash,
+          message: 'Bulk refund submitted. The contract paid all unclaimed participants directly.',
           explorerLink: `https://basescan.org/tx/${result.hash}`,
         };
       } else {

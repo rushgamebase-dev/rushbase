@@ -293,6 +293,32 @@ export class AdminController {
     const arenaId = this.parseArenaId(arenaIdStr);
     this.logger.warn(`Admin cancelled arena ${arenaId}`);
     const result = await this.writer.cancelArena(arenaId);
+    let refundResult;
+    if (result.success) {
+      try {
+        refundResult = await this.writer.bulkRefund(arenaId);
+      } catch (error) {
+        this.logger.error(`Admin cancel succeeded but bulk refund failed for arena ${arenaId}: ${(error as Error).message}`);
+      }
+    }
+    return {
+      arenaId: arenaId.toString(),
+      txHash: result.hash,
+      cancelTxHash: result.hash,
+      refundTxHash: refundResult?.hash,
+      success: result.success,
+      refundSubmitted: Boolean(refundResult?.success),
+    };
+  }
+
+  // ==========================================
+  // POST /admin/actions/bulk-refund
+  // ==========================================
+  @Post('actions/bulk-refund')
+  async bulkRefund(@Query('arenaId') arenaIdStr: string) {
+    const arenaId = this.parseArenaId(arenaIdStr);
+    this.logger.warn(`Admin bulk-refunded arena ${arenaId}`);
+    const result = await this.writer.bulkRefund(arenaId);
     return { arenaId: arenaId.toString(), txHash: result.hash, success: result.success };
   }
 

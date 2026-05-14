@@ -51,6 +51,9 @@ export class VRFTriggerService {
   // Track arenas we're processing to avoid double-triggering
   private processingArenas: Set<string> = new Set();
 
+  // Track arena refunds to avoid duplicate bulkRefund txs
+  private refundingArenas: Set<string> = new Set();
+
   // Track arenas that failed VRF for recovery
   private failedArenas: Map<string, {
     attempts: number;
@@ -406,8 +409,9 @@ export class VRFTriggerService {
       if (result.success) {
         this.logger.warn(
           `[AUTO-CANCEL] Arena ${arenaKey} cancelled successfully: txHash=${result.hash}. ` +
-          `Participants can claim refunds.`,
+          `Bulk refund will be submitted by the executor.`,
         );
+        await this.refundCancelledArena(arenaKey, arenaId);
         this.failedArenas.delete(arenaKey);
 
         this.broadcastArenaEvent(arenaKey, 'arena_locked', {
@@ -422,6 +426,36 @@ export class VRFTriggerService {
       this.logger.error(
         `[AUTO-CANCEL] Exception cancelling arena ${arenaKey}: ${(error as Error).message}`,
       );
+    }
+  }
+
+  private async refundCancelledArena(arenaKey: string, arenaId: bigint): Promise<void> {
+    if (this.refundingArenas.has(arenaKey)) {
+      return;
+    }
+
+    this.refundingArenas.add(arenaKey);
+
+    try {
+      const result = await this.writer.bulkRefund(arenaId);
+
+      if (result.success) {
+        this.logger.warn(
+          `[AUTO-REFUND] Arena ${arenaKey} bulk-refunded successfully: txHash=${result.hash}`,
+        );
+      } else {
+        this.logger.error(
+          `[AUTO-REFUND] Failed to bulk-refund arena ${arenaKey}: ${result.error}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `[AUTO-REFUND] Exception bulk-refunding arena ${arenaKey}: ${(error as Error).message}`,
+      );
+    } finally {
+      setTimeout(() => {
+        this.refundingArenas.delete(arenaKey);
+      }, 5 * 60 * 1000);
     }
   }
 

@@ -439,6 +439,56 @@ export class ContractWriterService {
   }
 
   /**
+   * Refund every unclaimed participant in a cancelled arena.
+   *
+   * Unlike claimRefund, bulkRefund does not require the holder to sign.
+   * The executor pays gas and the contract sends each refund to the
+   * recorded participant owner.
+   */
+  async bulkRefund(arenaId: bigint): Promise<TransactionResult> {
+    this.checkCircuitBreaker('bulkRefund');
+
+    this.logger.log(`Bulk refunding cancelled arena: ${arenaId}`);
+
+    return this.executeWithRetry('bulkRefund', async () => {
+      const walletClient = this.blockchain.getWalletClient();
+      const publicClient = this.blockchain.getPublicClient();
+      const gasParams = this.getGasParams();
+
+      await publicClient.simulateContract({
+        address: this.blockchain.arenaManagerAddress,
+        abi: ABIS.ArenaManager,
+        functionName: 'bulkRefund',
+        args: [arenaId],
+        account: this.blockchain.getExecutorAddress(),
+      });
+
+      const hash = await walletClient.writeContract({
+        address: this.blockchain.arenaManagerAddress,
+        abi: ABIS.ArenaManager,
+        functionName: 'bulkRefund',
+        args: [arenaId],
+        ...gasParams,
+      });
+
+      this.logger.log(`bulkRefund tx submitted: ${hash}`);
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        confirmations: 1,
+      });
+
+      if (receipt.status === 'success') {
+        this.logger.log(`bulkRefund confirmed: arenaId=${arenaId}, block=${receipt.blockNumber}`);
+        this.resetCircuitBreaker('bulkRefund');
+        return { hash, success: true, gasUsed: receipt.gasUsed };
+      } else {
+        throw new Error('Transaction reverted');
+      }
+    });
+  }
+
+  /**
    * Request VRF randomness for an arena
    */
   async requestRandomness(arenaId: bigint): Promise<TransactionResult> {

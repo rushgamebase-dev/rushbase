@@ -945,6 +945,25 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(`RefundClaimed: arenaId=${arenaIdStr}, agentId=${agentId}, owner=${owner}${shouldBroadcast ? '' : ' (backfill)'}`);
 
+    const event: ChainEvent = {
+      type: 'refund_claimed',
+      arenaId: arenaIdStr,
+      blockNumber: Number(log.blockNumber),
+      txHash: log.transactionHash,
+      logIndex: Number(log.logIndex || 0),
+      timestamp: blockTimestamp.getTime(),
+      data: {
+        agentId: agentId.toString(),
+        owner,
+        amount: amount.toString(),
+      },
+    };
+
+    if (shouldBroadcast) {
+      this.broadcastGlobal(event);
+      this.broadcastToArena(arenaIdStr, event);
+    }
+
     // Emit for ledger indexing
     this.eventEmitter.emit('arena.refund_claimed', {
       arenaId: arenaIdStr,
