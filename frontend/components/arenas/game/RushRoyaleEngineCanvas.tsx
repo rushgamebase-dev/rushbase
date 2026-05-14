@@ -64,14 +64,7 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
   const [hud, setHud] = useState<HudState>(() => createInitialHud(0));
   const [killFeed, setKillFeed] = useState<KillLine[]>([]);
   const [result, setResult] = useState<MatchResult | null>(null);
-  const engineParticipants = useMemo(
-    () => participants.map((participant) => ({
-      agentId: participant.agentId,
-      owner: participant.owner,
-      boostIds: participant.boostIds ?? [],
-    })),
-    [participants],
-  );
+  const { participants: engineParticipants } = useStableEngineParticipants(participants);
   const hasArenaSelection = arenaId !== undefined;
   const hasActualMatch = arenaId !== undefined && seed !== undefined && seed > BigInt(0) && engineParticipants.length >= 2;
 
@@ -302,6 +295,38 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
       </div>
     </div>
   );
+}
+
+function useStableEngineParticipants(source: EngineCanvasParticipant[]): { participants: ParticipantDataV2[]; signature: string } {
+  const normalized = useMemo(
+    () => source.map((participant) => ({
+      agentId: participant.agentId,
+      owner: participant.owner,
+      boostIds: participant.boostIds ?? [],
+    })),
+    [source],
+  );
+  const signature = useMemo(() => buildParticipantSignature(normalized), [normalized]);
+  const stableRef = useRef<{ participants: ParticipantDataV2[]; signature: string }>({
+    participants: [],
+    signature: "",
+  });
+
+  if (stableRef.current.signature !== signature) {
+    stableRef.current = { participants: normalized, signature };
+  }
+
+  return stableRef.current;
+}
+
+function buildParticipantSignature(participants: ParticipantDataV2[]): string {
+  return participants
+    .map((participant) => [
+      participant.agentId.toString(),
+      participant.owner.toLowerCase(),
+      participant.boostIds.map((boostId) => boostId.toString()).join(","),
+    ].join(":"))
+    .join("|");
 }
 
 function createInitialHud(index: number): HudState {

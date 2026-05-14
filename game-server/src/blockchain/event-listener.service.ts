@@ -44,6 +44,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
   // Unwatch functions for cleanup
   private unwatchers: Array<() => void> = [];
   private reconnectAttempts = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private isShuttingDown = false;
   private isBackfillComplete = false;
 
@@ -72,6 +73,10 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     this.isShuttingDown = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.stopListening();
   }
 
@@ -456,6 +461,11 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
   private async startListening(): Promise<void> {
     try {
+      if (this.unwatchers.length > 0) {
+        this.logger.warn(`Live event watchers already active (${this.unwatchers.length}); restarting them cleanly`);
+        this.stopListening();
+      }
+
       const publicClient = this.blockchain.getPublicClient();
       const arenaManagerAddress = this.blockchain.arenaManagerAddress;
       const battleEngineAddress = this.blockchain.battleEngineAddress;
@@ -1116,6 +1126,10 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
   private scheduleReconnect(): void {
     if (this.isShuttingDown) return;
+    if (this.reconnectTimer) {
+      this.logger.warn('Reconnect already scheduled; skipping duplicate reconnect timer');
+      return;
+    }
 
     const backoff = Math.min(
       RETRY_CONFIG.INITIAL_BACKOFF_MS *
@@ -1127,7 +1141,8 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.warn(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${backoff}ms`);
 
-    setTimeout(async () => {
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
       if (!this.isShuttingDown) {
         this.stopListening();
         await this.backfillAndStartListening();
