@@ -20,7 +20,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useAccount,
-  useReadContract,
   useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
@@ -36,6 +35,7 @@ import {
 } from "@/lib/contracts/rushStaking";
 import { WalletButton } from "@/components/WalletButton";
 import Link from "next/link";
+import DistributionsFeed from "@/components/stake/DistributionsFeed";
 
 const STAKING = {
   address: RUSH_STAKING_ADDRESS,
@@ -55,7 +55,7 @@ export default function StakePage() {
 
   // ── On-chain reads (refetched every 4 s for global state, 2 s for
   //    user-specific state where the dopamine matters most). ───────
-  const { data: pool } = useReadContracts({
+  const { data: pool, refetch: refetchPool } = useReadContracts({
     contracts: [
       { ...STAKING, functionName: "totalStaked" },
       { ...STAKING, functionName: "rewardRate" },
@@ -440,6 +440,14 @@ export default function StakePage() {
             {(apr * 100).toFixed(3)} ETH per RUSH per year (current rate)
           </div>
         )}
+
+        {/* Distributions feed — recent RewardAdded events with live splash */}
+        <DistributionsFeed
+          onRewardAdded={() => {
+            void refetchPool();
+            void refetchUser();
+          }}
+        />
 
         {/* Trust strip */}
         <section className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
