@@ -56,6 +56,12 @@ frontend/public/cam_*.jpg
 # Separate projects
 profilesota/
 Mercadospreditivosbase/
+idol-frame/
+
+# Local runtime state/logs
+oracle/.*_state.json
+oracle/logs/*.json
+oracle/logs/*.log
 
 # OS files
 .DS_Store

@@ -114,11 +114,14 @@ seen_markets = set()
 failed_markets = {}  # market -> timestamp of last failure (cooldown 60s)
 reactive_spent = {}  # market -> total wei spent reactively (bounded by REACTIVE_CAP_WEI)
 
-RPCS = [
+# Secondary paid Chainstack node (from contracts/.env). Add only if
+# the user actually has 2 paid endpoints. Public RPCs intentionally
+# excluded: primary down means bot offline rather than retrying broken
+# free nodes observed failing with -32000 insufficient funds errors.
+RPCS = list(dict.fromkeys([
     RPC_URL,
-    "https://base.drpc.org",
-    "https://base-rpc.publicnode.com",
-]
+    os.environ.get("BASE_RPC_URL", RPC_URL),
+]))
 
 def send_chat(text):
     if not ably_client:
