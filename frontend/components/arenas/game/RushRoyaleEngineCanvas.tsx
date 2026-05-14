@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Loader2, Radio, RefreshCw, Target, Trophy, Users, type LucideIcon } from "lucide-react";
+import { io, type Socket } from "socket.io-client";
 import { GameEngine, createDefaultConfig } from "@/lib/rush-royale-game/engine";
 import {
   ArenaPhase,
@@ -40,8 +41,26 @@ type MatchResult = {
   totalTicks: number;
 };
 
+type ArenaLifecycleState = 0 | 1 | 2 | 3 | 4 | 5;
+type StreamMode = "local" | "server" | "connecting" | "waiting";
+type ArenaWebSocketUpdate = {
+  type: string;
+  arenaId: string;
+  data?: {
+    matchId?: string;
+    [key: string]: unknown;
+  };
+};
+type ServerMatchEnd = {
+  winnerId?: string;
+  winnerAgentId?: string;
+  winnerOwner?: string;
+  totalTicks?: number;
+};
+
 const TICK_RATE = 20;
 const DEMO_AGENT_COUNT = 25;
+const LIVE_STREAM_FALLBACK_MS = 6500;
 
 type EngineCanvasParticipant = {
   agentId: bigint;
@@ -49,24 +68,31 @@ type EngineCanvasParticipant = {
   boostIds?: bigint[];
 };
 
-export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { arenaId?: bigint; seed?: bigint; participants?: EngineCanvasParticipant[] }) {
+export function RushRoyaleEngineCanvas({ arenaId, arenaState, seed, participants = [] }: { arenaId?: bigint; arenaState?: ArenaLifecycleState; seed?: bigint; participants?: EngineCanvasParticipant[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<BattleRendererType | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restartRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const demoIndexRef = useRef(0);
   const mountedRef = useRef(false);
+  const usingServerStreamRef = useRef(false);
+  const serverCompletedRef = useRef(false);
+  const latestServerTickRef = useRef(0);
+  const liveMatchIdRef = useRef<string | null>(null);
 
   const [ready, setReady] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
   const [hud, setHud] = useState<HudState>(() => createInitialHud(0));
   const [killFeed, setKillFeed] = useState<KillLine[]>([]);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [streamMode, setStreamMode] = useState<StreamMode>("waiting");
   const { participants: engineParticipants } = useStableEngineParticipants(participants);
   const hasArenaSelection = arenaId !== undefined;
   const hasActualMatch = arenaId !== undefined && seed !== undefined && seed > BigInt(0) && engineParticipants.length >= 2;
+  const expectsServerStream = hasActualMatch && arenaState === 3;
 
   const clearTimers = useCallback(() => {
     if (intervalRef.current) {
@@ -84,10 +110,14 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
     if (!renderer) return;
 
     clearTimers();
+    usingServerStreamRef.current = false;
+    serverCompletedRef.current = false;
+    latestServerTickRef.current = 0;
     demoIndexRef.current = nextIndex;
     setIsRestarting(false);
     setResult(null);
     setKillFeed([]);
+    setStreamMode("local");
 
     const matchArenaId = hasActualMatch && arenaId !== undefined ? arenaId : BigInt(900000 + nextIndex);
     const matchSeed = hasActualMatch && seed !== undefined ? seed : BigInt(857209 + nextIndex * 15485863);
@@ -151,12 +181,76 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
         });
         setIsRestarting(true);
 
-        restartRef.current = setTimeout(() => {
-          if (mountedRef.current) startMatch(demoIndexRef.current + 1);
-        }, 5200);
+        if (!hasArenaSelection) {
+          restartRef.current = setTimeout(() => {
+            if (mountedRef.current) startMatch(demoIndexRef.current + 1);
+          }, 5200);
+        }
       }
     }, 1000 / TICK_RATE);
-  }, [arenaId, clearTimers, engineParticipants, hasActualMatch, seed]);
+  }, [arenaId, clearTimers, engineParticipants, hasActualMatch, hasArenaSelection, seed]);
+
+  const initializeServerMatch = useCallback((state: RendererMatchState) => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+
+    clearTimers();
+    usingServerStreamRef.current = true;
+    latestServerTickRef.current = state.tick ?? 0;
+    liveMatchIdRef.current = state.matchId;
+    engineRef.current = null;
+    renderer.initializeMatch(state);
+    setStreamMode("server");
+    setIsRestarting(false);
+    setResult(null);
+    setKillFeed([]);
+    setHud({
+      arenaId: BigInt(state.arenaId),
+      seed: BigInt(state.seed),
+      tick: state.tick,
+      aliveCount: state.agents.filter((agent) => agent.isAlive).length,
+      arenaRadius: Math.round(state.arena.currentRadius),
+      arenaPhase: state.arena.phase,
+    });
+  }, [clearTimers]);
+
+  const applyServerTick = useCallback((update: EngineTickUpdate) => {
+    if (!usingServerStreamRef.current || update.tick <= latestServerTickRef.current) return;
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+
+    latestServerTickRef.current = update.tick;
+    renderer.applyTick(update as unknown as RendererTickUpdate);
+    collectKillFeed(update, setKillFeed);
+
+    if (update.tick % 4 === 0) {
+      setHud((current) => ({
+        ...current,
+        tick: update.tick,
+        aliveCount: update.agents.filter((agent) => agent.isAlive).length,
+        arenaRadius: Math.round(update.arena.radius),
+        arenaPhase: update.arena.phase,
+      }));
+    }
+  }, []);
+
+  const handleServerMatchEnd = useCallback((serverResult: ServerMatchEnd) => {
+    if (!usingServerStreamRef.current) return;
+    const renderer = rendererRef.current;
+    const winnerAgentId = serverResult.winnerAgentId ?? normalizeWinnerAgentId(serverResult.winnerId);
+    const winnerId = normalizeRendererWinnerId(serverResult.winnerId, winnerAgentId);
+    const totalTicks = serverResult.totalTicks ?? latestServerTickRef.current;
+
+    renderer?.onMatchEnd({ ...serverResult, winnerId, winnerAgentId, totalTicks });
+    serverCompletedRef.current = true;
+    setResult({
+      winnerId,
+      winnerAgentId,
+      winnerOwner: serverResult.winnerOwner ?? "0x0000000000000000000000000000000000000000",
+      totalTicks,
+    });
+    setIsRestarting(false);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -199,12 +293,87 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
     return () => {
       mountedRef.current = false;
       clearTimers();
+      socketRef.current?.disconnect();
+      socketRef.current = null;
       resizeObserver?.disconnect();
       engineRef.current = null;
       renderer?.destroy();
       rendererRef.current = null;
     };
   }, [clearTimers]);
+
+  useEffect(() => {
+    if (!ready || !expectsServerStream || arenaId === undefined) return;
+
+    const socket = io(getGameServerUrl(), {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 4,
+      reconnectionDelay: 800,
+    });
+    socketRef.current = socket;
+    usingServerStreamRef.current = false;
+    serverCompletedRef.current = false;
+    latestServerTickRef.current = 0;
+    liveMatchIdRef.current = null;
+    setStreamMode("connecting");
+
+    const arenaIdString = arenaId.toString();
+    const fallback = window.setTimeout(() => {
+      if (mountedRef.current && !usingServerStreamRef.current) {
+        setStreamMode("local");
+        socket.disconnect();
+        startMatch(0);
+      }
+    }, LIVE_STREAM_FALLBACK_MS);
+
+    const spectateMatch = (matchId?: string) => {
+      if (!matchId || liveMatchIdRef.current === matchId) return;
+      liveMatchIdRef.current = matchId;
+      socket.emit("spectate", { matchId });
+    };
+
+    socket.on("connect", () => {
+      socket.emit("subscribe_arena", { arenaId: arenaIdString });
+      socket.emit("spectate_arena", { arenaId: arenaIdString });
+    });
+
+    socket.on("arena_update", (update: ArenaWebSocketUpdate) => {
+      if (update.arenaId !== arenaIdString) return;
+      if (update.type === "match_ready") {
+        spectateMatch(update.data?.matchId);
+      }
+    });
+
+    socket.on("match_state", (state: RendererMatchState) => {
+      if (state.arenaId !== arenaIdString) return;
+      window.clearTimeout(fallback);
+      initializeServerMatch(state);
+      spectateMatch(state.matchId);
+    });
+
+    socket.on("tick", (update: EngineTickUpdate) => {
+      applyServerTick(update);
+    });
+
+    socket.on("match_end", (serverResult: ServerMatchEnd) => {
+      window.clearTimeout(fallback);
+      handleServerMatchEnd(serverResult);
+    });
+
+    socket.on("connect_error", () => {
+      setStreamMode((current) => current === "server" ? current : "connecting");
+    });
+
+    return () => {
+      window.clearTimeout(fallback);
+      socket.disconnect();
+      if (socketRef.current === socket) socketRef.current = null;
+      usingServerStreamRef.current = false;
+      latestServerTickRef.current = 0;
+      liveMatchIdRef.current = null;
+    };
+  }, [applyServerTick, arenaId, expectsServerStream, handleServerMatchEnd, initializeServerMatch, ready, startMatch]);
 
   useEffect(() => {
     if (!ready) return;
@@ -216,8 +385,17 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
       setHud(createStaticHud(arenaId ?? BigInt(0), seed ?? BigInt(0), engineParticipants.length));
       return;
     }
+    if (expectsServerStream) {
+      clearTimers();
+      setStreamMode("connecting");
+      setHud(createStaticHud(arenaId ?? BigInt(0), seed ?? BigInt(0), engineParticipants.length));
+      return;
+    }
+    if (arenaState === 4 && serverCompletedRef.current) {
+      return;
+    }
     startMatch(0);
-  }, [arenaId, clearTimers, engineParticipants.length, hasActualMatch, hasArenaSelection, ready, seed, startMatch]);
+  }, [arenaId, arenaState, clearTimers, engineParticipants.length, expectsServerStream, hasActualMatch, hasArenaSelection, ready, seed, startMatch]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-violet-400/25 bg-black shadow-[0_0_38px_rgba(139,92,246,0.18)]">
@@ -225,7 +403,7 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
             <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
-            {hasActualMatch ? "live replay" : hasArenaSelection ? "waiting seed" : "engine demo"}
+            {getModeLabel(streamMode, hasActualMatch, hasArenaSelection)}
           </span>
           <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{hud.arenaId.toString()}</span>
           <span className="text-xs font-black uppercase tracking-[0.16em] text-neutral-500" style={{ fontFamily: "monospace" }}>seed {hud.seed.toString()}</span>
@@ -292,9 +470,42 @@ export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { a
             </div>
           </div>
         )}
+
+        {ready && expectsServerStream && streamMode === "connecting" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/84">
+            <div className="rounded-xl border border-cyan-300/25 bg-black/70 px-5 py-4 text-center shadow-[0_0_30px_rgba(103,232,249,0.12)]">
+              <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-cyan-200" />
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>
+                arena #{hud.arenaId.toString()}
+              </div>
+              <div className="mt-1 text-sm font-bold text-neutral-300">Connecting to official match stream</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function getGameServerUrl() {
+  return process.env.NEXT_PUBLIC_GAME_SERVER_URL || "https://api.rushgame.vip";
+}
+
+function getModeLabel(mode: StreamMode, hasActualMatch: boolean, hasArenaSelection: boolean) {
+  if (mode === "server") return "official live";
+  if (mode === "connecting") return "syncing live";
+  if (hasActualMatch) return "deterministic replay";
+  return hasArenaSelection ? "waiting seed" : "engine demo";
+}
+
+function normalizeWinnerAgentId(winnerId?: string) {
+  if (!winnerId) return "0";
+  return winnerId.startsWith("agent_") ? winnerId.replace("agent_", "") : winnerId;
+}
+
+function normalizeRendererWinnerId(winnerId?: string, winnerAgentId?: string) {
+  if (winnerId?.startsWith("agent_")) return winnerId;
+  return `agent_${winnerAgentId ?? winnerId ?? "0"}`;
 }
 
 function useStableEngineParticipants(source: EngineCanvasParticipant[]): { participants: ParticipantDataV2[]; signature: string } {

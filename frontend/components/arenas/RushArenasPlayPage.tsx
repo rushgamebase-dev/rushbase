@@ -1394,7 +1394,7 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
 
 function DemoBattlePreview({ arena, result, participants }: { arena?: RushArena; result?: RushBattleResult; participants: RushArenaParticipant[] }) {
   const seed = arena && arena.seed > BI_ZERO ? arena.seed : result?.seed;
-  return <RushRoyaleEngineCanvas arenaId={arena?.arenaId} seed={seed} participants={participants} />;
+  return <RushRoyaleEngineCanvas arenaId={arena?.arenaId} arenaState={arena?.state} seed={seed} participants={participants} />;
 }
 
 function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, selectedParticipants, selectedVrfRequest, selectedLockedAt, selectedStartedAt, setSelectedArenaId, treasury, vrfCost, protocolFeeBps, commitRevealEnabled, claimRefund, myAgents, txBusy }: { arenas: ArenaSummary[]; finishedArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; setSelectedArenaId: (arenaId: bigint) => void; treasury?: `0x${string}`; vrfCost?: bigint; protocolFeeBps?: bigint; commitRevealEnabled?: boolean; claimRefund: (arenaId: bigint, agentId: bigint) => void; myAgents: RushAgent[]; txBusy: boolean }) {
