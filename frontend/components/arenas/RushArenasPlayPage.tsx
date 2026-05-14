@@ -16,19 +16,26 @@ import {
   Bot,
   ChevronRight,
   CircleDollarSign,
+  Clock,
   Coins,
+  Crown,
   ExternalLink,
+  Flame,
   Gauge,
   History,
   Layers,
   Loader2,
   Lock,
+  Minus,
   Play,
+  Plus,
   Radio,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Swords,
   Trophy,
+  Users,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -125,6 +132,112 @@ const stateTone: Record<ArenaState, { fg: string; bg: string; label: string }> =
   5: { fg: "#ff6666", bg: "rgba(255,102,102,0.12)", label: "CANCELLED" },
 };
 
+const TIER_ORDER: ArenaTier[] = [0, 1, 2, 3];
+
+const tierVisuals: Record<
+  ArenaTier,
+  {
+    image: string;
+    gradient: string;
+    border: string;
+    text: string;
+    bg: string;
+    glow: string;
+    description: string;
+  }
+> = {
+  0: {
+    image: "/images/create-arena/tier-bronze.png",
+    gradient: "from-amber-700 to-amber-950",
+    border: "border-amber-600/50",
+    text: "text-amber-300",
+    bg: "bg-amber-500/10",
+    glow: "shadow-amber-500/20",
+    description: "Entry level battles",
+  },
+  1: {
+    image: "/images/create-arena/tier-silver.png",
+    gradient: "from-slate-300 to-slate-700",
+    border: "border-slate-300/50",
+    text: "text-slate-200",
+    bg: "bg-slate-400/10",
+    glow: "shadow-slate-300/20",
+    description: "Intermediate stakes",
+  },
+  2: {
+    image: "/images/create-arena/tier-gold.png",
+    gradient: "from-yellow-500 to-amber-700",
+    border: "border-yellow-500/50",
+    text: "text-yellow-300",
+    bg: "bg-yellow-500/10",
+    glow: "shadow-yellow-500/20",
+    description: "High roller battles",
+  },
+  3: {
+    image: "/images/create-arena/tier-diamond.png",
+    gradient: "from-cyan-300 to-blue-700",
+    border: "border-cyan-300/50",
+    text: "text-cyan-300",
+    bg: "bg-cyan-500/10",
+    glow: "shadow-cyan-400/20",
+    description: "Elite championship",
+  },
+};
+
+const stateVisuals: Record<
+  ArenaState,
+  { image: string; gradient: string; border: string; glow: string; accent: string; pulse: string }
+> = {
+  0: {
+    image: "/images/arenas/start.jpg",
+    gradient: "from-zinc-900 via-zinc-800 to-zinc-950",
+    border: "border-zinc-700",
+    glow: "",
+    accent: "text-zinc-400",
+    pulse: "bg-zinc-500",
+  },
+  1: {
+    image: "/images/arenas/start.jpg",
+    gradient: "from-emerald-950/80 via-zinc-950 to-cyan-950/80",
+    border: "border-emerald-500/60",
+    glow: "shadow-[0_0_30px_rgba(16,185,129,0.3)]",
+    accent: "text-emerald-300",
+    pulse: "bg-emerald-500",
+  },
+  2: {
+    image: "/images/arenas/closedarena.jpg",
+    gradient: "from-red-950/80 via-zinc-950 to-orange-950/80",
+    border: "border-red-500/60",
+    glow: "shadow-[0_0_30px_rgba(239,68,68,0.35)]",
+    accent: "text-red-300",
+    pulse: "bg-red-500",
+  },
+  3: {
+    image: "/images/arenas/battle.jpg",
+    gradient: "from-orange-950/80 via-zinc-950 to-red-950/80",
+    border: "border-orange-500/60",
+    glow: "shadow-[0_0_40px_rgba(249,115,22,0.45)]",
+    accent: "text-orange-300",
+    pulse: "bg-orange-500",
+  },
+  4: {
+    image: "/images/arenas/end.jpg",
+    gradient: "from-violet-950/70 via-zinc-950 to-purple-950/70",
+    border: "border-violet-500/60",
+    glow: "shadow-[0_0_30px_rgba(139,92,246,0.28)]",
+    accent: "text-violet-300",
+    pulse: "bg-violet-500",
+  },
+  5: {
+    image: "/images/arenas/closedarena.jpg",
+    gradient: "from-zinc-900 via-zinc-800 to-zinc-950",
+    border: "border-zinc-600",
+    glow: "",
+    accent: "text-zinc-400",
+    pulse: "bg-zinc-500",
+  },
+};
+
 export default function RushArenasPlayPage({ section = "join" }: { section?: ArenaSection }) {
   const { address, isConnected } = useAccount();
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -135,7 +248,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
     tier: 0 as ArenaTier,
     entryFee: "0.001",
     minPlayers: "2",
-    maxPlayers: "2",
+    maxPlayers: "10",
     durationMinutes: "5",
   });
 
@@ -399,20 +512,26 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
           className="relative overflow-hidden border-b"
           style={{
             borderColor: "#171717",
-            background: "radial-gradient(circle at 18% 18%, rgba(0,255,136,0.16), transparent 30%), radial-gradient(circle at 84% 22%, rgba(0,170,255,0.12), transparent 26%), #080808",
+            backgroundImage:
+              "linear-gradient(90deg, rgba(0,0,0,0.88), rgba(0,0,0,0.54), rgba(0,0,0,0.9)), linear-gradient(0deg, #080808 0%, rgba(8,8,8,0.2) 46%, #080808 100%), url('/images/headers/headerarenas.jpg')",
+            backgroundPosition: "center",
+            backgroundSize: "cover",
           }}
         >
-          <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
+          <div className="absolute inset-0 opacity-[0.14]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
 
           <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-8 md:px-8 md:py-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
             <div className="flex min-h-[440px] flex-col justify-center gap-7">
               <div className="flex flex-wrap items-center gap-3">
                 <Pill icon={Radio} label="BASE MAINNET" color="#00ff88" />
                 <Pill icon={Activity} label="VRF ARENA ENGINE" color="#7ddcff" />
-                <Pill icon={ShieldCheck} label="AGENT ROYALE MECHANICS" color="#ffd700" />
+                <Pill icon={ShieldCheck} label="RUSH ROYALE MECHANICS" color="#ffd700" />
               </div>
 
               <div>
+                <div className="relative mb-2 h-16 w-[260px] md:h-20 md:w-[330px]">
+                  <Image src="/images/arenas/title-battle-arenas.png" alt="Battle Arenas" fill className="object-contain object-left drop-shadow-[0_0_24px_rgba(139,92,246,0.45)]" priority />
+                </div>
                 <h1 className="max-w-3xl text-5xl font-black leading-[0.95] md:text-7xl" style={{ color: "#f4f4f4", fontFamily: "ui-monospace, SFMono-Regular, monospace", letterSpacing: 0 }}>
                   RUSH ROYALE
                 </h1>
@@ -586,13 +705,18 @@ function ArenaStatusPanel({ isLoading, isConnected, totalArenas, totalAgents, cr
           <MetricCard label="Protocol Fee" value={formatBps(protocolFeeBps, isLoading)} icon={Gauge} accent="#ff6666" />
         </div>
 
-        <div className="relative min-h-[220px] overflow-hidden rounded-lg border" style={{ borderColor: "#191919", background: "#050505" }}>
-          <div className="absolute inset-0 opacity-60" style={{ background: "radial-gradient(circle at center, rgba(0,255,136,0.16), transparent 38%), conic-gradient(from 90deg, rgba(0,255,136,0.12), rgba(0,170,255,0.1), rgba(255,215,0,0.08), rgba(0,255,136,0.12))" }} />
-          <div className="absolute inset-8 rounded-full border border-dashed border-neutral-700" />
-          <div className="absolute inset-16 rounded-full border border-neutral-800" />
+        <div className="relative min-h-[220px] overflow-hidden rounded-xl border border-white/10 bg-black">
+          <Image src="/images/arenas/battle.jpg" alt="Rush arena battle" fill className="object-cover opacity-70" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/50" />
+          <div className="absolute inset-8 rounded-full border border-dashed border-emerald-300/25" />
+          <div className="absolute inset-16 rounded-full border border-cyan-300/20" />
           <div className="relative flex min-h-[220px] items-center justify-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[#00ff88]/30 bg-black/70 shadow-[0_0_42px_rgba(0,255,136,0.25)]">
-              <Image src="/logo.png" alt="Rush" width={64} height={64} className="h-16 w-auto" priority />
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 7, 14].map((ship) => (
+                <div key={ship} className="relative h-16 w-16 rounded-full border-2 border-black/80 bg-zinc-950/80 p-1 shadow-[0_0_26px_rgba(0,255,136,0.25)]">
+                  <Image src={`/images/ships/ship-${ship}.png`} alt="" fill className="object-cover" sizes="64px" />
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -609,7 +733,6 @@ function ArenaStatusPanel({ isLoading, isConnected, totalArenas, totalAgents, cr
 function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelectedAgentId, createAgent, creationFee, txBusy, arenaForm, setArenaForm, createArena, arenas, openArenas, isLoadingArenas, now, onJoin, onLock, onAutoCancel, setSelectedArenaId }: { address?: `0x${string}`; isConnected: boolean; myAgents: RushAgent[]; selectedAgentId?: bigint; setSelectedAgentId: (id: bigint | undefined) => void; createAgent: () => void; creationFee: bigint; txBusy: boolean; arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; arenas: ArenaSummary[]; openArenas: ArenaSummary[]; isLoadingArenas: boolean; now: number; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; setSelectedArenaId: (arenaId: bigint) => void }) {
   const activeAgents = myAgents.filter((agent) => agent.isActive);
   const selectedAgent = myAgents.find((agent) => agent.agentId === selectedAgentId);
-  const limits = ARENA_TIER_LIMITS[arenaForm.tier];
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(380px,1.08fr)]">
@@ -651,33 +774,7 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
                 )}
               </div>
 
-              <div className="border-t border-neutral-900 pt-5">
-                <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-neutral-500" style={{ fontFamily: "monospace" }}>create arena</div>
-                <div className="grid gap-3">
-                  <label className="grid gap-1 text-xs text-neutral-500">
-                    Tier
-                    <select value={arenaForm.tier} onChange={(event) => {
-                      const tier = Number(event.target.value) as ArenaTier;
-                      const next = ARENA_TIER_LIMITS[tier];
-                      setArenaForm({ ...arenaForm, tier, entryFee: next.minFeeEth, minPlayers: String(next.minPlayers), maxPlayers: String(next.minPlayers) });
-                    }} className="rounded-md border border-neutral-800 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#00ff88]/60">
-                      {([0, 1, 2, 3] as ArenaTier[]).map((tier) => (
-                        <option key={tier} value={tier}>{ARENA_TIER_LABELS[tier]} ({ARENA_TIER_LIMITS[tier].minFeeEth}-{ARENA_TIER_LIMITS[tier].maxFeeEth} ETH)</option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Input label="Entry fee ETH" value={arenaForm.entryFee} onChange={(entryFee) => setArenaForm({ ...arenaForm, entryFee })} />
-                    <Input label="Duration minutes" value={arenaForm.durationMinutes} onChange={(durationMinutes) => setArenaForm({ ...arenaForm, durationMinutes })} />
-                    <Input label={`Min players (${limits.minPlayers}+ required)`} value={arenaForm.minPlayers} onChange={(minPlayers) => setArenaForm({ ...arenaForm, minPlayers })} />
-                    <Input label="Max players" value={arenaForm.maxPlayers} onChange={(maxPlayers) => setArenaForm({ ...arenaForm, maxPlayers })} />
-                  </div>
-                  <button onClick={createArena} disabled={txBusy || !isConnected} className="inline-flex items-center justify-center gap-2 rounded-md border border-[#00ff88]/35 bg-[#00ff88]/12 px-4 py-3 text-sm font-black text-[#9dffc9] transition-colors hover:bg-[#00ff88]/18 disabled:opacity-50">
-                    {txBusy ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
-                    Create arena
-                  </button>
-                </div>
-              </div>
+              <CreateArenaConsole arenaForm={arenaForm} setArenaForm={setArenaForm} createArena={createArena} txBusy={txBusy} />
             </div>
           )}
         </Panel>
@@ -692,6 +789,186 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CreateArenaConsole({ arenaForm, setArenaForm, createArena, txBusy }: { arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; txBusy: boolean }) {
+  const visual = tierVisuals[arenaForm.tier];
+  const limits = ARENA_TIER_LIMITS[arenaForm.tier];
+  const minFee = Number(limits.minFeeEth);
+  const maxFee = Number(limits.maxFeeEth);
+  const rawFee = Number(arenaForm.entryFee);
+  const currentFee = Number.isFinite(rawFee) ? Math.min(maxFee, Math.max(minFee, rawFee)) : minFee;
+  const feeRange = Math.max(0.001, maxFee - minFee);
+  const feePercent = Math.min(100, Math.max(0, ((currentFee - minFee) / feeRange) * 100));
+  const maxPlayers = Math.min(limits.maxPlayers, Math.max(limits.minPlayers, Number(arenaForm.maxPlayers || limits.minPlayers)));
+  const maxPrize = currentFee * maxPlayers;
+
+  function updateTier(tier: ArenaTier) {
+    const next = ARENA_TIER_LIMITS[tier];
+    setArenaForm({
+      ...arenaForm,
+      tier,
+      entryFee: next.minFeeEth,
+      minPlayers: String(next.minPlayers),
+      maxPlayers: String(Math.min(next.maxPlayers, Math.max(next.minPlayers, 20))),
+    });
+  }
+
+  function updateMaxPlayers(value: number) {
+    const next = Math.min(limits.maxPlayers, Math.max(limits.minPlayers, value));
+    setArenaForm({ ...arenaForm, minPlayers: String(limits.minPlayers), maxPlayers: String(next) });
+  }
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border ${visual.border} bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 shadow-2xl ${visual.glow}`}>
+      <div className={`absolute inset-x-0 top-0 h-32 bg-gradient-to-b ${visual.gradient} opacity-20`} />
+
+      <div className="relative flex items-center gap-3 border-b border-zinc-800/60 px-4 py-4">
+        <div className="relative h-14 w-14 shrink-0">
+          <Image src={visual.image} alt={ARENA_TIER_LABELS[arenaForm.tier]} fill className="object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.35)]" />
+        </div>
+        <div>
+          <div className="text-lg font-black text-white">Create Arena</div>
+          <div className={`text-xs font-bold ${visual.text}`}>{ARENA_TIER_LABELS[arenaForm.tier]} Tier</div>
+        </div>
+      </div>
+
+      <div className="relative space-y-5 p-4">
+        <div>
+          <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-500" style={{ fontFamily: "monospace" }}>Select Tier</div>
+          <div className="grid grid-cols-4 gap-2">
+            {TIER_ORDER.map((tier) => {
+              const config = tierVisuals[tier];
+              const selected = arenaForm.tier === tier;
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => updateTier(tier)}
+                  className={`relative flex min-h-[92px] flex-col items-center justify-center gap-1 rounded-xl border-2 px-1 py-2 transition-all duration-300 ${selected ? `scale-105 bg-gradient-to-b ${config.gradient} border-white/30 shadow-lg` : "border-zinc-700/50 bg-zinc-800/50 hover:border-zinc-500"}`}
+                >
+                  <span className="relative h-10 w-10 md:h-12 md:w-12">
+                    <Image src={config.image} alt={ARENA_TIER_LABELS[tier]} fill className={`object-contain ${selected ? "drop-shadow-[0_0_9px_rgba(255,255,255,0.5)]" : ""}`} />
+                  </span>
+                  <span className={`text-xs font-black ${selected ? "text-white" : "text-zinc-400"}`}>{ARENA_TIER_LABELS[tier]}</span>
+                  {selected && <span className="absolute -bottom-1 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-white" />}
+                </button>
+              );
+            })}
+          </div>
+          <p className={`mt-3 text-center text-xs font-bold ${visual.text}`}>{visual.description}</p>
+        </div>
+
+        <div className={`rounded-xl border p-4 ${visual.border} ${visual.bg}`}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-zinc-300">
+              <Coins className={`h-4 w-4 ${visual.text}`} />
+              Entry Fee
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className={`text-2xl font-black ${visual.text}`}>{currentFee.toFixed(3)}</span>
+              <span className="text-sm font-bold text-zinc-500">ETH</span>
+            </div>
+          </div>
+          <div className="relative flex h-8 items-center">
+            <div className="absolute inset-x-0 h-2 rounded-full bg-zinc-700">
+              <div className={`h-full rounded-full bg-gradient-to-r ${visual.gradient}`} style={{ width: `${feePercent}%` }} />
+            </div>
+            <input
+              type="range"
+              min={minFee}
+              max={maxFee}
+              step={0.001}
+              value={currentFee}
+              onChange={(event) => setArenaForm({ ...arenaForm, entryFee: formatEthInput(Number(event.target.value)), minPlayers: String(limits.minPlayers) })}
+              className="absolute inset-x-0 h-8 w-full cursor-pointer opacity-0"
+            />
+            <div className={`pointer-events-none absolute h-5 w-5 rounded-full border-4 bg-white ${visual.border} shadow-lg`} style={{ left: `calc(${feePercent}% - 10px)` }} />
+          </div>
+          <div className="mt-1 flex justify-between text-xs text-zinc-500">
+            <span>{limits.minFeeEth} ETH</span>
+            <span>{limits.maxFeeEth} ETH</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-zinc-400">
+              <Users className="h-3.5 w-3.5" />
+              Min to Start
+            </div>
+            <div className="text-center text-2xl font-black text-zinc-200">{limits.minPlayers}</div>
+            <div className="mt-1 text-center text-[10px] text-zinc-500">Auto-starts with {limits.minPlayers}+ players</div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/50 p-3">
+            <div className="mb-2 text-xs font-bold text-zinc-400">Max Players</div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => updateMaxPlayers(maxPlayers - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-700 text-white transition-colors hover:bg-zinc-600">
+                <Minus size={14} />
+              </button>
+              <span className="flex-1 text-center text-2xl font-black text-white">{maxPlayers}</span>
+              <button type="button" onClick={() => updateMaxPlayers(maxPlayers + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-700 text-white transition-colors hover:bg-zinc-600">
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold text-zinc-400">
+            <Clock className="h-3.5 w-3.5" />
+            Registration Time
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[5, 10, 15, 30].map((minutes) => {
+              const selected = arenaForm.durationMinutes === String(minutes);
+              return (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() => setArenaForm({ ...arenaForm, durationMinutes: String(minutes), minPlayers: String(limits.minPlayers) })}
+                  className={`rounded-lg py-2 text-sm font-bold transition-all ${selected ? `bg-gradient-to-r ${visual.gradient} text-white` : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white"}`}
+                >
+                  {minutes}m
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={`relative overflow-hidden rounded-xl border-2 border-white/10 bg-gradient-to-br ${visual.gradient} p-4`}>
+          <div className="absolute -right-2 -top-2 h-20 w-20 opacity-40">
+            <Image src="/images/create-arena/icon-prize-pool.png" alt="" fill className="object-contain" />
+          </div>
+          <div className="relative">
+            <div className="mb-1 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-200" />
+              <span className="text-sm font-bold text-white/80">Max Prize Pool</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">{maxPrize.toFixed(3)}</span>
+              <span className="text-lg font-black text-white/60">ETH</span>
+            </div>
+            <p className="mt-1 text-xs text-white/55">{maxPlayers} players x {currentFee.toFixed(3)} ETH each</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={createArena}
+          disabled={txBusy}
+          className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-r ${visual.gradient} py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-lg transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+          {txBusy ? (
+            <span className="flex items-center justify-center gap-2"><Loader2 className="h-5 w-5 animate-spin" />Creating Arena...</span>
+          ) : (
+            <span className="flex items-center justify-center gap-2"><Swords className="h-5 w-5" />Create {ARENA_TIER_LABELS[arenaForm.tier]} Arena</span>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -867,26 +1144,112 @@ function ArenaCard({ row, now, selectedAgentId, onJoin, onLock, onAutoCancel, on
   const canJoin = arena.state === 1 && !registrationEnded && !full && Boolean(selectedAgentId);
   const canLock = arena.state === 1 && participantCount >= arena.minPlayers && (registrationEnded || full);
   const expiredNoPlayers = arena.state === 1 && registrationEnded && participantCount < arena.minPlayers && BigInt(now) > arena.registrationEnd + AUTO_CANCEL_GRACE_SECONDS;
+  const visual = stateVisuals[arena.state] ?? stateVisuals[0];
+  const tierVisual = tierVisuals[arena.tier] ?? tierVisuals[0];
+  const participantNumber = Number(participantCount);
+  const maxPlayers = Math.max(1, Number(arena.maxPlayers));
+  const fillPercentage = Math.min(100, (participantNumber / maxPlayers) * 100);
+  const spotsLeft = Math.max(0, maxPlayers - participantNumber);
+  const avatarCount = Math.min(participantNumber, 7);
+  const displayPrize = arena.prizePool > BI_ZERO ? arena.prizePool : arena.entryFee * BigInt(participantNumber);
+
   return (
-    <div className="rounded-lg border border-neutral-900 bg-[#0d0d0d] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2"><h3 className="text-lg font-black text-white">Arena #{arena.arenaId.toString()}</h3><StateBadge state={arena.state} /></div>
-          <div className="mt-1 text-xs text-neutral-500">{ARENA_TIER_LABELS[arena.tier]} - entry {formatEthValue(arena.entryFee)}</div>
+    <div className={`group relative overflow-hidden rounded-2xl border-2 ${visual.border} ${visual.glow} bg-gradient-to-br ${visual.gradient} transition-all duration-500 hover:-translate-y-1 hover:scale-[1.01]`}>
+      {(arena.state === 1 || arena.state === 2 || arena.state === 3) && (
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          <span className="relative flex h-3 w-3">
+            <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${visual.pulse} opacity-75`} />
+            <span className={`relative inline-flex h-3 w-3 rounded-full ${visual.pulse}`} />
+          </span>
+          <span className={`text-xs font-black uppercase tracking-[0.14em] ${visual.accent}`}>{arena.state === 1 ? "OPEN" : arena.state === 2 ? "STARTING" : "LIVE"}</span>
         </div>
-        <button onClick={() => onSelect(arena.arenaId)} className="rounded-md border border-neutral-800 bg-black px-2 py-1 text-xs text-neutral-400 hover:text-white">inspect</button>
+      )}
+
+      <div className="relative z-10 flex items-center gap-3 px-5 pb-3 pt-5">
+        <div className="relative h-12 w-12 shrink-0">
+          <Image src={tierVisual.image} alt={ARENA_TIER_LABELS[arena.tier]} fill className="object-contain drop-shadow-[0_0_9px_rgba(255,200,100,0.5)]" />
+        </div>
+        <div>
+          <h3 className="text-xl font-black tracking-tight text-white">Arena #{arena.arenaId.toString()}</h3>
+          <p className="text-sm font-bold text-zinc-400">{ARENA_TIER_LABELS[arena.tier]} Tier</p>
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <MiniFact label="Players" value={`${participantCount}/${arena.maxPlayers}`} />
-        <MiniFact label="Min" value={arena.minPlayers.toString()} />
-        <MiniFact label="Prize" value={formatEthValue(arena.prizePool)} />
+
+      <button onClick={() => onSelect(arena.arenaId)} className="absolute left-4 top-4 z-20 rounded-full border border-white/10 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-300 transition-colors hover:border-white/25 hover:text-white">
+        Inspect
+      </button>
+
+      <div className="relative mx-4 aspect-[16/9] overflow-hidden rounded-xl border border-white/10">
+        <Image src={visual.image} alt={`Arena ${ARENA_STATE_LABELS[arena.state]}`} fill className={`object-cover transition-transform duration-700 group-hover:scale-110 ${arena.state === 3 ? "animate-pulse" : ""}`} sizes="(min-width: 1024px) 420px, 100vw" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/35" />
+        {arena.state === 3 && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5">
+            <Flame className="h-4 w-4 animate-pulse text-orange-300" />
+            <span className="text-sm font-black text-orange-300">BATTLE IN PROGRESS</span>
+          </div>
+        )}
+        {avatarCount > 0 && (
+          <div className="absolute left-3 top-3 flex items-center">
+            {Array.from({ length: avatarCount }).map((_, index) => (
+              <div key={index} className="-ml-2 first:ml-0 relative h-8 w-8 overflow-hidden rounded-full border-2 border-black/80 bg-zinc-950">
+                <Image src={shipImageForSlot(arena.arenaId, index)} alt="" fill className="object-cover" sizes="32px" />
+              </div>
+            ))}
+            {participantNumber > avatarCount && <span className="ml-1 rounded bg-black/65 px-1.5 py-0.5 text-xs font-black text-white/75">+{participantNumber - avatarCount}</span>}
+          </div>
+        )}
+        {arena.state === 2 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="text-center">
+              <Sparkles className="mx-auto mb-2 h-8 w-8 animate-pulse text-red-300" />
+              <span className="text-lg font-black text-white">STARTING SOON</span>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="mt-3 text-xs text-neutral-500">Registration {registrationEnded ? "ended" : `ends ${timeUntil(Number(arena.registrationEnd), now)}`}</div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {canJoin && <ActionButton onClick={() => onJoin(arena)} icon={Swords}>Join with #{selectedAgentId?.toString()}</ActionButton>}
-        {arena.state === 1 && !selectedAgentId && <div className="rounded-md border border-neutral-800 bg-black px-3 py-2 text-xs text-neutral-500">Select or create a fighter to join.</div>}
-        {canLock && <ActionButton onClick={() => onLock(arena.arenaId)} icon={Lock}>Lock arena</ActionButton>}
-        {expiredNoPlayers && <ActionButton onClick={() => onAutoCancel(arena.arenaId)} icon={ShieldCheck}>Cancel expired</ActionButton>}
+
+      <div className="px-5 pb-2 pt-4">
+        <p className="mb-1 text-xs uppercase tracking-[0.14em] text-zinc-500">Prize Pool</p>
+        <div className="flex items-center gap-2">
+          <Trophy className="h-6 w-6 text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+          <span className="bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-500 bg-clip-text text-2xl font-black text-transparent">{formatEthValue(displayPrize)}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 px-5 py-3 text-center">
+        <div className="rounded-lg bg-black/35 px-1 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Entry</p>
+          <p className="text-sm font-black text-white">{formatEthValue(arena.entryFee).replace(" ETH", "")}</p>
+        </div>
+        <div className="rounded-lg bg-black/35 px-1 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">Players</p>
+          <p className={`text-sm font-black ${full ? "text-red-300" : "text-white"}`}>{participantCount.toString()}/{arena.maxPlayers.toString()}</p>
+        </div>
+        <div className="rounded-lg bg-black/35 px-1 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">{arena.state === 1 ? "Closes" : "Status"}</p>
+          <p className={`text-sm font-black ${visual.accent}`}>{arena.state === 1 ? (registrationEnded ? "Closed" : timeUntil(Number(arena.registrationEnd), now)) : ARENA_STATE_LABELS[arena.state]}</p>
+        </div>
+      </div>
+
+      {arena.state === 1 && (
+        <div className="px-5 pb-3">
+          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className={`h-full rounded-full transition-all duration-500 ${fillPercentage >= 100 ? "bg-red-500" : fillPercentage > 70 ? "bg-gradient-to-r from-amber-500 to-orange-500" : "bg-gradient-to-r from-emerald-500 to-cyan-500"}`} style={{ width: `${fillPercentage}%` }} />
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 pb-5">
+        {canJoin && (
+          <button onClick={() => onJoin(arena)} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all group-hover:from-emerald-500 group-hover:to-cyan-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+            <span className="flex items-center justify-center gap-2"><Zap className="h-4 w-4" />Join Battle · {spotsLeft} {spotsLeft === 1 ? "Spot" : "Spots"} Left</span>
+          </button>
+        )}
+        {arena.state === 1 && !selectedAgentId && <div className="rounded-xl border border-zinc-700/50 bg-black/40 py-3 text-center text-sm font-bold text-zinc-400">Select or create a fighter to join.</div>}
+        {canLock && <button onClick={() => onLock(arena.arenaId)} className="w-full rounded-xl bg-gradient-to-r from-red-600 to-orange-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Lock className="h-4 w-4" />Lock Arena</span></button>}
+        {expiredNoPlayers && <button onClick={() => onAutoCancel(arena.arenaId)} className="w-full rounded-xl border border-orange-500/30 bg-orange-500/10 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-orange-300"><span className="flex items-center justify-center gap-2"><ShieldCheck className="h-4 w-4" />Cancel Expired</span></button>}
+        {arena.state === 3 && <div className="w-full rounded-xl bg-gradient-to-r from-orange-600 to-red-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Swords className="h-4 w-4 animate-pulse" />Watch Live Battle</span></div>}
+        {arena.state === 4 && <div className="w-full rounded-xl border border-violet-500/40 bg-gradient-to-r from-violet-500/20 to-purple-500/20 py-3 text-center text-sm font-black text-violet-200"><span className="flex items-center justify-center gap-2"><Crown className="h-5 w-5 text-yellow-300" />Winner: {arena.winnerId > BI_ZERO ? `Fighter #${arena.winnerId}` : "Battle Complete"}</span></div>}
       </div>
     </div>
   );
@@ -896,19 +1259,22 @@ function FighterCard({ agent, toggleAgent, txBusy }: { agent: RushAgent; toggleA
   const winRate = agent.totalBattles > BI_ZERO ? Number((agent.totalWins * BI_TEN_THOUSAND) / agent.totalBattles) / 100 : 0;
   const sprite = Number((agent.agentId % BI_TWENTY) + BI_ONE);
   return (
-    <div className="rounded-lg border border-neutral-900 bg-[#0d0d0d] p-4">
-      <div className="flex items-start gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[#00aaff]/25 bg-[#00aaff]/10"><Bot size={28} className="text-[#00aaff]" /></div>
+    <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-zinc-950 via-zinc-900 to-cyan-950/30 p-4 shadow-[0_0_26px_rgba(0,170,255,0.12)]">
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-cyan-500/12 to-transparent" />
+      <div className="relative flex items-start gap-4">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_22px_rgba(0,170,255,0.22)]">
+          <Image src={shipImageForAgent(agent.agentId)} alt={`Fighter #${agent.agentId}`} fill className="object-cover" sizes="80px" />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-black text-white">Fighter #{agent.agentId.toString()}</h3>
             <span className="rounded px-2 py-1 text-[10px] font-black uppercase" style={{ color: agent.isActive ? "#00ff88" : "#ff6666", background: agent.isActive ? "rgba(0,255,136,0.12)" : "rgba(255,102,102,0.12)", fontFamily: "monospace" }}>{agent.isActive ? "active" : "parked"}</span>
           </div>
-          <p className="mt-1 text-xs text-neutral-500">Rush sprite seed {sprite}</p>
+          <p className="mt-1 text-xs text-cyan-200/60">Ship frame {sprite}</p>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2"><MiniFact label="Battles" value={agent.totalBattles.toString()} /><MiniFact label="Wins" value={agent.totalWins.toString()} /><MiniFact label="Win rate" value={`${winRate.toFixed(1)}%`} /></div>
-      <button onClick={() => toggleAgent(agent)} disabled={txBusy} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-neutral-800 bg-black px-4 py-2 text-sm font-bold text-neutral-200 hover:border-[#00aaff]/40 disabled:opacity-50">{agent.isActive ? "Park fighter" : "Activate fighter"}</button>
+      <div className="relative mt-4 grid grid-cols-3 gap-2"><MiniFact label="Battles" value={agent.totalBattles.toString()} /><MiniFact label="Wins" value={agent.totalWins.toString()} /><MiniFact label="Win rate" value={`${winRate.toFixed(1)}%`} /></div>
+      <button onClick={() => toggleAgent(agent)} disabled={txBusy} className="relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-black/70 px-4 py-3 text-sm font-black text-cyan-100 transition-colors hover:border-cyan-300/50 disabled:opacity-50">{agent.isActive ? "Park fighter" : "Activate fighter"}</button>
     </div>
   );
 }
@@ -917,6 +1283,7 @@ function ReplayPanel({ arena, result, participants, lockedAt, startedAt, now }: 
   const seed = arena.seed > BI_ZERO ? arena.seed : result?.seed ?? BI_ZERO;
   const rounds = Math.max(3, Number(result?.totalRounds ?? BI_SIX));
   const winnerId = arena.winnerId > BI_ZERO ? arena.winnerId : result?.winnerId ?? BI_ZERO;
+  const visual = stateVisuals[arena.state] ?? stateVisuals[0];
   return (
     <Panel>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 pb-4">
@@ -924,9 +1291,11 @@ function ReplayPanel({ arena, result, participants, lockedAt, startedAt, now }: 
         <StateBadge state={arena.state} />
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="relative min-h-[320px] overflow-hidden rounded-lg border border-neutral-900 bg-black" style={{ background: "radial-gradient(circle at 50% 50%, rgba(0,170,255,0.12), transparent 34%), radial-gradient(circle at 20% 20%, rgba(255,215,0,0.1), transparent 22%), #050505" }}>
-          <div className="absolute inset-8 rounded-full border border-dashed border-neutral-800" />
-          <div className="absolute inset-16 rounded-full border border-neutral-900" />
+        <div className="relative min-h-[320px] overflow-hidden rounded-2xl border border-white/10 bg-black">
+          <Image src={visual.image} alt={`Arena ${ARENA_STATE_LABELS[arena.state]}`} fill className="object-cover opacity-60" sizes="(min-width: 1024px) 640px, 100vw" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60" />
+          <div className="absolute inset-8 rounded-full border border-dashed border-cyan-200/20" />
+          <div className="absolute inset-16 rounded-full border border-emerald-200/15" />
           {participants.length === 0 ? (
             <div className="relative flex min-h-[320px] items-center justify-center text-sm text-neutral-500">No participants loaded.</div>
           ) : (
@@ -940,7 +1309,9 @@ function ReplayPanel({ arena, result, participants, lockedAt, startedAt, now }: 
                 const won = participant.agentId === winnerId;
                 return (
                   <div key={participant.agentId.toString()} className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1" style={{ left: `${left}%`, top: `${top}%` }}>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-black text-sm font-black" style={{ borderColor: won ? "#00ff88" : "#263238", color: won ? "#00ff88" : "#8aa", boxShadow: won ? "0 0 34px rgba(0,255,136,0.4)" : "none" }}>#{participant.agentId.toString()}</div>
+                    <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 bg-black" style={{ borderColor: won ? "#00ff88" : "#263238", boxShadow: won ? "0 0 34px rgba(0,255,136,0.45)" : "none" }}>
+                      <Image src={shipImageForAgent(participant.agentId)} alt={`Fighter #${participant.agentId}`} fill className="object-cover" sizes="64px" />
+                    </div>
                     <span className="rounded bg-black/70 px-2 py-1 text-[10px] text-neutral-400">{won ? "WINNER" : participant.eliminated ? `R${participant.eliminatedRound}` : `score ${score}`}</span>
                   </div>
                 );
@@ -983,10 +1354,6 @@ function StateBadge({ state }: { state: ArenaState }) {
 
 function MiniFact({ label, value }: { label: string; value?: string }) {
   return <div className="rounded-md border border-neutral-900 bg-black/35 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-600" style={{ fontFamily: "monospace" }}>{label}</div><div className="mt-1 break-words text-sm font-bold text-neutral-200">{value ?? "-"}</div></div>;
-}
-
-function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="grid gap-1 text-xs text-neutral-500">{label}<input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-md border border-neutral-800 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#00ff88]/60" /></label>;
 }
 
 function ActionButton({ children, onClick, disabled, icon: Icon }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; icon: typeof Swords }) {
@@ -1103,6 +1470,19 @@ function asBigInt(value: unknown): bigint {
   if (typeof value === "number") return BigInt(value);
   if (typeof value === "string" && value !== "") return BigInt(value);
   return BI_ZERO;
+}
+
+function shipImageForAgent(agentId: bigint) {
+  return `/images/ships/ship-${Number((agentId % BI_TWENTY) + BI_ONE)}.png`;
+}
+
+function shipImageForSlot(arenaId: bigint, index: number) {
+  return `/images/ships/ship-${Number(((arenaId + BigInt(index)) % BI_TWENTY) + BI_ONE)}.png`;
+}
+
+function formatEthInput(value: number) {
+  if (!Number.isFinite(value)) return "0.001";
+  return value.toFixed(3);
 }
 
 function formatCount(value: bigint | undefined, isLoading: boolean) {
