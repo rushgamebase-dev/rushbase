@@ -599,12 +599,18 @@ export class GameController implements OnModuleInit {
       }
 
       // 3. Determine status
+      // Cancelled arenas do not have a winner. Returning RUNNING here makes
+      // refund-only arenas look like missing payouts in the UI/API.
       const hasWinner = !!dbRecord.winnerId;
       const hasPrizeTx = !!dbRecord.prizeTxHash;
-      const status = !hasWinner ? 'RUNNING' : 'FINISHED';
+      const state = (dbRecord.state || '').toLowerCase();
+      const status = hasWinner ? 'FINISHED' :
+                     state === 'cancelled' ? 'CANCELLED' :
+                     state ? state.toUpperCase() : 'RUNNING';
 
       // 4. Prize status
-      const prizeStatus = (dbRecord.prizeAmount && dbRecord.prizeTxHash) ? 'confirmed' :
+      const prizeStatus = state === 'cancelled' ? 'cancelled' :
+                          (dbRecord.prizeAmount && dbRecord.prizeTxHash) ? 'confirmed' :
                           hasWinner ? 'pending' : 'pending';
 
       // 5. Build winner info
