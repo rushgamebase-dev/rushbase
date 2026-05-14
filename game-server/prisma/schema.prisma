@@ -1,0 +1,278 @@
+// Arena Ledger - Transparency & Audit System
+// All battles are executed on-chain. This is a read-only index for transparency.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ARENA LEDGER - Core Tables
+// ============================================
+
+model ArenaRecord {
+  id                String   @id @default(uuid())
+  arenaId           String   @unique
+  chainId           Int      @default(8453) // Base Mainnet
+
+  // Arena Config
+  tier              String   // BRONZE, SILVER, GOLD, DIAMOND
+  entryFee          String   // BigInt as string (wei)
+  minPlayers        Int
+  maxPlayers        Int
+  creator           String   // Address
+
+  // State (on-chain financial lifecycle: only FINISHED when prizes distributed)
+  state             String   // created, open, locked, running, finished, cancelled
+
+  // Battle state (off-chain narrative lifecycle: tracks simulation progress)
+  // SIMULATING → COMPLETE → SETTLED
+  // Written synchronously by orchestrator BEFORE on-chain transactions.
+  // Use this for UX decisions (Telegram, /arenas display, anti-spoiler).
+  // Use `state` for financial/audit decisions (ledger, refunds).
+  battleState       String?  // SIMULATING, COMPLETE, SETTLED
+
+  // VRF Data (Proof of Randomness)
+  vrfRequestId      String?
+  vrfRequestTxHash  String?
+  vrfRequestBlock   Int?
+  seed              String?  // BigInt as string
+
+  // Game Config Version (for replay compatibility)
+  gameConfigVersion String?  // e.g., "1.0.0"
+
+  // Simulation Data (JSON: kills per agent, elimination order with eliminatedBy)
+  simulationData    String?
+
+  // Battle Result
+  winnerId          String?
+  winnerOwner       String?
+  resultHash        String?  // keccak256 of battle result
+  totalParticipants Int      @default(0)
+
+  // Prize Distribution
+  prizePool         String   @default("0") // BigInt as string (wei)
+  prizeAmount       String?  // Actual distributed amount
+
+  // Transaction Hashes (On-chain Proofs)
+  createTxHash      String?
+  lockTxHash        String?
+  battleTxHash      String?
+  prizeTxHash       String?
+  cancelTxHash      String?
+
+  // Block Numbers
+  createBlock       Int?
+  lockBlock         Int?
+  battleBlock       Int?
+  prizeBlock        Int?
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  lockedAt          DateTime?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+
+  // Anti-spoiler: deterministic reveal time (set when simulation ends)
+  // revealAt = simulationEndTime + REVEAL_DELAY_MS (env-configurable, default 35s)
+  // Frontend must NOT show FINISHED or winner before this timestamp
+  revealAt          DateTime?
+
+  // Relations
+  participants      ParticipantRecord[]
+  events            ArenaEvent[]
+
+  // Indexes for queries
+  @@index([state])
+  @@index([tier])
+  @@index([creator])
+  @@index([winnerId])
+  @@index([finishedAt])
+}
+
+model ParticipantRecord {
+  id              String   @id @default(uuid())
+  arenaId         String
+  agentId         String
+  owner           String   // Address
+  joinTxHash      String?
+  joinBlock       Int?
+  eliminated      Boolean  @default(false)
+  eliminationRound Int?
+
+  // Relation
+  arena           ArenaRecord @relation(fields: [arenaId], references: [arenaId], onDelete: Cascade)
+
+  @@unique([arenaId, agentId])
+  @@index([owner])
+  @@index([agentId])
+}
+
+model ArenaEvent {
+  id          String   @id @default(uuid())
+  arenaId     String
+  eventType   String   // ArenaCreated, ArenaLocked, ArenaStarted, BattleExecuted, PrizesDistributed, ArenaCancelled
+  txHash      String
+  blockNumber Int
+  logIndex    Int
+  timestamp   DateTime @default(now())
+  data        String   // JSON string with event-specific data
+
+  // Relation
+  arena       ArenaRecord @relation(fields: [arenaId], references: [arenaId], onDelete: Cascade)
+
+  @@index([arenaId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+// ============================================
+// AGGREGATED STATS (cached for performance)
+// ============================================
+
+model LedgerStats {
+  id              String   @id @default("global")
+  totalArenas     Int      @default(0)
+  totalFinished   Int      @default(0)
+  totalCancelled  Int      @default(0)
+  totalPrizePool  String   @default("0") // Total wei distributed
+  totalPlayers    Int      @default(0)   // Unique participation count
+  updatedAt       DateTime @updatedAt
+}
+
+// ============================================
+// INDEXER CHECKPOINT - Tracks last indexed block
+// ============================================
+
+model IndexerCheckpoint {
+  id              String   @id @default("main")
+  lastBlockNumber String   @default("0")   // Last fully processed block (stored as string for SQLite compat)
+  lastBlockHash   String?  // For reorg detection
+  contractAddress String   // ArenaManager address being indexed
+  chainId         Int      @default(8453) // Base Mainnet
+  updatedAt       DateTime @updatedAt
+
+  @@index([contractAddress])
+}
+
+// ============================================
+// XP SYSTEM - Persistent Agent Experience
+// ============================================
+
+model AgentXP {
+  id           String          @id @default(uuid())
+  agentId      String          @unique
+  totalXP      Int             @default(0)
+  level        Int             @default(1)
+  updatedAt    DateTime        @updatedAt
+  transactions XPTransaction[]
+
+  @@index([level])
+}
+
+model XPTransaction {
+  id        String   @id @default(uuid())
+  arenaId   String
+  agentId   String
+  xpGained  Int
+  breakdown String   // JSON: {"participation":50,"kills":75,"placement":150}
+  createdAt DateTime @default(now())
+  agent     AgentXP  @relation(fields: [agentId], references: [agentId], onDelete: Cascade)
+
+  @@unique([arenaId, agentId])
+  @@index([agentId])
+  @@index([arenaId])
+}
+
+// ============================================
+// CHAMPIONSHIP SYSTEM - Free 32-player tournaments
+// ============================================
+
+model Championship {
+  id            String   @id @default(uuid())
+  name          String
+  status        String   @default("REGISTRATION") // REGISTRATION | ACTIVE | PAUSED | FINISHED | CANCELLED
+  maxPlayers    Int      @default(32)
+  currentRound  Int      @default(0)
+  totalRounds   Int      @default(7)
+  prizeInfo     String?  // "1 SOL" (display only)
+  masterSeed    String?  // Published for verifiability
+  matchDelayMs  Int      @default(30000)
+  roundDelayMs  Int      @default(30000)
+  createdAt     DateTime @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  participants  ChampionshipParticipant[]
+  rounds        ChampionshipRound[]
+  @@index([status])
+}
+
+model ChampionshipParticipant {
+  id              String   @id @default(uuid())
+  championshipId  String
+  wallet          String
+  displayName     String?
+  virtualAgentId  Int      // 10001+
+  shipNumber      Int      // 1-20
+  strategy        String?  // JSON StrategyTemplate
+  totalPoints     Int      @default(0)
+  totalKills      Int      @default(0)
+  totalFirsts     Int      @default(0)
+  bestMatchScore  Int      @default(0)
+  matchesPlayed   Int      @default(0)
+  trophyTokenId   Int?     // On-chain soulbound NFT token ID (top 3 only)
+  trophyTxHash    String?  // Mint transaction hash
+  registeredAt    DateTime @default(now())
+  championship    Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+  matchResults    ChampionshipMatchResult[]
+  @@unique([championshipId, wallet])
+  @@unique([championshipId, virtualAgentId])
+  @@index([championshipId, totalPoints])
+}
+
+model ChampionshipRound {
+  id              String   @id @default(uuid())
+  championshipId  String
+  roundNumber     Int
+  status          String   @default("PENDING") // PENDING | ACTIVE | FINISHED
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  championship    Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+  matches         ChampionshipMatch[]
+  @@unique([championshipId, roundNumber])
+}
+
+model ChampionshipMatch {
+  id              String   @id @default(uuid())
+  roundId         String
+  matchIndex      Int      // 0-7 within round
+  engineMatchId   String?  // Maps to MatchService
+  seed            String
+  status          String   @default("PENDING") // PENDING | RUNNING | FINISHED | ERROR
+  participantIds  String   // JSON array of virtualAgentIds
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  totalTicks      Int?
+  round           ChampionshipRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  results         ChampionshipMatchResult[]
+  @@unique([roundId, matchIndex])
+}
+
+model ChampionshipMatchResult {
+  id              String   @id @default(uuid())
+  matchId         String
+  participantId   String
+  placement       Int      // 1-4
+  kills           Int      @default(0)
+  pointsEarned    Int      @default(0)
+  eliminatedAt    Int?     // tick number
+  eliminatedBy    String?
+  match           ChampionshipMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  participant     ChampionshipParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  @@unique([matchId, participantId])
+}

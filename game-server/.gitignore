@@ -1,0 +1,14 @@
+.vercel
+dist/
+node_modules/
+.env
+.env.*
+!.env.example
+data/*.json
+
+# Prisma
+/generated/prisma
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
