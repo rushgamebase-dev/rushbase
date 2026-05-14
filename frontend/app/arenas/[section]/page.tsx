@@ -18,12 +18,18 @@ export function generateStaticParams() {
 
 export default function ArenaSectionPage({
   params,
+  searchParams,
 }: {
   params: { section: string };
+  searchParams?: { arenaId?: string | string[]; arena?: string | string[] };
 }) {
   if (!arenaSections.includes(params.section as ArenaSection)) {
     notFound();
   }
 
-  return <RushArenasPlayPage section={params.section as ArenaSection} />;
+  return <RushArenasPlayPage section={params.section as ArenaSection} initialArenaId={singleSearchParam(searchParams?.arenaId ?? searchParams?.arena)} />;
+}
+
+function singleSearchParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
 }

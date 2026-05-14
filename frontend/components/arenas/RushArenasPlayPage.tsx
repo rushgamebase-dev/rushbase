@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useAccount,
   useReadContract,
@@ -248,16 +249,19 @@ const stateVisuals: Record<
   },
 };
 
-export default function RushArenasPlayPage({ section = "join" }: { section?: ArenaSection }) {
+export default function RushArenasPlayPage({ section = "join", initialArenaId }: { section?: ArenaSection; initialArenaId?: string }) {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [selectedArenaId, setSelectedArenaId] = useState<bigint | undefined>();
   const [selectedAgentId, setSelectedAgentId] = useState<bigint | undefined>();
   const [txLabel, setTxLabel] = useState<string | null>(null);
   const [liveArenaIds, setLiveArenaIds] = useState<bigint[]>([]);
+  const [followedArenaId, setFollowedArenaId] = useState<bigint | undefined>();
   const [arenaNotice, setArenaNotice] = useState<ArenaNotice | null>(null);
   const [fighterNotice, setFighterNotice] = useState<ActionNotice | null>(null);
   const refreshTimersRef = useRef<number[]>([]);
+  const autoWatchArenaRef = useRef<string | null>(null);
   const [arenaForm, setArenaForm] = useState({
     tier: 0 as ArenaTier,
     entryFee: "0.001",
@@ -272,6 +276,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   }, []);
 
   const activePanel = sectionPanels[section];
+  const requestedArenaId = useMemo(() => parseArenaIdParam(initialArenaId), [initialArenaId]);
 
   const { data: baseReads, isLoading: isLoadingBase, refetch: refetchBaseReads } = useReadContracts({
     contracts: [
@@ -449,6 +454,12 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   }, []);
 
   useEffect(() => {
+    if (!requestedArenaId) return;
+    addLiveArenaId(requestedArenaId);
+    setSelectedArenaId(requestedArenaId);
+  }, [addLiveArenaId, requestedArenaId]);
+
+  useEffect(() => {
     return () => {
       refreshTimersRef.current.forEach((id) => window.clearTimeout(id));
       refreshTimersRef.current = [];
@@ -480,10 +491,28 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
     pollingInterval: 3_000,
     onLogs(logs) {
       logs.forEach((log) => {
+        const args = log.args as { arenaId?: bigint; owner?: `0x${string}` };
+        if (args.arenaId) addLiveArenaId(args.arenaId);
+        if (address && args.arenaId && args.owner?.toLowerCase() === address.toLowerCase()) {
+          setFollowedArenaId(args.arenaId);
+          setSelectedArenaId(args.arenaId);
+        }
+      });
+      queueRefresh();
+    },
+  });
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "ArenaLocked",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      logs.forEach((log) => {
         const args = log.args as { arenaId?: bigint };
         if (args.arenaId) addLiveArenaId(args.arenaId);
       });
-      queueRefresh();
+      queueRefresh([0, 800, 1800, 4000]);
     },
   });
 
@@ -559,6 +588,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
           addLiveArenaId(args.arenaId);
           decodedArenaEvent = true;
           if (!address || args.owner?.toLowerCase() === address.toLowerCase()) {
+            setFollowedArenaId(args.arenaId);
             setSelectedArenaId(args.arenaId);
             showArenaNotice(args.arenaId, `Joined arena #${args.arenaId.toString()}.`, "success");
           }
@@ -722,6 +752,15 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   const openArenas = arenaSummaries.filter((row) => row.arena.state === 1);
   const activeArenas = arenaSummaries.filter((row) => row.arena.state === 2 || row.arena.state === 3);
   const finishedArenas = arenaSummaries.filter((row) => row.arena.state === 4);
+  const followedArena = followedArenaId ? arenaSummaries.find((row) => row.arena.arenaId === followedArenaId)?.arena : undefined;
+
+  useEffect(() => {
+    if (section !== "join" || !followedArena || followedArena.state < 2) return;
+    const arenaKey = followedArena.arenaId.toString();
+    if (autoWatchArenaRef.current === arenaKey) return;
+    autoWatchArenaRef.current = arenaKey;
+    router.push(arenaWatchHref(followedArena.arenaId));
+  }, [followedArena, router, section]);
 
   return (
     <div className="min-h-screen" style={{ background: "#080808", color: "#e8e8e8" }}>
@@ -765,8 +804,9 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
                 {launchActions.map((action) => {
                   const Icon = action.icon;
                   const active = action.section === section;
+                  const href = action.section === "watch" && effectiveSelectedArenaId ? arenaWatchHref(effectiveSelectedArenaId) : action.href;
                   return (
-                    <Link key={action.title} href={action.href} className="group flex min-h-[92px] items-center justify-between rounded-lg border p-4 transition-transform hover:-translate-y-0.5" style={{ borderColor: active ? `${action.accent}66` : "#1c1c1c", background: active ? `${action.accent}12` : "#101010", boxShadow: active ? `0 0 28px ${action.accent}18` : "none" }} aria-current={active ? "page" : undefined}>
+                    <Link key={action.title} href={href} className="group flex min-h-[92px] items-center justify-between rounded-lg border p-4 transition-transform hover:-translate-y-0.5" style={{ borderColor: active ? `${action.accent}66` : "#1c1c1c", background: active ? `${action.accent}12` : "#101010", boxShadow: active ? `0 0 28px ${action.accent}18` : "none" }} aria-current={active ? "page" : undefined}>
                       <div className="flex items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border" style={{ borderColor: `${action.accent}44`, background: `${action.accent}14`, color: action.accent }}>
                           <Icon size={21} />
@@ -1282,8 +1322,8 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
       </div>
 
       <div className="space-y-4">
-        <SectionTitle icon={Radio} eyebrow="demo battle feed" title="Watch Live" />
-        <DemoBattlePreview />
+        <SectionTitle icon={Radio} eyebrow={selectedArena?.state === 3 ? "live battle feed" : "battle feed"} title="Watch Live" />
+        <DemoBattlePreview arena={selectedArena} result={selectedResult} participants={selectedParticipants} />
 
         <SectionTitle icon={Swords} eyebrow="deterministic replay" title={selectedArena ? `Arena #${selectedArena.arenaId}` : "Select arena"} />
         {selectedArena ? (
@@ -1311,8 +1351,9 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
   );
 }
 
-function DemoBattlePreview() {
-  return <RushRoyaleEngineCanvas />;
+function DemoBattlePreview({ arena, result, participants }: { arena?: RushArena; result?: RushBattleResult; participants: RushArenaParticipant[] }) {
+  const seed = arena && arena.seed > BI_ZERO ? arena.seed : result?.seed;
+  return <RushRoyaleEngineCanvas arenaId={arena?.arenaId} seed={seed} participants={participants} />;
 }
 
 function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, selectedParticipants, selectedVrfRequest, selectedLockedAt, selectedStartedAt, setSelectedArenaId, treasury, vrfCost, protocolFeeBps, commitRevealEnabled, claimRefund, myAgents, txBusy }: { arenas: ArenaSummary[]; finishedArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; setSelectedArenaId: (arenaId: bigint) => void; treasury?: `0x${string}`; vrfCost?: bigint; protocolFeeBps?: bigint; commitRevealEnabled?: boolean; claimRefund: (arenaId: bigint, agentId: bigint) => void; myAgents: RushAgent[]; txBusy: boolean }) {
@@ -1414,6 +1455,7 @@ function ArenaCard({ row, now, isConnected, selectedAgentId, selectedAgent, txBu
   const displayPrize = arena.prizePool > BI_ZERO ? arena.prizePool : arena.entryFee * BigInt(participantNumber);
   const activeNotice = arenaNotice?.arenaId === arena.arenaId ? arenaNotice : null;
   const noticeStyle = activeNotice ? noticeToneStyles[activeNotice.tone] : undefined;
+  const watchHref = arenaWatchHref(arena.arenaId);
   const joinButtonLabel = isJoiningThisArena
     ? "Joining..."
     : txBusy
@@ -1518,12 +1560,28 @@ function ArenaCard({ row, now, isConnected, selectedAgentId, selectedAgent, txBu
         {activeNotice && noticeStyle && (
           <div className="mt-3 rounded-xl border px-3 py-2 text-center text-xs font-bold" style={{ borderColor: noticeStyle.border, background: noticeStyle.bg, color: noticeStyle.color }}>
             {activeNotice.message}
+            {activeNotice.tone === "success" && (
+              <Link href={watchHref} className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-white transition-colors hover:border-white/25">
+                <Play className="h-3.5 w-3.5" />
+                Watch arena
+              </Link>
+            )}
           </div>
         )}
         {canLock && <button onClick={() => onLock(arena.arenaId)} className="w-full rounded-xl bg-gradient-to-r from-red-600 to-orange-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Lock className="h-4 w-4" />Lock Arena</span></button>}
         {expiredNoPlayers && <button onClick={() => onAutoCancel(arena.arenaId)} className="w-full rounded-xl border border-orange-500/30 bg-orange-500/10 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-orange-300"><span className="flex items-center justify-center gap-2"><ShieldCheck className="h-4 w-4" />Cancel Expired</span></button>}
-        {arena.state === 3 && <div className="w-full rounded-xl bg-gradient-to-r from-orange-600 to-red-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Swords className="h-4 w-4 animate-pulse" />Watch Live Battle</span></div>}
-        {arena.state === 4 && <div className="w-full rounded-xl border border-violet-500/40 bg-gradient-to-r from-violet-500/20 to-purple-500/20 py-3 text-center text-sm font-black text-violet-200"><span className="flex items-center justify-center gap-2"><Crown className="h-5 w-5 text-yellow-300" />Winner: {arena.winnerId > BI_ZERO ? `Fighter #${arena.winnerId}` : "Battle Complete"}</span></div>}
+        {(arena.state === 2 || arena.state === 3) && (
+          <Link href={watchHref} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all hover:from-orange-500 hover:to-red-500">
+            <Swords className="h-4 w-4 animate-pulse" />
+            {arena.state === 3 ? "Watch Live Battle" : "Watch Starting Arena"}
+          </Link>
+        )}
+        {arena.state === 4 && (
+          <Link href={watchHref} className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-gradient-to-r from-violet-500/20 to-purple-500/20 py-3 text-center text-sm font-black text-violet-200 transition-colors hover:border-violet-300/55">
+            <Crown className="h-5 w-5 text-yellow-300" />
+            Winner: {arena.winnerId > BI_ZERO ? `Fighter #${arena.winnerId}` : "Battle Complete"}
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -1807,6 +1865,20 @@ function formatBps(value: bigint | undefined, isLoading: boolean) {
 
 function safeParseEther(value: string) {
   try { return parseEther(value); } catch { return undefined; }
+}
+
+function parseArenaIdParam(value: string | undefined) {
+  if (!value) return undefined;
+  try {
+    const parsed = BigInt(value);
+    return parsed > BI_ZERO ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function arenaWatchHref(arenaId: bigint) {
+  return `/arenas/watch?arenaId=${arenaId.toString()}`;
 }
 
 function shortAddress(address: `0x${string}` | undefined) {

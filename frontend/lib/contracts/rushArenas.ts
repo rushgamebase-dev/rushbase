@@ -106,7 +106,7 @@ export const ARENA_MANAGER_ABI = parseAbi([
   "function getArenaLockedAt(uint256 arenaId) view returns (uint256)",
   "function isArenaTimedOut(uint256 arenaId) view returns (bool)",
   "function isLockTimedOut(uint256 arenaId) view returns (bool)",
-  "event ArenaCreated(uint256 indexed arenaId,uint8 tier,uint256 entryFee,uint256 minPlayers,uint256 maxPlayers,uint256 registrationEnd,address indexed creator)",
+  "event ArenaCreated(uint256 indexed arenaId,uint8 indexed tier,uint256 entryFee,uint256 minPlayers,uint256 maxPlayers,uint256 registrationEnd,address indexed creator)",
   "event AgentJoinedArena(uint256 indexed arenaId,uint256 indexed agentId,address indexed owner,uint256[] boostIds)",
   "event StrategyCommitted(uint256 indexed arenaId,uint256 indexed agentId,bytes32 strategyHash)",
   "event ArenaLocked(uint256 indexed arenaId,uint256 participantCount,uint256 vrfRequestId)",

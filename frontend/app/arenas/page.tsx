@@ -7,6 +7,14 @@ export const metadata: Metadata = {
     "Autonomous Rush fighters enter VRF-seeded arenas, battle through deterministic replays, and settle ETH prizes on Base.",
 };
 
-export default function ArenasPage() {
-  return <RushArenasPlayPage section="join" />;
+export default function ArenasPage({
+  searchParams,
+}: {
+  searchParams?: { arenaId?: string | string[]; arena?: string | string[] };
+}) {
+  return <RushArenasPlayPage section="join" initialArenaId={singleSearchParam(searchParams?.arenaId ?? searchParams?.arena)} />;
+}
+
+function singleSearchParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
 }

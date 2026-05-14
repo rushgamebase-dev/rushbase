@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Loader2, Radio, RefreshCw, Target, Trophy, Users, type LucideIcon } from "lucide-react";
 import { GameEngine, createDefaultConfig } from "@/lib/rush-royale-game/engine";
 import {
@@ -43,7 +43,13 @@ type MatchResult = {
 const TICK_RATE = 20;
 const DEMO_AGENT_COUNT = 25;
 
-export function RushRoyaleEngineCanvas() {
+type EngineCanvasParticipant = {
+  agentId: bigint;
+  owner: `0x${string}`;
+  boostIds?: bigint[];
+};
+
+export function RushRoyaleEngineCanvas({ arenaId, seed, participants = [] }: { arenaId?: bigint; seed?: bigint; participants?: EngineCanvasParticipant[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<BattleRendererType | null>(null);
@@ -58,6 +64,16 @@ export function RushRoyaleEngineCanvas() {
   const [hud, setHud] = useState<HudState>(() => createInitialHud(0));
   const [killFeed, setKillFeed] = useState<KillLine[]>([]);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const engineParticipants = useMemo(
+    () => participants.map((participant) => ({
+      agentId: participant.agentId,
+      owner: participant.owner,
+      boostIds: participant.boostIds ?? [],
+    })),
+    [participants],
+  );
+  const hasArenaSelection = arenaId !== undefined;
+  const hasActualMatch = arenaId !== undefined && seed !== undefined && seed > BigInt(0) && engineParticipants.length >= 2;
 
   const clearTimers = useCallback(() => {
     if (intervalRef.current) {
@@ -80,20 +96,20 @@ export function RushRoyaleEngineCanvas() {
     setResult(null);
     setKillFeed([]);
 
-    const arenaId = BigInt(900000 + nextIndex);
-    const seed = BigInt(857209 + nextIndex * 15485863);
-    const participants = createDemoParticipants();
-    const engine = new GameEngine(createDefaultConfig(arenaId, seed), participants);
+    const matchArenaId = hasActualMatch && arenaId !== undefined ? arenaId : BigInt(900000 + nextIndex);
+    const matchSeed = hasActualMatch && seed !== undefined ? seed : BigInt(857209 + nextIndex * 15485863);
+    const matchParticipants = hasActualMatch ? engineParticipants : createDemoParticipants();
+    const engine = new GameEngine(createDefaultConfig(matchArenaId, matchSeed), matchParticipants);
     engine.start();
     engineRef.current = engine;
 
     const fullState = engine.getFullState() as RendererMatchState;
     renderer.initializeMatch(fullState);
     setHud({
-      arenaId,
-      seed,
+      arenaId: matchArenaId,
+      seed: matchSeed,
       tick: 0,
-      aliveCount: participants.length,
+      aliveCount: matchParticipants.length,
       arenaRadius: fullState.arena.currentRadius,
       arenaPhase: fullState.arena.phase,
     });
@@ -109,8 +125,8 @@ export function RushRoyaleEngineCanvas() {
 
       if (update.tick % 4 === 0) {
         setHud({
-          arenaId,
-          seed,
+          arenaId: matchArenaId,
+          seed: matchSeed,
           tick: update.tick,
           aliveCount: update.agents.filter((agent) => agent.isAlive).length,
           arenaRadius: update.arena.radius,
@@ -147,7 +163,7 @@ export function RushRoyaleEngineCanvas() {
         }, 5200);
       }
     }, 1000 / TICK_RATE);
-  }, [clearTimers]);
+  }, [arenaId, clearTimers, engineParticipants, hasActualMatch, seed]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -175,7 +191,6 @@ export function RushRoyaleEngineCanvas() {
         }
         rendererRef.current = renderer;
         setReady(true);
-        startMatch(0);
 
         resizeObserver = new ResizeObserver((entries) => {
           const entry = entries[0];
@@ -196,7 +211,20 @@ export function RushRoyaleEngineCanvas() {
       renderer?.destroy();
       rendererRef.current = null;
     };
-  }, [clearTimers, startMatch]);
+  }, [clearTimers]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (hasArenaSelection && !hasActualMatch) {
+      clearTimers();
+      engineRef.current = null;
+      setResult(null);
+      setKillFeed([]);
+      setHud(createStaticHud(arenaId ?? BigInt(0), seed ?? BigInt(0), engineParticipants.length));
+      return;
+    }
+    startMatch(0);
+  }, [arenaId, clearTimers, engineParticipants.length, hasActualMatch, hasArenaSelection, ready, seed, startMatch]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-violet-400/25 bg-black shadow-[0_0_38px_rgba(139,92,246,0.18)]">
@@ -204,7 +232,7 @@ export function RushRoyaleEngineCanvas() {
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
             <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
-            engine demo
+            {hasActualMatch ? "live replay" : hasArenaSelection ? "waiting seed" : "engine demo"}
           </span>
           <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{hud.arenaId.toString()}</span>
           <span className="text-xs font-black uppercase tracking-[0.16em] text-neutral-500" style={{ fontFamily: "monospace" }}>seed {hud.seed.toString()}</span>
@@ -259,6 +287,18 @@ export function RushRoyaleEngineCanvas() {
             </div>
           </div>
         )}
+
+        {ready && hasArenaSelection && !hasActualMatch && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/92">
+            <div className="rounded-xl border border-yellow-300/25 bg-black/70 px-5 py-4 text-center shadow-[0_0_30px_rgba(250,204,21,0.12)]">
+              <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-yellow-200" />
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-yellow-100" style={{ fontFamily: "monospace" }}>
+                arena #{hud.arenaId.toString()}
+              </div>
+              <div className="mt-1 text-sm font-bold text-neutral-300">Waiting for VRF seed</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -270,6 +310,17 @@ function createInitialHud(index: number): HudState {
     seed: BigInt(857209 + index * 15485863),
     tick: 0,
     aliveCount: DEMO_AGENT_COUNT,
+    arenaRadius: 500,
+    arenaPhase: ArenaPhase.WARMUP,
+  };
+}
+
+function createStaticHud(arenaId: bigint, seed: bigint, aliveCount: number): HudState {
+  return {
+    arenaId,
+    seed,
+    tick: 0,
+    aliveCount,
     arenaRadius: 500,
     arenaPhase: ArenaPhase.WARMUP,
   };
