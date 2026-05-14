@@ -32,10 +32,13 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
+  Skull,
   Sparkles,
   Swords,
   Trophy,
   Users,
+  Volume2,
+  VolumeX,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -1015,6 +1018,7 @@ function FleetPanel({ isConnected, isLoading, myAgents, creationFee, maxAgentsPe
 }
 
 function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selectedParticipants, selectedParticipantCount, selectedVrfRequest, selectedLockedAt, selectedStartedAt, selectedTimedOut, selectedLockTimedOut, selectedArenaId, setSelectedArenaId, now, lockArena, requestRandomness, executorAllowed, txBusy }: { arenas: ArenaSummary[]; activeArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedParticipantCount?: bigint; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; selectedTimedOut?: boolean; selectedLockTimedOut?: boolean; selectedArenaId?: bigint; setSelectedArenaId: (arenaId: bigint) => void; now: number; lockArena: (arenaId: bigint) => void; requestRandomness: (arenaId: bigint) => void; executorAllowed: boolean; txBusy: boolean }) {
+  const [demoMuted, setDemoMuted] = useState(true);
   const lockedNeedsVrf = selectedArena?.state === 2 && (selectedVrfRequest ?? BI_ZERO) === BI_ZERO;
   const openCanLock = selectedArena?.state === 1 && selectedParticipantCount !== undefined && selectedParticipantCount >= selectedArena.minPlayers && (BigInt(now) >= selectedArena.registrationEnd || selectedParticipantCount >= selectedArena.maxPlayers);
 
@@ -1038,7 +1042,10 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
       </div>
 
       <div className="space-y-4">
-        <SectionTitle icon={Radio} eyebrow="deterministic replay" title={selectedArena ? `Arena #${selectedArena.arenaId}` : "Select arena"} />
+        <SectionTitle icon={Radio} eyebrow="demo battle feed" title="Watch Live" />
+        <DemoBattlePreview muted={demoMuted} onToggleMute={() => setDemoMuted((value) => !value)} />
+
+        <SectionTitle icon={Swords} eyebrow="deterministic replay" title={selectedArena ? `Arena #${selectedArena.arenaId}` : "Select arena"} />
         {selectedArena ? (
           <>
             <Panel>
@@ -1059,6 +1066,63 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
             <ReplayPanel arena={selectedArena} result={selectedResult} participants={selectedParticipants} lockedAt={selectedLockedAt} startedAt={selectedStartedAt} now={now} />
           </>
         ) : <EmptyBox title="No arena selected" body="Recent arenas will appear here after the on-chain reads return." />}
+      </div>
+    </div>
+  );
+}
+
+function DemoBattlePreview({ muted, onToggleMute }: { muted: boolean; onToggleMute: () => void }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-violet-400/30 bg-black shadow-[0_0_46px_rgba(139,92,246,0.22)]">
+      <div className="relative min-h-[430px] overflow-hidden">
+        <Image src="/images/watch/background.jpg" alt="" fill className="object-cover opacity-45" sizes="(min-width: 1024px) 760px, 100vw" priority={false} />
+        <video autoPlay loop muted={muted} playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover">
+          <source src="/videos/demo-battle.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,transparent_0,rgba(0,0,0,0.18)_45%,rgba(0,0,0,0.88)_100%)]" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/85 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/72 to-transparent" />
+
+        <div className="absolute left-5 top-5 flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
+            <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
+            live demo
+          </span>
+          <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>rush royale</span>
+        </div>
+
+        <button type="button" onClick={onToggleMute} className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/70 text-white transition-colors hover:border-cyan-300/50 hover:text-cyan-200" aria-label={muted ? "Unmute demo battle" : "Mute demo battle"}>
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+
+        <div className="absolute inset-x-5 bottom-5">
+          <div className="max-w-[520px]">
+            <Image src="/images/watch/title-watch-live.png" alt="Watch Live" width={420} height={178} className="h-auto w-full max-w-[360px] drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Image src="/images/watch/btn-spectate-live.png" alt="Spectate live" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
+              <Image src="/images/watch/btn-start-demo.png" alt="Start demo" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-t border-white/10 bg-black/85 p-4 md:grid-cols-3">
+        <WatchInfoCard image="/images/watch/card-agents-enter.png" icon={Swords} label="fighters enter" value="ships drop into orbit" />
+        <WatchInfoCard image="/images/watch/card-death-zone.png" icon={Skull} label="death zone" value="arena pressure rises" />
+        <WatchInfoCard image="/images/watch/card-winner-takes-all.png" icon={Crown} label="winner takes all" value="last fighter claims" />
+      </div>
+    </div>
+  );
+}
+
+function WatchInfoCard({ image, icon: Icon, label, value }: { image: string; icon: typeof Swords; label: string; value: string }) {
+  return (
+    <div className="relative min-h-[118px] overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
+      <Image src={image} alt="" fill className="object-cover opacity-80" sizes="(min-width: 768px) 220px, 100vw" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+      <div className="absolute inset-x-4 bottom-4">
+        <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}><Icon size={13} />{label}</div>
+        <div className="text-sm font-black text-white">{value}</div>
       </div>
     </div>
   );
