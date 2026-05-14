@@ -11,7 +11,7 @@ import {
   useWatchContractEvent,
   useWriteContract,
 } from "wagmi";
-import { formatEther, parseEther } from "viem";
+import { decodeEventLog, formatEther, parseEther } from "viem";
 import {
   Activity,
   Bot,
@@ -63,6 +63,8 @@ import {
 
 type ReadResult = { status: "success" | "failure"; result?: unknown };
 type ArenaSummary = { arena: RushArena; participantCount: bigint; result: RushBattleResult | undefined };
+type ArenaNotice = { arenaId: bigint; tone: "info" | "error" | "success"; message: string };
+type ActionNotice = { tone: "info" | "error" | "success"; message: string };
 
 const ZERO_HASH =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -132,6 +134,12 @@ const stateTone: Record<ArenaState, { fg: string; bg: string; label: string }> =
   3: { fg: "#00aaff", bg: "rgba(0,170,255,0.12)", label: "RUNNING" },
   4: { fg: "#b8ff9f", bg: "rgba(184,255,159,0.1)", label: "FINISHED" },
   5: { fg: "#ff6666", bg: "rgba(255,102,102,0.12)", label: "CANCELLED" },
+};
+
+const noticeToneStyles: Record<ArenaNotice["tone"], { border: string; bg: string; color: string }> = {
+  info: { border: "rgba(0,170,255,0.28)", bg: "rgba(0,170,255,0.11)", color: "#b9ecff" },
+  error: { border: "rgba(255,102,102,0.32)", bg: "rgba(255,102,102,0.12)", color: "#ffc7c7" },
+  success: { border: "rgba(0,255,136,0.28)", bg: "rgba(0,255,136,0.11)", color: "#b9ffd8" },
 };
 
 const TIER_ORDER: ArenaTier[] = [0, 1, 2, 3];
@@ -247,6 +255,8 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   const [selectedAgentId, setSelectedAgentId] = useState<bigint | undefined>();
   const [txLabel, setTxLabel] = useState<string | null>(null);
   const [liveArenaIds, setLiveArenaIds] = useState<bigint[]>([]);
+  const [arenaNotice, setArenaNotice] = useState<ArenaNotice | null>(null);
+  const [fighterNotice, setFighterNotice] = useState<ActionNotice | null>(null);
   const refreshTimersRef = useRef<number[]>([]);
   const [arenaForm, setArenaForm] = useState({
     tier: 0 as ArenaTier,
@@ -409,7 +419,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   });
 
   const { data: txHash, writeContract, isPending: isWritePending, error: writeError, reset: resetWrite } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: txSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash });
+  const { data: txReceipt, isLoading: isConfirming, isSuccess: txSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash });
 
   const addLiveArenaId = useCallback((arenaId: bigint) => {
     setLiveArenaIds((current) => {
@@ -433,6 +443,10 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       refreshTimersRef.current.push(id);
     });
   }, [refreshAll]);
+
+  const showArenaNotice = useCallback((arenaId: bigint, message: string, tone: ArenaNotice["tone"] = "info") => {
+    setArenaNotice({ arenaId, message, tone });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -506,13 +520,84 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
     queueRefresh();
   }, [queueRefresh, txSuccess]);
 
+  useEffect(() => {
+    if (!txReceipt) return;
+    let decodedArenaEvent = false;
+
+    txReceipt.logs.forEach((log) => {
+      if (log.address.toLowerCase() === RUSH_ARENAS_CONTRACTS.agentRegistry.toLowerCase()) {
+        try {
+          const decoded = decodeEventLog({ abi: AGENT_REGISTRY_ABI, data: log.data, topics: log.topics });
+          const args = decoded.args as { agentId?: bigint; owner?: `0x${string}` };
+          if (decoded.eventName === "AgentCreated" && args.agentId && (!address || args.owner?.toLowerCase() === address.toLowerCase())) {
+            setSelectedAgentId(args.agentId);
+            setFighterNotice({ tone: "success", message: `Fighter #${args.agentId.toString()} created and selected.` });
+            queueRefresh([0, 800, 1800, 4000, 8000]);
+          }
+        } catch {
+          // Ignore non-AgentRegistry logs from the same transaction.
+        }
+        return;
+      }
+
+      if (log.address.toLowerCase() !== RUSH_ARENAS_CONTRACTS.arenaManager.toLowerCase()) return;
+      try {
+        const decoded = decodeEventLog({ abi: ARENA_MANAGER_ABI, data: log.data, topics: log.topics });
+        const args = decoded.args as { arenaId?: bigint; creator?: `0x${string}`; owner?: `0x${string}` };
+        if (!args.arenaId) return;
+
+        if (decoded.eventName === "ArenaCreated") {
+          addLiveArenaId(args.arenaId);
+          decodedArenaEvent = true;
+          if (!address || args.creator?.toLowerCase() === address.toLowerCase()) {
+            setSelectedArenaId(args.arenaId);
+            showArenaNotice(args.arenaId, `Arena #${args.arenaId.toString()} created.`, "success");
+          }
+        }
+
+        if (decoded.eventName === "AgentJoinedArena") {
+          addLiveArenaId(args.arenaId);
+          decodedArenaEvent = true;
+          if (!address || args.owner?.toLowerCase() === address.toLowerCase()) {
+            setSelectedArenaId(args.arenaId);
+            showArenaNotice(args.arenaId, `Joined arena #${args.arenaId.toString()}.`, "success");
+          }
+        }
+      } catch {
+        // Ignore non-arena logs from the same transaction.
+      }
+    });
+
+    if (decodedArenaEvent) queueRefresh([0, 800, 1800, 4000, 8000]);
+  }, [addLiveArenaId, address, queueRefresh, showArenaNotice, txReceipt]);
+
   const txError = writeError || receiptError;
   const txBusy = isWritePending || isConfirming;
 
   function createAgent() {
+    if (!isConnected) {
+      setTxLabel("Connect wallet first");
+      setFighterNotice({ tone: "error", message: "Connect wallet first." });
+      return;
+    }
+    if (maxAgentsPerWallet !== undefined && BigInt(myAgents.length) >= maxAgentsPerWallet) {
+      setTxLabel("Fleet limit reached");
+      setFighterNotice({ tone: "error", message: `This wallet already has ${myAgents.length}/${maxAgentsPerWallet.toString()} fighters.` });
+      return;
+    }
     setTxLabel("Creating fighter");
+    setFighterNotice({ tone: "info", message: "Open the wallet confirmation to create a fighter." });
     resetWrite();
-    writeContract({ address: RUSH_ARENAS_CONTRACTS.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: "createAgent", value: creationFee });
+    writeContract({ address: RUSH_ARENAS_CONTRACTS.agentRegistry, abi: AGENT_REGISTRY_ABI, functionName: "createAgent", value: creationFee }, {
+      onError(error) {
+        setTxLabel("Create fighter failed");
+        setFighterNotice({ tone: "error", message: friendlyError(error) });
+      },
+      onSuccess() {
+        setFighterNotice({ tone: "info", message: "Fighter creation submitted. Waiting for Base confirmation." });
+        queueRefresh([0, 1500, 4500, 9000, 15000]);
+      },
+    });
   }
 
   function toggleAgent(agent: RushAgent) {
@@ -542,41 +627,55 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       abi: ARENA_MANAGER_ABI,
       functionName: "createArena",
       args: [arenaForm.tier, entryFee, minPlayers, maxPlayers, duration],
+    }, {
+      onError() {
+        setTxLabel("Create arena failed");
+        setArenaNotice(null);
+      },
+      onSuccess() {
+        queueRefresh([0, 1500, 4500, 9000, 15000]);
+      },
     });
-    queueRefresh([1500, 4500, 9000]);
   }
 
   function joinArena(arena: RushArena) {
     if (!isConnected) {
       setTxLabel("Connect wallet first");
+      showArenaNotice(arena.arenaId, "Connect wallet first.", "error");
       return;
     }
     if (!selectedAgentId) {
       setTxLabel("Create or select a fighter first");
+      showArenaNotice(arena.arenaId, "Create or select a fighter first.", "error");
       return;
     }
     const selectedAgent = myAgents.find((agent) => agent.agentId === selectedAgentId);
     if (!selectedAgent) {
       setTxLabel("Selected fighter is not loaded yet");
+      showArenaNotice(arena.arenaId, "Selected fighter is still loading. Try again in a second.", "info");
       queueRefresh([0, 1500]);
       return;
     }
     if (!selectedAgent.isActive) {
       setTxLabel(`Activate fighter #${selectedAgent.agentId} before joining`);
+      showArenaNotice(arena.arenaId, `Activate fighter #${selectedAgent.agentId.toString()} before joining.`, "error");
       return;
     }
     if (arena.state !== 1) {
       setTxLabel(`Arena #${arena.arenaId} is no longer open`);
+      showArenaNotice(arena.arenaId, `Arena #${arena.arenaId.toString()} is no longer open.`, "error");
       queueRefresh([0, 1500]);
       return;
     }
     if (BigInt(now) > arena.registrationEnd) {
       setTxLabel(`Arena #${arena.arenaId} registration already closed`);
+      showArenaNotice(arena.arenaId, `Arena #${arena.arenaId.toString()} registration already closed.`, "error");
       queueRefresh([0, 1500]);
       return;
     }
     setSelectedArenaId(arena.arenaId);
     setTxLabel(`Joining arena #${arena.arenaId}`);
+    showArenaNotice(arena.arenaId, "Open the wallet confirmation to join this arena.", "info");
     resetWrite();
     writeContract({
       address: RUSH_ARENAS_CONTRACTS.arenaManager,
@@ -584,8 +683,16 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       functionName: "joinArena",
       args: [arena.arenaId, selectedAgentId, []],
       value: arena.entryFee,
+    }, {
+      onError(error) {
+        setTxLabel(`Join arena #${arena.arenaId} failed`);
+        showArenaNotice(arena.arenaId, friendlyError(error), "error");
+      },
+      onSuccess() {
+        showArenaNotice(arena.arenaId, "Join submitted. Waiting for Base confirmation.", "info");
+        queueRefresh([0, 1500, 4500, 9000, 15000]);
+      },
     });
-    queueRefresh([1500, 4500, 9000]);
   }
 
   function lockArena(arenaId: bigint) {
@@ -717,7 +824,9 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
               setSelectedAgentId={setSelectedAgentId}
               createAgent={createAgent}
               creationFee={creationFee}
+              maxAgentsPerWallet={maxAgentsPerWallet}
               txBusy={txBusy}
+              fighterNotice={fighterNotice}
               arenaForm={arenaForm}
               setArenaForm={setArenaForm}
               createArena={createArena}
@@ -726,6 +835,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
               isLoadingArenas={isLoadingArenas}
               now={now}
               txLabel={txLabel}
+              arenaNotice={arenaNotice}
               onJoin={joinArena}
               onLock={lockArena}
               onAutoCancel={autoCancel}
@@ -744,6 +854,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
               createAgent={createAgent}
               toggleAgent={toggleAgent}
               txBusy={txBusy}
+              fighterNotice={fighterNotice}
             />
           )}
 
@@ -843,9 +954,10 @@ function ArenaStatusPanel({ isLoading, isConnected, totalArenas, totalAgents, cr
   );
 }
 
-function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelectedAgentId, createAgent, creationFee, txBusy, txLabel, arenaForm, setArenaForm, createArena, arenas, openArenas, isLoadingArenas, now, onJoin, onLock, onAutoCancel, setSelectedArenaId }: { address?: `0x${string}`; isConnected: boolean; myAgents: RushAgent[]; selectedAgentId?: bigint; setSelectedAgentId: (id: bigint | undefined) => void; createAgent: () => void; creationFee: bigint; txBusy: boolean; txLabel: string | null; arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; arenas: ArenaSummary[]; openArenas: ArenaSummary[]; isLoadingArenas: boolean; now: number; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; setSelectedArenaId: (arenaId: bigint) => void }) {
+function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelectedAgentId, createAgent, creationFee, maxAgentsPerWallet, txBusy, txLabel, fighterNotice, arenaNotice, arenaForm, setArenaForm, createArena, arenas, openArenas, isLoadingArenas, now, onJoin, onLock, onAutoCancel, setSelectedArenaId }: { address?: `0x${string}`; isConnected: boolean; myAgents: RushAgent[]; selectedAgentId?: bigint; setSelectedAgentId: (id: bigint | undefined) => void; createAgent: () => void; creationFee: bigint; maxAgentsPerWallet?: bigint; txBusy: boolean; txLabel: string | null; fighterNotice: ActionNotice | null; arenaNotice: ArenaNotice | null; arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; arenas: ArenaSummary[]; openArenas: ArenaSummary[]; isLoadingArenas: boolean; now: number; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; setSelectedArenaId: (arenaId: bigint) => void }) {
   const activeAgents = myAgents.filter((agent) => agent.isActive);
   const selectedAgent = myAgents.find((agent) => agent.agentId === selectedAgentId);
+  const createDisabledReason = getCreateAgentDisabledReason({ isConnected, myAgents, maxAgentsPerWallet });
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(380px,1.08fr)]">
@@ -864,10 +976,11 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
                 {myAgents.length === 0 ? (
                   <div className="rounded-lg border border-[#00aaff]/25 bg-[#00aaff]/10 p-4">
                     <p className="text-sm leading-6 text-[#b9ecff]">This wallet has no fighter yet. Create one first, then enter an arena.</p>
-                    <button onClick={createAgent} disabled={txBusy} className="mt-4 inline-flex items-center gap-2 rounded-md border border-[#00aaff]/40 bg-[#00aaff]/15 px-4 py-2 text-sm font-black text-[#9be8ff] disabled:opacity-50">
+                    <button onClick={createAgent} disabled={txBusy || Boolean(createDisabledReason)} className="mt-4 inline-flex items-center gap-2 rounded-md border border-[#00aaff]/40 bg-[#00aaff]/15 px-4 py-2 text-sm font-black text-[#9be8ff] disabled:cursor-not-allowed disabled:opacity-50">
                       {txBusy ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
-                      Create fighter {creationFee === BI_ZERO ? "free" : `(${formatEthValue(creationFee)})`}
+                      {createDisabledReason ?? `Create fighter ${creationFee === BI_ZERO ? "free" : `(${formatEthValue(creationFee)})`}`}
                     </button>
+                    <ActionNoticeBox notice={fighterNotice} className="mt-3" />
                   </div>
                 ) : (
                   <div className="grid gap-2">
@@ -883,6 +996,7 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
                       <MiniFact label="Active fighters" value={`${activeAgents.length}/${myAgents.length}`} />
                       <MiniFact label="Selected" value={selectedAgent ? `#${selectedAgent.agentId}` : "None"} />
                     </div>
+                    <ActionNoticeBox notice={fighterNotice} />
                   </div>
                 )}
               </div>
@@ -898,7 +1012,21 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
         {isLoadingArenas ? <LoadingBox label="Loading arenas from Base" /> : arenas.length === 0 ? <EmptyBox title="No arenas yet" body="Create the first Rush Royale arena from the lobby panel." /> : (
           <div className="grid gap-3">
             {arenas.map((row) => (
-              <ArenaCard key={row.arena.arenaId.toString()} row={row} now={now} selectedAgentId={selectedAgentId} txBusy={txBusy} txLabel={txLabel} onJoin={onJoin} onLock={onLock} onAutoCancel={onAutoCancel} onSelect={setSelectedArenaId} />
+              <ArenaCard
+                key={row.arena.arenaId.toString()}
+                row={row}
+                now={now}
+                isConnected={isConnected}
+                selectedAgentId={selectedAgentId}
+                selectedAgent={selectedAgent}
+                txBusy={txBusy}
+                txLabel={txLabel}
+                arenaNotice={arenaNotice}
+                onJoin={onJoin}
+                onLock={onLock}
+                onAutoCancel={onAutoCancel}
+                onSelect={setSelectedArenaId}
+              />
             ))}
           </div>
         )}
@@ -1087,7 +1215,9 @@ function CreateArenaConsole({ arenaForm, setArenaForm, createArena, txBusy }: { 
   );
 }
 
-function FleetPanel({ isConnected, isLoading, myAgents, creationFee, maxAgentsPerWallet, maxAgentsPerArena, createAgent, toggleAgent, txBusy }: { isConnected: boolean; isLoading: boolean; myAgents: RushAgent[]; creationFee: bigint; maxAgentsPerWallet?: bigint; maxAgentsPerArena?: bigint; createAgent: () => void; toggleAgent: (agent: RushAgent) => void; txBusy: boolean }) {
+function FleetPanel({ isConnected, isLoading, myAgents, creationFee, maxAgentsPerWallet, maxAgentsPerArena, createAgent, toggleAgent, txBusy, fighterNotice }: { isConnected: boolean; isLoading: boolean; myAgents: RushAgent[]; creationFee: bigint; maxAgentsPerWallet?: bigint; maxAgentsPerArena?: bigint; createAgent: () => void; toggleAgent: (agent: RushAgent) => void; txBusy: boolean; fighterNotice: ActionNotice | null }) {
+  const createDisabledReason = getCreateAgentDisabledReason({ isConnected, myAgents, maxAgentsPerWallet });
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(420px,1.2fr)]">
       <div className="space-y-4">
@@ -1106,10 +1236,11 @@ function FleetPanel({ isConnected, isLoading, myAgents, creationFee, maxAgentsPe
                 <MiniFact label="Max per arena" value={formatCount(maxAgentsPerArena, false)} />
                 <MiniFact label="Create cost" value={creationFee === BI_ZERO ? "Free" : formatEthValue(creationFee)} />
               </div>
-              <button onClick={createAgent} disabled={txBusy || (maxAgentsPerWallet !== undefined && BigInt(myAgents.length) >= maxAgentsPerWallet)} className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#00aaff]/40 bg-[#00aaff]/14 px-4 py-3 text-sm font-black text-[#9be8ff] transition-colors hover:bg-[#00aaff]/20 disabled:opacity-50">
+              <button onClick={createAgent} disabled={txBusy || Boolean(createDisabledReason)} className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#00aaff]/40 bg-[#00aaff]/14 px-4 py-3 text-sm font-black text-[#9be8ff] transition-colors hover:bg-[#00aaff]/20 disabled:cursor-not-allowed disabled:opacity-50">
                 {txBusy ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
-                Create Rush fighter
+                {txBusy ? "Creating fighter..." : createDisabledReason ?? "Create Rush fighter"}
               </button>
+              <ActionNoticeBox notice={fighterNotice} />
             </div>
           )}
         </Panel>
@@ -1257,12 +1388,20 @@ function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, se
   );
 }
 
-function ArenaCard({ row, now, selectedAgentId, txBusy, txLabel, onJoin, onLock, onAutoCancel, onSelect }: { row: ArenaSummary; now: number; selectedAgentId?: bigint; txBusy: boolean; txLabel: string | null; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; onSelect: (arenaId: bigint) => void }) {
+function ArenaCard({ row, now, isConnected, selectedAgentId, selectedAgent, txBusy, txLabel, arenaNotice, onJoin, onLock, onAutoCancel, onSelect }: { row: ArenaSummary; now: number; isConnected: boolean; selectedAgentId?: bigint; selectedAgent?: RushAgent; txBusy: boolean; txLabel: string | null; arenaNotice: ArenaNotice | null; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; onSelect: (arenaId: bigint) => void }) {
   const { arena, participantCount } = row;
   const registrationEnded = BigInt(now) > arena.registrationEnd;
   const full = participantCount >= arena.maxPlayers;
   const isJoiningThisArena = txBusy && txLabel === `Joining arena #${arena.arenaId}`;
-  const canJoin = arena.state === 1 && !registrationEnded && !full && Boolean(selectedAgentId);
+  const joinDisabledReason = getJoinDisabledReason({
+    arena,
+    registrationEnded,
+    full,
+    isConnected,
+    selectedAgentId,
+    selectedAgent,
+  });
+  const canJoin = arena.state === 1 && !joinDisabledReason;
   const canLock = arena.state === 1 && participantCount >= arena.minPlayers && (registrationEnded || full);
   const expiredNoPlayers = arena.state === 1 && registrationEnded && participantCount < arena.minPlayers && BigInt(now) > arena.registrationEnd + AUTO_CANCEL_GRACE_SECONDS;
   const visual = stateVisuals[arena.state] ?? stateVisuals[0];
@@ -1273,6 +1412,13 @@ function ArenaCard({ row, now, selectedAgentId, txBusy, txLabel, onJoin, onLock,
   const spotsLeft = Math.max(0, maxPlayers - participantNumber);
   const avatarCount = Math.min(participantNumber, 7);
   const displayPrize = arena.prizePool > BI_ZERO ? arena.prizePool : arena.entryFee * BigInt(participantNumber);
+  const activeNotice = arenaNotice?.arenaId === arena.arenaId ? arenaNotice : null;
+  const noticeStyle = activeNotice ? noticeToneStyles[activeNotice.tone] : undefined;
+  const joinButtonLabel = isJoiningThisArena
+    ? "Joining..."
+    : txBusy
+      ? "Transaction pending"
+      : joinDisabledReason ?? `Join Battle · ${spotsLeft} ${spotsLeft === 1 ? "Spot" : "Spots"} Left`;
 
   return (
     <div className={`group relative overflow-hidden rounded-2xl border-2 ${visual.border} ${visual.glow} bg-gradient-to-br ${visual.gradient} transition-all duration-500 hover:-translate-y-1 hover:scale-[1.01]`}>
@@ -1361,15 +1507,19 @@ function ArenaCard({ row, now, selectedAgentId, txBusy, txLabel, onJoin, onLock,
       )}
 
       <div className="px-5 pb-5">
-        {canJoin && (
-          <button type="button" onClick={() => onJoin(arena)} disabled={txBusy} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all group-hover:from-emerald-500 group-hover:to-cyan-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:cursor-not-allowed disabled:opacity-60">
+        {arena.state === 1 && (
+          <button type="button" onClick={() => onJoin(arena)} disabled={txBusy || !canJoin} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all group-hover:from-emerald-500 group-hover:to-cyan-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:cursor-not-allowed disabled:from-zinc-800 disabled:to-zinc-800 disabled:text-zinc-400 disabled:opacity-80">
             <span className="flex items-center justify-center gap-2">
               {isJoiningThisArena ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              {isJoiningThisArena ? "Joining..." : `Join Battle · ${spotsLeft} ${spotsLeft === 1 ? "Spot" : "Spots"} Left`}
+              {joinButtonLabel}
             </span>
           </button>
         )}
-        {arena.state === 1 && !selectedAgentId && <div className="rounded-xl border border-zinc-700/50 bg-black/40 py-3 text-center text-sm font-bold text-zinc-400">Select or create a fighter to join.</div>}
+        {activeNotice && noticeStyle && (
+          <div className="mt-3 rounded-xl border px-3 py-2 text-center text-xs font-bold" style={{ borderColor: noticeStyle.border, background: noticeStyle.bg, color: noticeStyle.color }}>
+            {activeNotice.message}
+          </div>
+        )}
         {canLock && <button onClick={() => onLock(arena.arenaId)} className="w-full rounded-xl bg-gradient-to-r from-red-600 to-orange-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Lock className="h-4 w-4" />Lock Arena</span></button>}
         {expiredNoPlayers && <button onClick={() => onAutoCancel(arena.arenaId)} className="w-full rounded-xl border border-orange-500/30 bg-orange-500/10 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-orange-300"><span className="flex items-center justify-center gap-2"><ShieldCheck className="h-4 w-4" />Cancel Expired</span></button>}
         {arena.state === 3 && <div className="w-full rounded-xl bg-gradient-to-r from-orange-600 to-red-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white"><span className="flex items-center justify-center gap-2"><Swords className="h-4 w-4 animate-pulse" />Watch Live Battle</span></div>}
@@ -1377,6 +1527,25 @@ function ArenaCard({ row, now, selectedAgentId, txBusy, txLabel, onJoin, onLock,
       </div>
     </div>
   );
+}
+
+function getJoinDisabledReason({ arena, registrationEnded, full, isConnected, selectedAgentId, selectedAgent }: { arena: RushArena; registrationEnded: boolean; full: boolean; isConnected: boolean; selectedAgentId?: bigint; selectedAgent?: RushAgent }) {
+  if (arena.state !== 1) return "Arena is not open";
+  if (!isConnected) return "Connect wallet first";
+  if (selectedAgentId === undefined) return "Select or create a fighter";
+  if (!selectedAgent) return "Loading selected fighter";
+  if (!selectedAgent.isActive) return `Activate fighter #${selectedAgent.agentId.toString()}`;
+  if (registrationEnded) return "Registration closed";
+  if (full) return "Arena full";
+  return null;
+}
+
+function getCreateAgentDisabledReason({ isConnected, myAgents, maxAgentsPerWallet }: { isConnected: boolean; myAgents: RushAgent[]; maxAgentsPerWallet?: bigint }) {
+  if (!isConnected) return "Connect wallet first";
+  if (maxAgentsPerWallet !== undefined && BigInt(myAgents.length) >= maxAgentsPerWallet) {
+    return `Fleet limit reached (${myAgents.length}/${maxAgentsPerWallet.toString()})`;
+  }
+  return null;
 }
 
 function FighterCard({ agent, toggleAgent, txBusy }: { agent: RushAgent; toggleAgent: (agent: RushAgent) => void; txBusy: boolean }) {
@@ -1478,6 +1647,16 @@ function StateBadge({ state }: { state: ArenaState }) {
 
 function MiniFact({ label, value }: { label: string; value?: string }) {
   return <div className="rounded-md border border-neutral-900 bg-black/35 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-600" style={{ fontFamily: "monospace" }}>{label}</div><div className="mt-1 break-words text-sm font-bold text-neutral-200">{value ?? "-"}</div></div>;
+}
+
+function ActionNoticeBox({ notice, className = "" }: { notice: ActionNotice | null; className?: string }) {
+  if (!notice) return null;
+  const style = noticeToneStyles[notice.tone];
+  return (
+    <div className={`rounded-lg border px-3 py-2 text-xs font-bold ${className}`} style={{ borderColor: style.border, background: style.bg, color: style.color }}>
+      {notice.message}
+    </div>
+  );
 }
 
 function ActionButton({ children, onClick, disabled, icon: Icon }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; icon: typeof Swords }) {
@@ -1669,15 +1848,26 @@ function pseudoScore(seed: bigint, agentId: bigint, rounds: number) {
 function friendlyError(error: Error) {
   const text = error.message || String(error);
   if (text.includes("User rejected") || text.includes("User denied")) return "Transaction rejected in wallet.";
+  if (text.toLowerCase().includes("insufficient funds")) return "Wallet does not have enough ETH for this transaction and gas.";
+  if (text.includes("CreationCooldownActive")) return "Creation cooldown is active. Wait before creating another fighter.";
+  if (text.includes("InsufficientCreationFee")) return "Creation fee was not enough.";
+  if (text.includes("MaxAgentsPerWalletReached")) return "This wallet reached the fighter limit.";
+  if (text.includes("AgentAlreadyActive")) return "That fighter is already active.";
+  if (text.includes("AgentAlreadyInactive")) return "That fighter is already parked.";
+  if (text.includes("AgentDoesNotExist")) return "That fighter does not exist.";
+  if (text.includes("AgentNotActive")) return "Selected fighter is not active.";
   if (text.includes("ArenaNotOpen")) return "Arena is not open.";
+  if (text.includes("ArenaClosed")) return "Arena is closed.";
+  if (text.includes("ArenaFull")) return "Arena is full.";
   if (text.includes("RegistrationEnded")) return "Registration already ended.";
   if (text.includes("InsufficientEntryFee")) return "Entry fee was not enough.";
   if (text.includes("NotAgentOwner")) return "Selected fighter is not owned by this wallet.";
   if (text.includes("AgentAlreadyJoined")) return "This fighter already joined that arena.";
-  if (text.includes("CreationCooldownActive")) return "Creation cooldown is active for this wallet.";
-  if (text.includes("MaxAgentsPerWalletReached")) return "This wallet reached the fighter limit.";
   if (text.includes("RegistrationNotEnded")) return "Registration has not ended yet.";
   if (text.includes("MinPlayersNotReached")) return "Minimum players not reached yet.";
+  if (text.includes("MaxAgentsPerArenaReached")) return "This wallet reached the per-arena fighter limit.";
+  if (text.includes("RefundAlreadyClaimed")) return "Refund already claimed.";
   if (text.includes("UnauthorizedCaller")) return "Wallet is not authorized for that operator action.";
+  if (text.includes("createAgent") && text.includes("reverted")) return "Could not create fighter. This wallet may be on cooldown, at fighter limit, or missing the creation fee.";
   return text.split("\n")[0].slice(0, 260);
 }
