@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -8,6 +8,7 @@ import {
   useReadContract,
   useReadContracts,
   useWaitForTransactionReceipt,
+  useWatchContractEvent,
   useWriteContract,
 } from "wagmi";
 import { formatEther, parseEther } from "viem";
@@ -245,6 +246,8 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   const [selectedArenaId, setSelectedArenaId] = useState<bigint | undefined>();
   const [selectedAgentId, setSelectedAgentId] = useState<bigint | undefined>();
   const [txLabel, setTxLabel] = useState<string | null>(null);
+  const [liveArenaIds, setLiveArenaIds] = useState<bigint[]>([]);
+  const refreshTimersRef = useRef<number[]>([]);
   const [arenaForm, setArenaForm] = useState({
     tier: 0 as ArenaTier,
     entryFee: "0.001",
@@ -273,7 +276,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       { address: RUSH_ARENAS_CONTRACTS.arenaManager, abi: ARENA_MANAGER_ABI, functionName: "maxAgentsPerArenaPerWallet" },
       { address: RUSH_ARENAS_CONTRACTS.battleEngine, abi: BATTLE_ENGINE_ABI, functionName: "commitRevealEnabled" },
     ],
-    query: { refetchInterval: 20_000 },
+    query: { refetchInterval: 5_000 },
   });
 
   const baseResults = baseReads as ReadResult[] | undefined;
@@ -293,7 +296,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
     abi: AGENT_REGISTRY_ABI,
     functionName: "getAgentsByOwner",
     args: address ? [address] : undefined,
-    query: { enabled: isConnected && !!address, refetchInterval: 20_000 },
+    query: { enabled: isConnected && !!address, refetchInterval: 5_000 },
   });
 
   const myAgentIds = useMemo(() => (Array.isArray(myAgentIdsRaw) ? (myAgentIdsRaw as bigint[]) : []), [myAgentIdsRaw]);
@@ -305,7 +308,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       functionName: "getAgent",
       args: [agentId],
     })),
-    query: { enabled: myAgentIds.length > 0, refetchInterval: 20_000 },
+    query: { enabled: myAgentIds.length > 0, refetchInterval: 5_000 },
   });
 
   const myAgents = useMemo(() => {
@@ -325,8 +328,12 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   const recentArenaIds = useMemo(() => {
     const total = totalArenas ? Number(totalArenas) : 0;
     const count = Math.min(total, RECENT_ARENA_LIMIT);
-    return Array.from({ length: count }, (_, index) => BigInt(total - index));
-  }, [totalArenas]);
+    const fromTotal = Array.from({ length: count }, (_, index) => BigInt(total - index));
+    return Array.from(new Set([...liveArenaIds, ...fromTotal].map((arenaId) => arenaId.toString())))
+      .map((arenaId) => BigInt(arenaId))
+      .sort((a, b) => Number(b - a))
+      .slice(0, RECENT_ARENA_LIMIT);
+  }, [liveArenaIds, totalArenas]);
 
   const { data: arenaReads, isLoading: isLoadingArenas, refetch: refetchArenaReads } = useReadContracts({
     contracts: recentArenaIds.flatMap((arenaId) => [
@@ -334,7 +341,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       { address: RUSH_ARENAS_CONTRACTS.arenaManager, abi: ARENA_MANAGER_ABI, functionName: "getParticipantCount", args: [arenaId] },
       { address: RUSH_ARENAS_CONTRACTS.battleEngine, abi: BATTLE_ENGINE_ABI, functionName: "getBattleResult", args: [arenaId] },
     ]),
-    query: { enabled: recentArenaIds.length > 0, refetchInterval: 15_000 },
+    query: { enabled: recentArenaIds.length > 0, refetchInterval: 5_000 },
   });
 
   const arenaSummaries = useMemo(() => {
@@ -379,7 +386,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
           { address: RUSH_ARENAS_CONTRACTS.arenaManager, abi: ARENA_MANAGER_ABI, functionName: "isLockTimedOut", args: [effectiveSelectedArenaId] },
         ]
       : [],
-    query: { enabled: Boolean(effectiveSelectedArenaId), refetchInterval: 10_000 },
+    query: { enabled: Boolean(effectiveSelectedArenaId), refetchInterval: 5_000 },
   });
 
   const selectedResults = selectedReads as ReadResult[] | undefined;
@@ -404,25 +411,103 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
   const { data: txHash, writeContract, isPending: isWritePending, error: writeError, reset: resetWrite } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: txSuccess, error: receiptError } = useWaitForTransactionReceipt({ hash: txHash });
 
-  useEffect(() => {
-    if (!txSuccess) return;
+  const addLiveArenaId = useCallback((arenaId: bigint) => {
+    setLiveArenaIds((current) => {
+      if (current.some((id) => id === arenaId)) return current;
+      return [arenaId, ...current].sort((a, b) => Number(b - a)).slice(0, RECENT_ARENA_LIMIT);
+    });
+  }, []);
+
+  const refreshAll = useCallback(() => {
     void refetchBaseReads();
     void refetchMyAgentIds();
     void refetchMyAgentReads();
     void refetchArenaReads();
     void refetchSelectedReads();
-  }, [refetchArenaReads, refetchBaseReads, refetchMyAgentIds, refetchMyAgentReads, refetchSelectedReads, txSuccess]);
+  }, [refetchArenaReads, refetchBaseReads, refetchMyAgentIds, refetchMyAgentReads, refetchSelectedReads]);
+
+  const queueRefresh = useCallback((delays = [0, 1200, 4000, 9000]) => {
+    if (typeof window === "undefined") return;
+    delays.forEach((delay) => {
+      const id = window.setTimeout(refreshAll, delay);
+      refreshTimersRef.current.push(id);
+    });
+  }, [refreshAll]);
+
+  useEffect(() => {
+    return () => {
+      refreshTimersRef.current.forEach((id) => window.clearTimeout(id));
+      refreshTimersRef.current = [];
+    };
+  }, []);
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "ArenaCreated",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const args = log.args as { arenaId?: bigint; creator?: `0x${string}` };
+        if (!args.arenaId) return;
+        addLiveArenaId(args.arenaId);
+        if (address && args.creator?.toLowerCase() === address.toLowerCase()) {
+          setSelectedArenaId(args.arenaId);
+        }
+      });
+      queueRefresh();
+    },
+  });
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "AgentJoinedArena",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const args = log.args as { arenaId?: bigint };
+        if (args.arenaId) addLiveArenaId(args.arenaId);
+      });
+      queueRefresh();
+    },
+  });
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "ArenaStarted",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const args = log.args as { arenaId?: bigint };
+        if (args.arenaId) addLiveArenaId(args.arenaId);
+      });
+      queueRefresh();
+    },
+  });
+
+  useWatchContractEvent({
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    abi: ARENA_MANAGER_ABI,
+    eventName: "ArenaFinished",
+    pollingInterval: 3_000,
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const args = log.args as { arenaId?: bigint };
+        if (args.arenaId) addLiveArenaId(args.arenaId);
+      });
+      queueRefresh();
+    },
+  });
+
+  useEffect(() => {
+    if (!txSuccess) return;
+    queueRefresh();
+  }, [queueRefresh, txSuccess]);
 
   const txError = writeError || receiptError;
   const txBusy = isWritePending || isConfirming;
-
-  function refreshAll() {
-    void refetchBaseReads();
-    void refetchMyAgentIds();
-    void refetchMyAgentReads();
-    void refetchArenaReads();
-    void refetchSelectedReads();
-  }
 
   function createAgent() {
     setTxLabel("Creating fighter");
@@ -458,11 +543,36 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       functionName: "createArena",
       args: [arenaForm.tier, entryFee, minPlayers, maxPlayers, duration],
     });
+    queueRefresh([1500, 4500, 9000]);
   }
 
   function joinArena(arena: RushArena) {
+    if (!isConnected) {
+      setTxLabel("Connect wallet first");
+      return;
+    }
     if (!selectedAgentId) {
       setTxLabel("Create or select a fighter first");
+      return;
+    }
+    const selectedAgent = myAgents.find((agent) => agent.agentId === selectedAgentId);
+    if (!selectedAgent) {
+      setTxLabel("Selected fighter is not loaded yet");
+      queueRefresh([0, 1500]);
+      return;
+    }
+    if (!selectedAgent.isActive) {
+      setTxLabel(`Activate fighter #${selectedAgent.agentId} before joining`);
+      return;
+    }
+    if (arena.state !== 1) {
+      setTxLabel(`Arena #${arena.arenaId} is no longer open`);
+      queueRefresh([0, 1500]);
+      return;
+    }
+    if (BigInt(now) > arena.registrationEnd) {
+      setTxLabel(`Arena #${arena.arenaId} registration already closed`);
+      queueRefresh([0, 1500]);
       return;
     }
     setSelectedArenaId(arena.arenaId);
@@ -475,6 +585,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
       args: [arena.arenaId, selectedAgentId, []],
       value: arena.entryFee,
     });
+    queueRefresh([1500, 4500, 9000]);
   }
 
   function lockArena(arenaId: bigint) {
@@ -614,6 +725,7 @@ export default function RushArenasPlayPage({ section = "join" }: { section?: Are
               openArenas={openArenas}
               isLoadingArenas={isLoadingArenas}
               now={now}
+              txLabel={txLabel}
               onJoin={joinArena}
               onLock={lockArena}
               onAutoCancel={autoCancel}
@@ -731,7 +843,7 @@ function ArenaStatusPanel({ isLoading, isConnected, totalArenas, totalAgents, cr
   );
 }
 
-function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelectedAgentId, createAgent, creationFee, txBusy, arenaForm, setArenaForm, createArena, arenas, openArenas, isLoadingArenas, now, onJoin, onLock, onAutoCancel, setSelectedArenaId }: { address?: `0x${string}`; isConnected: boolean; myAgents: RushAgent[]; selectedAgentId?: bigint; setSelectedAgentId: (id: bigint | undefined) => void; createAgent: () => void; creationFee: bigint; txBusy: boolean; arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; arenas: ArenaSummary[]; openArenas: ArenaSummary[]; isLoadingArenas: boolean; now: number; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; setSelectedArenaId: (arenaId: bigint) => void }) {
+function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelectedAgentId, createAgent, creationFee, txBusy, txLabel, arenaForm, setArenaForm, createArena, arenas, openArenas, isLoadingArenas, now, onJoin, onLock, onAutoCancel, setSelectedArenaId }: { address?: `0x${string}`; isConnected: boolean; myAgents: RushAgent[]; selectedAgentId?: bigint; setSelectedAgentId: (id: bigint | undefined) => void; createAgent: () => void; creationFee: bigint; txBusy: boolean; txLabel: string | null; arenaForm: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }; setArenaForm: (form: { tier: ArenaTier; entryFee: string; minPlayers: string; maxPlayers: string; durationMinutes: string }) => void; createArena: () => void; arenas: ArenaSummary[]; openArenas: ArenaSummary[]; isLoadingArenas: boolean; now: number; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; setSelectedArenaId: (arenaId: bigint) => void }) {
   const activeAgents = myAgents.filter((agent) => agent.isActive);
   const selectedAgent = myAgents.find((agent) => agent.agentId === selectedAgentId);
 
@@ -786,7 +898,7 @@ function JoinPanel({ address, isConnected, myAgents, selectedAgentId, setSelecte
         {isLoadingArenas ? <LoadingBox label="Loading arenas from Base" /> : arenas.length === 0 ? <EmptyBox title="No arenas yet" body="Create the first Rush Royale arena from the lobby panel." /> : (
           <div className="grid gap-3">
             {arenas.map((row) => (
-              <ArenaCard key={row.arena.arenaId.toString()} row={row} now={now} selectedAgentId={selectedAgentId} onJoin={onJoin} onLock={onLock} onAutoCancel={onAutoCancel} onSelect={setSelectedArenaId} />
+              <ArenaCard key={row.arena.arenaId.toString()} row={row} now={now} selectedAgentId={selectedAgentId} txBusy={txBusy} txLabel={txLabel} onJoin={onJoin} onLock={onLock} onAutoCancel={onAutoCancel} onSelect={setSelectedArenaId} />
             ))}
           </div>
         )}
@@ -1145,10 +1257,11 @@ function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, se
   );
 }
 
-function ArenaCard({ row, now, selectedAgentId, onJoin, onLock, onAutoCancel, onSelect }: { row: ArenaSummary; now: number; selectedAgentId?: bigint; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; onSelect: (arenaId: bigint) => void }) {
+function ArenaCard({ row, now, selectedAgentId, txBusy, txLabel, onJoin, onLock, onAutoCancel, onSelect }: { row: ArenaSummary; now: number; selectedAgentId?: bigint; txBusy: boolean; txLabel: string | null; onJoin: (arena: RushArena) => void; onLock: (arenaId: bigint) => void; onAutoCancel: (arenaId: bigint) => void; onSelect: (arenaId: bigint) => void }) {
   const { arena, participantCount } = row;
   const registrationEnded = BigInt(now) > arena.registrationEnd;
   const full = participantCount >= arena.maxPlayers;
+  const isJoiningThisArena = txBusy && txLabel === `Joining arena #${arena.arenaId}`;
   const canJoin = arena.state === 1 && !registrationEnded && !full && Boolean(selectedAgentId);
   const canLock = arena.state === 1 && participantCount >= arena.minPlayers && (registrationEnded || full);
   const expiredNoPlayers = arena.state === 1 && registrationEnded && participantCount < arena.minPlayers && BigInt(now) > arena.registrationEnd + AUTO_CANCEL_GRACE_SECONDS;
@@ -1249,8 +1362,11 @@ function ArenaCard({ row, now, selectedAgentId, onJoin, onLock, onAutoCancel, on
 
       <div className="px-5 pb-5">
         {canJoin && (
-          <button onClick={() => onJoin(arena)} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all group-hover:from-emerald-500 group-hover:to-cyan-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-            <span className="flex items-center justify-center gap-2"><Zap className="h-4 w-4" />Join Battle · {spotsLeft} {spotsLeft === 1 ? "Spot" : "Spots"} Left</span>
+          <button type="button" onClick={() => onJoin(arena)} disabled={txBusy} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-white transition-all group-hover:from-emerald-500 group-hover:to-cyan-500 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:cursor-not-allowed disabled:opacity-60">
+            <span className="flex items-center justify-center gap-2">
+              {isJoiningThisArena ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+              {isJoiningThisArena ? "Joining..." : `Join Battle · ${spotsLeft} ${spotsLeft === 1 ? "Spot" : "Spots"} Left`}
+            </span>
           </button>
         )}
         {arena.state === 1 && !selectedAgentId && <div className="rounded-xl border border-zinc-700/50 bg-black/40 py-3 text-center text-sm font-bold text-zinc-400">Select or create a fighter to join.</div>}
