@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ArenasPage() {
-  return <RushArenasPage />;
+  return <RushArenasPage section="join" />;
 }

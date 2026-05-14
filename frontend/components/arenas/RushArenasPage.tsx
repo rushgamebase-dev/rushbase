@@ -33,6 +33,8 @@ type ReadResult = {
   result?: unknown;
 };
 
+type ArenaSection = "join" | "fleet" | "watch" | "ledger";
+
 function readBigInt(result: ReadResult | undefined) {
   return result?.status === "success" && typeof result.result === "bigint"
     ? result.result
@@ -72,6 +74,7 @@ function shortAddress(address: `0x${string}` | undefined) {
 
 const launchActions = [
   {
+    section: "join",
     title: "Join Arenas",
     subtitle: "Open battles, entry fees, prize pools",
     href: "/arenas",
@@ -79,6 +82,7 @@ const launchActions = [
     accent: "#00ff88",
   },
   {
+    section: "fleet",
     title: "Command Fleet",
     subtitle: "Create or tune autonomous fighters",
     href: "/arenas/fleet",
@@ -86,6 +90,7 @@ const launchActions = [
     accent: "#00aaff",
   },
   {
+    section: "watch",
     title: "Watch Live",
     subtitle: "Spectate deterministic replays",
     href: "/arenas/watch",
@@ -93,13 +98,65 @@ const launchActions = [
     accent: "#ffd700",
   },
   {
+    section: "ledger",
     title: "Proof Ledger",
     subtitle: "Audit arena results and payouts",
     href: "/arenas/ledger",
     icon: ShieldCheck,
     accent: "#ff6666",
   },
-];
+] satisfies Array<{
+  section: ArenaSection;
+  title: string;
+  subtitle: string;
+  href: string;
+  icon: typeof Swords;
+  accent: string;
+}>;
+
+const sectionPanels: Record<
+  ArenaSection,
+  {
+    eyebrow: string;
+    title: string;
+    body: string;
+    bullets: string[];
+    accent: string;
+  }
+> = {
+  join: {
+    eyebrow: "arena lobby",
+    title: "Join ETH battles from the Rush arena lobby.",
+    body:
+      "This is the main entry point for open arenas, entry fees, and prize pools. Players pick an arena, sign the entry transaction, then the engine resolves the battle on Base.",
+    bullets: ["Open arenas", "ETH entry fees", "VRF-seeded runs", "Base payouts"],
+    accent: "#00ff88",
+  },
+  fleet: {
+    eyebrow: "command fleet",
+    title: "Create and manage Rush fighters.",
+    body:
+      "Fleet is the fighter-control surface: register identities, tune arena-ready profiles, and track which autonomous fighters are ready to enter paid battles.",
+    bullets: ["Fighter registry", "Creation fee", "Profile tuning", "Ready status"],
+    accent: "#00aaff",
+  },
+  watch: {
+    eyebrow: "watch live",
+    title: "Spectate deterministic battle replays.",
+    body:
+      "Watch is the replay lane for live and recent arenas. The seed is locked before simulation, then the same deterministic run can be replayed for spectators and audits.",
+    bullets: ["Live replays", "Locked seed", "Result trace", "No hidden rolls"],
+    accent: "#ffd700",
+  },
+  ledger: {
+    eyebrow: "proof ledger",
+    title: "Audit contracts, results, and payouts.",
+    body:
+      "Ledger is the proof surface for Rush Royale: registry, arena manager, battle engine, treasury, and payout trail all stay visible from one route.",
+    bullets: ["Mainnet addresses", "Prize accounting", "Fee path", "Basescan links"],
+    accent: "#ff6666",
+  },
+};
 
 const mechanicSteps = [
   "Create a fighter identity on Base",
@@ -109,8 +166,13 @@ const mechanicSteps = [
   "Winner receives the pool minus protocol fee",
 ];
 
-export default function RushArenasPage() {
+export default function RushArenasPage({
+  section = "join",
+}: {
+  section?: ArenaSection;
+}) {
   const { isConnected } = useAccount();
+  const activePanel = sectionPanels[section];
 
   const { data, isLoading, isError, refetch } = useReadContracts({
     contracts: [
@@ -251,15 +313,18 @@ export default function RushArenasPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {launchActions.map((action) => {
                   const Icon = action.icon;
+                  const active = action.section === section;
                   return (
                     <Link
                       key={action.title}
                       href={action.href}
                       className="group flex min-h-[92px] items-center justify-between rounded-lg border p-4 transition-transform hover:-translate-y-0.5"
                       style={{
-                        borderColor: "#1c1c1c",
-                        background: "#101010",
+                        borderColor: active ? `${action.accent}66` : "#1c1c1c",
+                        background: active ? `${action.accent}12` : "#101010",
+                        boxShadow: active ? `0 0 28px ${action.accent}18` : "none",
                       }}
+                      aria-current={active ? "page" : undefined}
                     >
                       <div className="flex items-center gap-3">
                         <span
@@ -288,6 +353,38 @@ export default function RushArenasPage() {
                     </Link>
                   );
                 })}
+              </div>
+
+              <div
+                className="rounded-lg border p-4"
+                style={{
+                  borderColor: `${activePanel.accent}38`,
+                  background: `${activePanel.accent}0f`,
+                }}
+              >
+                <div
+                  className="mb-2 text-[10px] font-black uppercase tracking-[0.22em]"
+                  style={{ color: activePanel.accent, fontFamily: "monospace" }}
+                >
+                  {activePanel.eyebrow}
+                </div>
+                <h2 className="text-xl font-black text-white">{activePanel.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-300">{activePanel.body}</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {activePanel.bullets.map((bullet) => (
+                    <div
+                      key={bullet}
+                      className="rounded-md border px-3 py-2 text-xs font-bold text-neutral-200"
+                      style={{
+                        borderColor: `${activePanel.accent}24`,
+                        background: "rgba(0,0,0,0.24)",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {bullet}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import RushArenasPage from "@/components/arenas/RushArenasPage";
 
 export const metadata: Metadata = {
@@ -7,6 +8,22 @@ export const metadata: Metadata = {
     "Rush Royale arena flows are moving under the Rush ecosystem on Base.",
 };
 
-export default function ArenaSectionPage() {
-  return <RushArenasPage />;
+const arenaSections = ["fleet", "watch", "ledger"] as const;
+
+type ArenaSection = (typeof arenaSections)[number];
+
+export function generateStaticParams() {
+  return arenaSections.map((section) => ({ section }));
+}
+
+export default function ArenaSectionPage({
+  params,
+}: {
+  params: { section: string };
+}) {
+  if (!arenaSections.includes(params.section as ArenaSection)) {
+    notFound();
+  }
+
+  return <RushArenasPage section={params.section as ArenaSection} />;
 }
