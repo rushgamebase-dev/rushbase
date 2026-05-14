@@ -125,6 +125,31 @@ export default function Header() {
             </span>
           </Link>
 
+          {/* Rush Arenas exposes the battle-arena module under Rush naming. */}
+          <Link
+            href="/arenas"
+            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
+            style={{ color: "#00ddff", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#66f0ff")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#00ddff")}
+          >
+            ARENAS
+            <span
+              className="px-1 py-0.5 rounded text-center"
+              style={{
+                fontSize: 10,
+                background: "rgba(0,221,255,0.12)",
+                border: "1px solid rgba(0,221,255,0.3)",
+                color: "#00ddff",
+                fontFamily: "monospace",
+                letterSpacing: "0.06em",
+                lineHeight: 1,
+              }}
+            >
+              AI
+            </span>
+          </Link>
+
           {/* STAKE — single-sided $RUSH staking, ETH rewards from
               TapTrading house edge. Synthetix accumulator pattern,
               live earned counter on the page. */}
@@ -237,7 +262,7 @@ export default function Header() {
 
       {/* Center: Live status */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-3"
+        className="absolute left-1/2 -translate-x-1/2 hidden 2xl:flex items-center gap-3"
         style={{ color: "#e0e0e0" }}
       >
         <div className="flex items-center gap-2">

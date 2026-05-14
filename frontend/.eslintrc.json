@@ -2,7 +2,6 @@
   "extends": ["next/core-web-vitals", "next/typescript"],
   "overrides": [
     {
-      "comment": "Components ported from the standalone TapTrade repo carry intentional unused-symbol declarations (private helpers kept for future iteration). Downgrade to warn so the next build doesn't fail on cosmetic findings.",
       "files": [
         "components/gamification/**/*.{ts,tsx}",
         "components/taptrade/**/*.{ts,tsx}",
