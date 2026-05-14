@@ -17,6 +17,7 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "14.2.35",
+    "pixi.js": "^8.18.1",
     "react": "^18",
     "react-dom": "^18",
     "siwe": "^2.3.2",

@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import { WalletButton } from "@/components/WalletButton";
+import { RushRoyaleEngineCanvas } from "@/components/arenas/game/RushRoyaleEngineCanvas";
 import {
   AGENT_REGISTRY_ABI,
   ARENA_MANAGER_ABI,
@@ -1068,97 +1069,7 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
 }
 
 function DemoBattlePreview() {
-  const [demoIndex, setDemoIndex] = useState(0);
-  const demo = useMemo(() => createDeterministicDemoReplay(demoIndex), [demoIndex]);
-
-  useEffect(() => {
-    const interval = setInterval(() => setDemoIndex((index) => index + 1), 4200);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-violet-400/25 bg-violet-400/10 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
-            <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
-            demo match
-          </span>
-          <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{demo.arena.arenaId.toString()}</span>
-        </div>
-        <button type="button" onClick={() => setDemoIndex((index) => index + 1)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white transition-colors hover:border-cyan-300/50 hover:text-cyan-200" aria-label="Next deterministic demo replay">
-          <RefreshCw size={16} />
-        </button>
-      </div>
-      <ReplayPanel arena={demo.arena} result={demo.result} participants={demo.participants} lockedAt={demo.lockedAt} startedAt={demo.startedAt} now={demo.now} />
-    </div>
-  );
-}
-
-type DeterministicDemoReplay = {
-  arena: RushArena;
-  result: RushBattleResult;
-  participants: RushArenaParticipant[];
-  lockedAt: bigint;
-  startedAt: bigint;
-  now: number;
-};
-
-function createDeterministicDemoReplay(index: number): DeterministicDemoReplay {
-  const now = Math.floor(Date.now() / 1000);
-  const arenaId = BigInt(9000 + (index % 1000));
-  const seed = BigInt("0x" + (0x5f3759df + index * 7919).toString(16).padStart(16, "0"));
-  const totalRounds = BigInt(6 + (index % 5));
-  const count = 8 + (index % 5) * 2;
-  const participantIds = Array.from({ length: count }, (_, slot) => BigInt(((index * 7 + slot * 3) % 30) + 1));
-  const rankedIds = [...participantIds].sort((a, b) => pseudoScore(seed, b, Number(totalRounds)) - pseudoScore(seed, a, Number(totalRounds)));
-  const winnerId = rankedIds[0] ?? BI_ONE;
-
-  const participants = participantIds.map((agentId) => {
-    const rank = rankedIds.findIndex((id) => id === agentId);
-    const eliminated = agentId !== winnerId;
-    return {
-      agentId,
-      owner: `0x${agentId.toString(16).padStart(40, "0")}` as `0x${string}`,
-      boostIds: [],
-      joinedAt: BigInt(now - 900 + Number(agentId) * 3),
-      eliminated,
-      eliminatedRound: eliminated ? BigInt(Math.max(1, Math.min(Number(totalRounds), rank + 1))) : BI_ZERO,
-    };
-  });
-
-  const resultHash = ("0x" + (seed ^ (winnerId * PSEUDO_C) ^ totalRounds).toString(16).padStart(64, "0").slice(-64)) as `0x${string}`;
-  const arena: RushArena = {
-    arenaId,
-    tier: (index % 4) as ArenaTier,
-    entryFee: parseEther(["0.001", "0.01", "0.05", "0.25"][index % 4]),
-    minPlayers: BigInt(Math.min(6, count)),
-    maxPlayers: BigInt(count),
-    registrationStart: BigInt(now - 1200),
-    registrationEnd: BigInt(now - 900),
-    prizePool: parseEther(["0.008", "0.08", "0.4", "2"][index % 4]),
-    state: 4,
-    creator: "0x000000000000000000000000000000000000dEAD",
-    vrfRequestId: BigInt(50000 + index),
-    seed,
-    winnerId,
-  };
-
-  return {
-    arena,
-    result: {
-      arenaId,
-      winnerId,
-      totalRounds,
-      seed,
-      resultHash,
-      executedAt: BigInt(now - 180),
-    },
-    participants,
-    lockedAt: BigInt(now - 840),
-    startedAt: BigInt(now - 780),
-    now,
-  };
+  return <RushRoyaleEngineCanvas />;
 }
 
 function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, selectedParticipants, selectedVrfRequest, selectedLockedAt, selectedStartedAt, setSelectedArenaId, treasury, vrfCost, protocolFeeBps, commitRevealEnabled, claimRefund, myAgents, txBusy }: { arenas: ArenaSummary[]; finishedArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; setSelectedArenaId: (arenaId: bigint) => void; treasury?: `0x${string}`; vrfCost?: bigint; protocolFeeBps?: bigint; commitRevealEnabled?: boolean; claimRefund: (arenaId: bigint, agentId: bigint) => void; myAgents: RushAgent[]; txBusy: boolean }) {
