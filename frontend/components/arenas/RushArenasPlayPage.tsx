@@ -32,7 +32,6 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
-  Skull,
   Sparkles,
   Swords,
   Trophy,
@@ -1069,344 +1068,97 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
 }
 
 function DemoBattlePreview() {
-  const [demo, setDemo] = useState<DemoBattleState>(() => createDemoBattle(1));
-  const aliveFighters = demo.fighters.filter((fighter) => fighter.alive);
-  const winner = aliveFighters.length === 1 ? aliveFighters[0] : demo.winner;
-  const resetDemo = () => setDemo(createDemoBattle(demo.seed + demo.round + 1));
+  const [demoIndex, setDemoIndex] = useState(0);
+  const demo = useMemo(() => createDeterministicDemoReplay(demoIndex), [demoIndex]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDemo((state) => advanceDemoBattle(state));
-    }, 90);
+    const interval = setInterval(() => setDemoIndex((index) => index + 1), 4200);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-violet-400/30 bg-black shadow-[0_0_46px_rgba(139,92,246,0.22)]">
-      <div className="relative min-h-[540px] overflow-hidden bg-[#06080f]">
-        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 50% 50%, rgba(14,165,233,0.2), rgba(8,13,24,0.78) 42%, rgba(3,5,10,1) 78%)" }} />
-        <div className="absolute inset-0 opacity-35" style={{ backgroundImage: "linear-gradient(rgba(125,211,252,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(125,211,252,0.18) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "linear-gradient(30deg, transparent 0 48%, rgba(168,85,247,0.16) 49% 51%, transparent 52% 100%), linear-gradient(150deg, transparent 0 48%, rgba(34,211,238,0.12) 49% 51%, transparent 52% 100%)", backgroundSize: "140px 140px" }} />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0,transparent_43%,rgba(127,29,29,0.26)_44%,rgba(0,0,0,0.82)_100%)]" />
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/78 to-transparent" />
-
-        <div className="absolute inset-0">
-          <div className="absolute left-1/2 top-1/2 rounded-full border border-cyan-200/25 bg-cyan-300/[0.04] shadow-[0_0_58px_rgba(34,211,238,0.16)]" style={{ width: `${demo.zoneRadius * 2}%`, height: `${demo.zoneRadius * 2}%`, transform: "translate(-50%, -50%)" }} />
-          <div className="absolute left-1/2 top-1/2 h-[74%] w-[74%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-violet-200/25" />
-          <div className="absolute left-1/2 top-1/2 h-[46%] w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-200/20" />
-          <div className="absolute left-1/2 top-1/2 h-[18%] w-[18%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/15 bg-black/25" />
-          {demo.shots.map((shot) => {
-            const dx = shot.toX - shot.fromX;
-            const dy = shot.toY - shot.fromY;
-            return (
-              <span
-                key={shot.id}
-                className="absolute h-[2px] origin-left rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(103,232,249,0.95)]"
-                style={{
-                  left: `${shot.fromX}%`,
-                  top: `${shot.fromY}%`,
-                  width: `${Math.max(5, Math.hypot(dx, dy))}%`,
-                  transform: `rotate(${Math.atan2(dy, dx)}rad)`,
-                  opacity: Math.max(0, 1 - (demo.tick - shot.tick) / 8),
-                }}
-              />
-            );
-          })}
-          {demo.fighters.map((fighter) => (
-            <div
-              key={fighter.id}
-              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 transition-[left,top,opacity] duration-100 ease-linear"
-              style={{ left: `${fighter.x}%`, top: `${fighter.y}%`, opacity: fighter.alive ? 1 : 0.18 }}
-            >
-              <div className="relative h-8 w-8 overflow-hidden rounded-full border-2 bg-black shadow-[0_0_18px_rgba(0,255,136,0.2)] sm:h-10 sm:w-10" style={{ borderColor: fighter.alive ? fighter.color : "#525252" }}>
-                <Image src={shipImageForAgent(BigInt(fighter.ship))} alt={`Demo fighter ${fighter.id}`} fill className="object-cover" sizes="40px" />
-              </div>
-              {fighter.alive ? (
-                <div className="w-12 rounded bg-black/75 p-1 shadow-[0_0_12px_rgba(0,0,0,0.8)]">
-                  <div className="h-1 rounded bg-red-950">
-                    <div className="h-1 rounded bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${Math.max(0, Math.min(100, fighter.health))}%` }} />
-                  </div>
-                  <div className="mt-1 truncate text-center text-[9px] font-black text-white" style={{ fontFamily: "monospace" }}>#{fighter.id}</div>
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute left-5 top-5 flex items-center gap-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-violet-400/25 bg-violet-400/10 px-4 py-3">
+        <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
             <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
-            live demo
+            demo match
           </span>
-          <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>rush royale</span>
+          <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{demo.arena.arenaId.toString()}</span>
         </div>
-
-        <button type="button" onClick={resetDemo} className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/70 text-white transition-colors hover:border-cyan-300/50 hover:text-cyan-200" aria-label="Restart demo battle">
-          <RefreshCw size={17} />
+        <button type="button" onClick={() => setDemoIndex((index) => index + 1)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white transition-colors hover:border-cyan-300/50 hover:text-cyan-200" aria-label="Next deterministic demo replay">
+          <RefreshCw size={16} />
         </button>
-
-        <div className="absolute right-5 bottom-5 hidden w-56 rounded-xl border border-white/10 bg-black/75 p-3 backdrop-blur-sm md:block">
-          <div className="grid grid-cols-2 gap-2">
-            <MiniFact label="Ships alive" value={`${aliveFighters.length}/18`} />
-            <MiniFact label="Zone" value={`${Math.round(demo.zoneRadius * 2)}%`} />
-          </div>
-          <div className="mt-3 space-y-1">
-            {demo.events.slice(0, 3).map((event) => (
-              <div key={event.id} className="truncate rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-bold text-neutral-200">{event.message}</div>
-            ))}
-          </div>
-        </div>
-
-        {winner ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[1px]">
-            <div className="rounded-2xl border border-yellow-300/40 bg-black/80 px-8 py-6 text-center shadow-[0_0_48px_rgba(250,204,21,0.3)]">
-              <Crown className="mx-auto h-10 w-10 text-yellow-300" />
-              <div className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-yellow-200" style={{ fontFamily: "monospace" }}>winner takes all</div>
-              <div className="mt-2 text-3xl font-black text-white">Fighter #{winner.id}</div>
-            </div>
-          </div>
-        ) : null}
       </div>
-
-      <div className="grid gap-3 border-t border-white/10 bg-black/85 p-4 md:grid-cols-3">
-        <WatchInfoCard image="/images/watch/card-agents-enter.png" icon={Swords} label="fighters enter" value="ships drop into orbit" />
-        <WatchInfoCard image="/images/watch/card-death-zone.png" icon={Skull} label="death zone" value="arena pressure rises" />
-        <WatchInfoCard image="/images/watch/card-winner-takes-all.png" icon={Crown} label="winner takes all" value="last fighter claims" />
-      </div>
+      <ReplayPanel arena={demo.arena} result={demo.result} participants={demo.participants} lockedAt={demo.lockedAt} startedAt={demo.startedAt} now={demo.now} />
     </div>
   );
 }
 
-type DemoFighter = {
-  id: number;
-  ship: number;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  health: number;
-  alive: boolean;
-  color: string;
-  kills: number;
+type DeterministicDemoReplay = {
+  arena: RushArena;
+  result: RushBattleResult;
+  participants: RushArenaParticipant[];
+  lockedAt: bigint;
+  startedAt: bigint;
+  now: number;
 };
 
-type DemoShot = {
-  id: string;
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
-  tick: number;
-};
+function createDeterministicDemoReplay(index: number): DeterministicDemoReplay {
+  const now = Math.floor(Date.now() / 1000);
+  const arenaId = BigInt(9000 + (index % 1000));
+  const seed = BigInt("0x" + (0x5f3759df + index * 7919).toString(16).padStart(16, "0"));
+  const totalRounds = BigInt(6 + (index % 5));
+  const count = 8 + (index % 5) * 2;
+  const participantIds = Array.from({ length: count }, (_, slot) => BigInt(((index * 7 + slot * 3) % 30) + 1));
+  const rankedIds = [...participantIds].sort((a, b) => pseudoScore(seed, b, Number(totalRounds)) - pseudoScore(seed, a, Number(totalRounds)));
+  const winnerId = rankedIds[0] ?? BI_ONE;
 
-type DemoEvent = {
-  id: string;
-  message: string;
-};
-
-type DemoBattleState = {
-  seed: number;
-  round: number;
-  tick: number;
-  zoneRadius: number;
-  fighters: DemoFighter[];
-  shots: DemoShot[];
-  events: DemoEvent[];
-  winner?: DemoFighter;
-  restartAt?: number;
-};
-
-const DEMO_CENTER_X = 50;
-const DEMO_CENTER_Y = 50;
-const DEMO_MAX_RADIUS = 41;
-
-function WatchInfoCard({ image, icon: Icon, label, value }: { image: string; icon: typeof Swords; label: string; value: string }) {
-  return (
-    <div className="relative min-h-[118px] overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
-      <Image src={image} alt="" fill className="object-cover opacity-80" sizes="(min-width: 768px) 220px, 100vw" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-      <div className="absolute inset-x-4 bottom-4">
-        <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}><Icon size={13} />{label}</div>
-        <div className="text-sm font-black text-white">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-function createDemoBattle(seed: number): DemoBattleState {
-  const random = seededRandom(seed);
-  const colors = ["#22c55e", "#06b6d4", "#a78bfa", "#facc15", "#fb7185", "#38bdf8"];
-  const fighters = Array.from({ length: 18 }, (_, index) => {
-    const angle = (Math.PI * 2 * index) / 18;
-    const radius = 22 + random() * 16;
+  const participants = participantIds.map((agentId) => {
+    const rank = rankedIds.findIndex((id) => id === agentId);
+    const eliminated = agentId !== winnerId;
     return {
-      id: index + 1,
-      ship: index + 1,
-      x: DEMO_CENTER_X + Math.cos(angle) * radius,
-      y: DEMO_CENTER_Y + Math.sin(angle) * radius,
-      targetX: DEMO_CENTER_X + Math.cos(angle + 0.6) * (20 + random() * 15),
-      targetY: DEMO_CENTER_Y + Math.sin(angle + 0.6) * (20 + random() * 15),
-      health: 100,
-      alive: true,
-      color: colors[index % colors.length],
-      kills: 0,
+      agentId,
+      owner: `0x${agentId.toString(16).padStart(40, "0")}` as `0x${string}`,
+      boostIds: [],
+      joinedAt: BigInt(now - 900 + Number(agentId) * 3),
+      eliminated,
+      eliminatedRound: eliminated ? BigInt(Math.max(1, Math.min(Number(totalRounds), rank + 1))) : BI_ZERO,
     };
   });
 
-  return {
+  const resultHash = ("0x" + (seed ^ (winnerId * PSEUDO_C) ^ totalRounds).toString(16).padStart(64, "0").slice(-64)) as `0x${string}`;
+  const arena: RushArena = {
+    arenaId,
+    tier: (index % 4) as ArenaTier,
+    entryFee: parseEther(["0.001", "0.01", "0.05", "0.25"][index % 4]),
+    minPlayers: BigInt(Math.min(6, count)),
+    maxPlayers: BigInt(count),
+    registrationStart: BigInt(now - 1200),
+    registrationEnd: BigInt(now - 900),
+    prizePool: parseEther(["0.008", "0.08", "0.4", "2"][index % 4]),
+    state: 4,
+    creator: "0x000000000000000000000000000000000000dEAD",
+    vrfRequestId: BigInt(50000 + index),
     seed,
-    round: seed,
-    tick: 0,
-    zoneRadius: DEMO_MAX_RADIUS,
-    fighters: separateDemoFighters(fighters, DEMO_MAX_RADIUS),
-    shots: [],
-    events: [{ id: `start-${seed}`, message: "18 fighters entered orbit" }],
+    winnerId,
   };
-}
-
-function advanceDemoBattle(state: DemoBattleState): DemoBattleState {
-  if (state.restartAt && state.tick >= state.restartAt) {
-    return createDemoBattle(state.seed + 1);
-  }
-
-  const tick = state.tick + 1;
-  const random = seededRandom(state.seed * 10000 + tick);
-  const zoneRadius = Math.max(19, DEMO_MAX_RADIUS - tick * 0.025);
-  const events: DemoEvent[] = [...state.events];
-  const shots: DemoShot[] = state.shots.filter((shot) => tick - shot.tick < 8);
-  let fighters = state.fighters.map((fighter) => ({ ...fighter }));
-  const aliveBefore = fighters.filter((fighter) => fighter.alive);
-
-  fighters = fighters.map((fighter) => {
-    if (!fighter.alive) return fighter;
-    let targetX = fighter.targetX;
-    let targetY = fighter.targetY;
-    if (tick % (22 + (fighter.id % 7)) === 0) {
-      const angle = random() * Math.PI * 2 + fighter.id * 0.55;
-      const radius = Math.max(14, zoneRadius * (0.35 + random() * 0.5));
-      targetX = DEMO_CENTER_X + Math.cos(angle) * radius;
-      targetY = DEMO_CENTER_Y + Math.sin(angle) * radius;
-    }
-
-    const x = clamp(fighter.x + (targetX - fighter.x) * 0.048 + (random() - 0.5) * 0.32, 8, 92);
-    const y = clamp(fighter.y + (targetY - fighter.y) * 0.048 + (random() - 0.5) * 0.32, 10, 90);
-    const distanceFromCenter = Math.hypot(x - DEMO_CENTER_X, y - DEMO_CENTER_Y);
-    const zoneDamage = distanceFromCenter > zoneRadius ? 1.9 : 0;
-
-    return {
-      ...fighter,
-      x,
-      y,
-      targetX,
-      targetY,
-      health: Math.max(0, fighter.health - zoneDamage),
-    };
-  });
-
-  fighters = separateDemoFighters(fighters, zoneRadius);
-
-  if (aliveBefore.length > 1 && tick % 6 === 0) {
-    const attackers = fighters.filter((fighter) => fighter.alive);
-    const attacker = attackers[Math.floor(random() * attackers.length)];
-    if (attacker) {
-      const targets = fighters
-        .filter((fighter) => fighter.alive && fighter.id !== attacker.id)
-        .map((fighter) => ({ fighter, distance: Math.hypot(fighter.x - attacker.x, fighter.y - attacker.y) }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 4);
-      const target = targets[Math.floor(random() * targets.length)]?.fighter;
-      if (target) {
-        const damage = 5 + Math.floor(random() * 13);
-        target.health = Math.max(0, target.health - damage);
-        shots.push({ id: `${tick}-${attacker.id}-${target.id}`, fromX: attacker.x, fromY: attacker.y, toX: target.x, toY: target.y, tick });
-        if (target.health <= 0 && target.alive) {
-          target.alive = false;
-          attacker.kills += 1;
-          events.unshift({ id: `elim-${tick}-${target.id}`, message: `Fighter #${attacker.id} eliminated #${target.id}` });
-        }
-      }
-    }
-  }
-
-  fighters.forEach((fighter) => {
-    if (fighter.alive && fighter.health <= 0) {
-      fighter.alive = false;
-      events.unshift({ id: `zone-${tick}-${fighter.id}`, message: `Death zone claimed #${fighter.id}` });
-    }
-  });
-
-  const aliveAfter = fighters.filter((fighter) => fighter.alive);
-  const winner = aliveAfter.length === 1 ? aliveAfter[0] : state.winner;
-  const restartAt = winner && !state.restartAt ? tick + 42 : state.restartAt;
-  if (winner && !state.winner) {
-    events.unshift({ id: `winner-${tick}-${winner.id}`, message: `Fighter #${winner.id} won the demo` });
-  }
 
   return {
-    ...state,
-    tick,
-    zoneRadius,
-    fighters,
-    shots,
-    events: events.slice(0, 5),
-    winner,
-    restartAt,
+    arena,
+    result: {
+      arenaId,
+      winnerId,
+      totalRounds,
+      seed,
+      resultHash,
+      executedAt: BigInt(now - 180),
+    },
+    participants,
+    lockedAt: BigInt(now - 840),
+    startedAt: BigInt(now - 780),
+    now,
   };
-}
-
-function separateDemoFighters(fighters: DemoFighter[], zoneRadius: number) {
-  const separated = fighters.map((fighter) => ({ ...fighter }));
-  for (let pass = 0; pass < 8; pass += 1) {
-    const alive = separated.filter((fighter) => fighter.alive);
-    const minDistance = alive.length > 12 ? 10.2 : alive.length > 7 ? 11.4 : 12.8;
-    for (let i = 0; i < alive.length; i += 1) {
-      for (let j = i + 1; j < alive.length; j += 1) {
-        const a = alive[i];
-        const b = alive[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const distance = Math.hypot(dx, dy) || 0.001;
-        if (distance >= minDistance) continue;
-        const push = (minDistance - distance) * 0.5;
-        const nx = dx / distance;
-        const ny = dy / distance;
-        a.x += nx * push;
-        a.y += ny * push;
-        b.x -= nx * push;
-        b.y -= ny * push;
-      }
-    }
-
-    alive.forEach((fighter) => {
-      const dx = fighter.x - DEMO_CENTER_X;
-      const dy = fighter.y - DEMO_CENTER_Y;
-      const distance = Math.hypot(dx, dy) || 0.001;
-      const maxRadius = Math.min(DEMO_MAX_RADIUS, Math.max(15, zoneRadius - 2));
-      if (distance > maxRadius) {
-        fighter.x = DEMO_CENTER_X + (dx / distance) * maxRadius;
-        fighter.y = DEMO_CENTER_Y + (dy / distance) * maxRadius;
-      }
-      fighter.x = clamp(fighter.x, 8, 92);
-      fighter.y = clamp(fighter.y, 10, 90);
-    });
-  }
-  return separated;
-}
-
-function seededRandom(seed: number) {
-  let value = seed >>> 0;
-  return () => {
-    value += 0x6d2b79f5;
-    let mixed = value;
-    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, selectedParticipants, selectedVrfRequest, selectedLockedAt, selectedStartedAt, setSelectedArenaId, treasury, vrfCost, protocolFeeBps, commitRevealEnabled, claimRefund, myAgents, txBusy }: { arenas: ArenaSummary[]; finishedArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; setSelectedArenaId: (arenaId: bigint) => void; treasury?: `0x${string}`; vrfCost?: bigint; protocolFeeBps?: bigint; commitRevealEnabled?: boolean; claimRefund: (arenaId: bigint, agentId: bigint) => void; myAgents: RushAgent[]; txBusy: boolean }) {
