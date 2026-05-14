@@ -1072,16 +1072,70 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
 }
 
 function DemoBattlePreview({ muted, onToggleMute }: { muted: boolean; onToggleMute: () => void }) {
+  const [demo, setDemo] = useState<DemoBattleState>(() => createDemoBattle(1));
+  const aliveFighters = demo.fighters.filter((fighter) => fighter.alive);
+  const winner = aliveFighters.length === 1 ? aliveFighters[0] : demo.winner;
+  const resetDemo = () => setDemo(createDemoBattle(demo.seed + demo.round + 1));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDemo((state) => advanceDemoBattle(state));
+    }, 90);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-violet-400/30 bg-black shadow-[0_0_46px_rgba(139,92,246,0.22)]">
       <div className="relative min-h-[430px] overflow-hidden">
         <Image src="/images/watch/background.jpg" alt="" fill className="object-cover opacity-45" sizes="(min-width: 1024px) 760px, 100vw" priority={false} />
-        <video autoPlay loop muted={muted} playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover">
+        <video autoPlay loop muted={muted} playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover opacity-45">
           <source src="/videos/demo-battle.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,transparent_0,rgba(0,0,0,0.18)_45%,rgba(0,0,0,0.88)_100%)]" />
         <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/85 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/72 to-transparent" />
+
+        <div className="absolute inset-0">
+          <div className="absolute left-1/2 top-1/2 rounded-full border border-cyan-200/20 bg-cyan-300/[0.03] shadow-[0_0_48px_rgba(34,211,238,0.12)]" style={{ width: `${demo.zoneRadius * 2}%`, height: `${demo.zoneRadius * 2}%`, transform: "translate(-50%, -50%)" }} />
+          <div className="absolute left-1/2 top-1/2 h-[68%] w-[68%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-violet-200/20" />
+          <div className="absolute left-1/2 top-1/2 h-[38%] w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-200/15" />
+          {demo.shots.map((shot) => {
+            const dx = shot.toX - shot.fromX;
+            const dy = shot.toY - shot.fromY;
+            return (
+              <span
+                key={shot.id}
+                className="absolute h-[2px] origin-left rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(103,232,249,0.95)]"
+                style={{
+                  left: `${shot.fromX}%`,
+                  top: `${shot.fromY}%`,
+                  width: `${Math.max(5, Math.hypot(dx, dy))}%`,
+                  transform: `rotate(${Math.atan2(dy, dx)}rad)`,
+                  opacity: Math.max(0, 1 - (demo.tick - shot.tick) / 8),
+                }}
+              />
+            );
+          })}
+          {demo.fighters.map((fighter) => (
+            <div
+              key={fighter.id}
+              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 transition-[left,top,opacity] duration-100 ease-linear"
+              style={{ left: `${fighter.x}%`, top: `${fighter.y}%`, opacity: fighter.alive ? 1 : 0.18 }}
+            >
+              <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 bg-black shadow-[0_0_22px_rgba(0,255,136,0.2)] sm:h-14 sm:w-14" style={{ borderColor: fighter.alive ? fighter.color : "#525252" }}>
+                <Image src={shipImageForAgent(BigInt(fighter.ship))} alt={`Demo fighter ${fighter.id}`} fill className="object-cover" sizes="56px" />
+              </div>
+              {fighter.alive ? (
+                <div className="w-16 rounded bg-black/75 p-1 shadow-[0_0_12px_rgba(0,0,0,0.8)]">
+                  <div className="h-1 rounded bg-red-950">
+                    <div className="h-1 rounded bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${Math.max(0, Math.min(100, fighter.health))}%` }} />
+                  </div>
+                  <div className="mt-1 truncate text-center text-[9px] font-black text-white" style={{ fontFamily: "monospace" }}>#{fighter.id}</div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
 
         <div className="absolute left-5 top-5 flex items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
@@ -1099,11 +1153,37 @@ function DemoBattlePreview({ muted, onToggleMute }: { muted: boolean; onToggleMu
           <div className="max-w-[520px]">
             <Image src="/images/watch/title-watch-live.png" alt="Watch Live" width={420} height={178} className="h-auto w-full max-w-[360px] drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Image src="/images/watch/btn-spectate-live.png" alt="Spectate live" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
-              <Image src="/images/watch/btn-start-demo.png" alt="Start demo" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
+              <button type="button" onClick={resetDemo} className="transition-transform hover:scale-[1.02]" aria-label="Restart demo battle">
+                <Image src="/images/watch/btn-spectate-live.png" alt="Spectate live" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
+              </button>
+              <button type="button" onClick={resetDemo} className="transition-transform hover:scale-[1.02]" aria-label="Start demo battle">
+                <Image src="/images/watch/btn-start-demo.png" alt="Start demo" width={206} height={58} className="h-auto w-[150px] sm:w-[178px]" />
+              </button>
             </div>
           </div>
         </div>
+
+        <div className="absolute right-5 bottom-5 hidden w-56 rounded-xl border border-white/10 bg-black/75 p-3 backdrop-blur-sm md:block">
+          <div className="grid grid-cols-2 gap-2">
+            <MiniFact label="Ships alive" value={`${aliveFighters.length}/18`} />
+            <MiniFact label="Zone" value={`${Math.round(demo.zoneRadius * 2)}%`} />
+          </div>
+          <div className="mt-3 space-y-1">
+            {demo.events.slice(0, 3).map((event) => (
+              <div key={event.id} className="truncate rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-bold text-neutral-200">{event.message}</div>
+            ))}
+          </div>
+        </div>
+
+        {winner ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-[1px]">
+            <div className="rounded-2xl border border-yellow-300/40 bg-black/80 px-8 py-6 text-center shadow-[0_0_48px_rgba(250,204,21,0.3)]">
+              <Crown className="mx-auto h-10 w-10 text-yellow-300" />
+              <div className="mt-2 text-xs font-black uppercase tracking-[0.18em] text-yellow-200" style={{ fontFamily: "monospace" }}>winner takes all</div>
+              <div className="mt-2 text-3xl font-black text-white">Fighter #{winner.id}</div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-3 border-t border-white/10 bg-black/85 p-4 md:grid-cols-3">
@@ -1114,6 +1194,45 @@ function DemoBattlePreview({ muted, onToggleMute }: { muted: boolean; onToggleMu
     </div>
   );
 }
+
+type DemoFighter = {
+  id: number;
+  ship: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  health: number;
+  alive: boolean;
+  color: string;
+  kills: number;
+};
+
+type DemoShot = {
+  id: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  tick: number;
+};
+
+type DemoEvent = {
+  id: string;
+  message: string;
+};
+
+type DemoBattleState = {
+  seed: number;
+  round: number;
+  tick: number;
+  zoneRadius: number;
+  fighters: DemoFighter[];
+  shots: DemoShot[];
+  events: DemoEvent[];
+  winner?: DemoFighter;
+  restartAt?: number;
+};
 
 function WatchInfoCard({ image, icon: Icon, label, value }: { image: string; icon: typeof Swords; label: string; value: string }) {
   return (
@@ -1126,6 +1245,140 @@ function WatchInfoCard({ image, icon: Icon, label, value }: { image: string; ico
       </div>
     </div>
   );
+}
+
+function createDemoBattle(seed: number): DemoBattleState {
+  const random = seededRandom(seed);
+  const colors = ["#22c55e", "#06b6d4", "#a78bfa", "#facc15", "#fb7185", "#38bdf8"];
+  const fighters = Array.from({ length: 18 }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / 18;
+    const radius = 30 + random() * 10;
+    return {
+      id: index + 1,
+      ship: index + 1,
+      x: 50 + Math.cos(angle) * radius,
+      y: 50 + Math.sin(angle) * radius,
+      targetX: 35 + random() * 30,
+      targetY: 35 + random() * 30,
+      health: 100,
+      alive: true,
+      color: colors[index % colors.length],
+      kills: 0,
+    };
+  });
+
+  return {
+    seed,
+    round: seed,
+    tick: 0,
+    zoneRadius: 43,
+    fighters,
+    shots: [],
+    events: [{ id: `start-${seed}`, message: "18 fighters entered orbit" }],
+  };
+}
+
+function advanceDemoBattle(state: DemoBattleState): DemoBattleState {
+  if (state.restartAt && state.tick >= state.restartAt) {
+    return createDemoBattle(state.seed + 1);
+  }
+
+  const tick = state.tick + 1;
+  const random = seededRandom(state.seed * 10000 + tick);
+  const zoneRadius = Math.max(18, 43 - tick * 0.028);
+  const events: DemoEvent[] = [...state.events];
+  const shots: DemoShot[] = state.shots.filter((shot) => tick - shot.tick < 8);
+  let fighters = state.fighters.map((fighter) => ({ ...fighter }));
+  const aliveBefore = fighters.filter((fighter) => fighter.alive);
+
+  fighters = fighters.map((fighter) => {
+    if (!fighter.alive) return fighter;
+    let targetX = fighter.targetX;
+    let targetY = fighter.targetY;
+    if (tick % (22 + (fighter.id % 7)) === 0) {
+      const angle = random() * Math.PI * 2;
+      const radius = random() * Math.max(12, zoneRadius - 8);
+      targetX = 50 + Math.cos(angle) * radius;
+      targetY = 50 + Math.sin(angle) * radius;
+    }
+
+    const x = clamp(fighter.x + (targetX - fighter.x) * 0.055 + (random() - 0.5) * 0.55, 8, 92);
+    const y = clamp(fighter.y + (targetY - fighter.y) * 0.055 + (random() - 0.5) * 0.55, 10, 90);
+    const distanceFromCenter = Math.hypot(x - 50, y - 50);
+    const zoneDamage = distanceFromCenter > zoneRadius ? 1.9 : 0;
+
+    return {
+      ...fighter,
+      x,
+      y,
+      targetX,
+      targetY,
+      health: Math.max(0, fighter.health - zoneDamage),
+    };
+  });
+
+  if (aliveBefore.length > 1 && tick % 6 === 0) {
+    const attackers = fighters.filter((fighter) => fighter.alive);
+    const attacker = attackers[Math.floor(random() * attackers.length)];
+    if (attacker) {
+      const targets = fighters
+        .filter((fighter) => fighter.alive && fighter.id !== attacker.id)
+        .map((fighter) => ({ fighter, distance: Math.hypot(fighter.x - attacker.x, fighter.y - attacker.y) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 4);
+      const target = targets[Math.floor(random() * targets.length)]?.fighter;
+      if (target) {
+        const damage = 5 + Math.floor(random() * 13);
+        target.health = Math.max(0, target.health - damage);
+        shots.push({ id: `${tick}-${attacker.id}-${target.id}`, fromX: attacker.x, fromY: attacker.y, toX: target.x, toY: target.y, tick });
+        if (target.health <= 0 && target.alive) {
+          target.alive = false;
+          attacker.kills += 1;
+          events.unshift({ id: `elim-${tick}-${target.id}`, message: `Fighter #${attacker.id} eliminated #${target.id}` });
+        }
+      }
+    }
+  }
+
+  fighters.forEach((fighter) => {
+    if (fighter.alive && fighter.health <= 0) {
+      fighter.alive = false;
+      events.unshift({ id: `zone-${tick}-${fighter.id}`, message: `Death zone claimed #${fighter.id}` });
+    }
+  });
+
+  const aliveAfter = fighters.filter((fighter) => fighter.alive);
+  const winner = aliveAfter.length === 1 ? aliveAfter[0] : state.winner;
+  const restartAt = winner && !state.restartAt ? tick + 42 : state.restartAt;
+  if (winner && !state.winner) {
+    events.unshift({ id: `winner-${tick}-${winner.id}`, message: `Fighter #${winner.id} won the demo` });
+  }
+
+  return {
+    ...state,
+    tick,
+    zoneRadius,
+    fighters,
+    shots,
+    events: events.slice(0, 5),
+    winner,
+    restartAt,
+  };
+}
+
+function seededRandom(seed: number) {
+  let value = seed >>> 0;
+  return () => {
+    value += 0x6d2b79f5;
+    let mixed = value;
+    mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function LedgerPanel({ arenas, finishedArenas, selectedArena, selectedResult, selectedParticipants, selectedVrfRequest, selectedLockedAt, selectedStartedAt, setSelectedArenaId, treasury, vrfCost, protocolFeeBps, commitRevealEnabled, claimRefund, myAgents, txBusy }: { arenas: ArenaSummary[]; finishedArenas: ArenaSummary[]; selectedArena?: RushArena; selectedResult?: RushBattleResult; selectedParticipants: RushArenaParticipant[]; selectedVrfRequest?: bigint; selectedLockedAt?: bigint; selectedStartedAt?: bigint; setSelectedArenaId: (arenaId: bigint) => void; treasury?: `0x${string}`; vrfCost?: bigint; protocolFeeBps?: bigint; commitRevealEnabled?: boolean; claimRefund: (arenaId: bigint, agentId: bigint) => void; myAgents: RushAgent[]; txBusy: boolean }) {
