@@ -197,6 +197,38 @@ export class BlockchainService implements OnModuleInit {
     };
   }
 
+  async isCommitRevealEnabled(): Promise<boolean> {
+    try {
+      const result = await this.publicClient.readContract({
+        address: this.battleEngineAddress,
+        abi: ABIS.BattleEngine,
+        functionName: 'commitRevealEnabled',
+      });
+      return Boolean(result);
+    } catch (error) {
+      const fallback = parseInt(this.configService.get<string>('REVEAL_DELAY_MS') || '0', 10) > 0;
+      this.logger.warn(
+        `Failed to read commitRevealEnabled, falling back to REVEAL_DELAY_MS: ${fallback}`,
+      );
+      return fallback;
+    }
+  }
+
+  async getRevealDelayMs(): Promise<number> {
+    try {
+      const result = await this.publicClient.readContract({
+        address: this.battleEngineAddress,
+        abi: ABIS.BattleEngine,
+        functionName: 'revealDelay',
+      });
+      return Number(result) * 1000;
+    } catch (error) {
+      const fallback = parseInt(this.configService.get<string>('REVEAL_DELAY_MS') || '0', 10);
+      this.logger.warn(`Failed to read revealDelay, falling back to env: ${fallback}ms`);
+      return Number.isFinite(fallback) ? Math.max(fallback, 0) : 0;
+    }
+  }
+
   /**
    * Get total number of arenas created
    */

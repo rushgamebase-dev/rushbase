@@ -135,8 +135,13 @@ export class ArenaOrchestratorService {
       // CRITICAL: Write revealAt SYNCHRONOUSLY before any broadcast.
       // This is the single source of truth for anti-spoiler.
       // Must succeed before arena_battle_complete goes out.
-      const REVEAL_DELAY_MS = parseInt(process.env.REVEAL_DELAY_MS || '0', 10);
-      const revealAt = new Date(Date.now() + REVEAL_DELAY_MS);
+      const configuredRevealDelayMs = parseInt(process.env.REVEAL_DELAY_MS || '0', 10);
+      const commitRevealEnabled = await this.blockchain.isCommitRevealEnabled();
+      const onChainRevealDelayMs = commitRevealEnabled ? await this.blockchain.getRevealDelayMs() : 0;
+      const revealDelayMs = commitRevealEnabled
+        ? Math.max(configuredRevealDelayMs, onChainRevealDelayMs + 5000)
+        : Math.max(configuredRevealDelayMs, 0);
+      const revealAt = new Date(Date.now() + revealDelayMs);
       const simulationData = JSON.stringify({
         agents: result.finalState.agents,
         eliminationOrder: eliminationOrderData,
@@ -240,7 +245,7 @@ export class ArenaOrchestratorService {
       // Persist simulation result before submitting (CRITICAL for recovery)
       this.persistence.upsertArena({
         arenaId: arenaKey,
-        status: 'committing',
+        status: commitRevealEnabled ? 'committing' : 'submitting',
         simulationResult: {
           winnerId: result.winnerId.toString(),
           winnerOwner: result.winnerOwner,
@@ -254,12 +259,12 @@ export class ArenaOrchestratorService {
         },
       });
 
-      // 6. ON-CHAIN SUBMISSION — two paths based on REVEAL_DELAY_MS
+      // 6. ON-CHAIN SUBMISSION — two paths based on contract commit/reveal mode
       processing.resultHash = resultHash;
       let finalTxHash: string;
       let prizePool: string;
 
-      if (REVEAL_DELAY_MS > 0) {
+      if (commitRevealEnabled) {
         // === COMMIT-REVEAL PATH ===
         const salt = `0x${randomBytes(32).toString('hex')}` as `0x${string}`;
         const commitHash = keccak256(
@@ -272,6 +277,11 @@ export class ArenaOrchestratorService {
         processing.status = 'committing';
         processing.salt = salt;
         processing.commitHash = commitHash;
+        this.persistence.upsertArena({
+          arenaId: arenaKey,
+          status: 'committing',
+          commitReveal: { salt, commitHash, committedAt: Date.now() },
+        });
 
         const commitResult = await this.writer.commitBattleResult(arenaIdBigInt, commitHash);
         this.logger.log(`Committed battle result for arena ${arenaId}: tx=${commitResult.hash}`);
@@ -282,7 +292,7 @@ export class ArenaOrchestratorService {
         processing.status = 'waiting_reveal';
         this.persistence.updateStatus(arenaKey, 'waiting_reveal');
 
-        await new Promise(resolve => setTimeout(resolve, REVEAL_DELAY_MS));
+        await new Promise(resolve => setTimeout(resolve, revealDelayMs));
 
         processing.status = 'revealing';
         this.persistence.updateStatus(arenaKey, 'revealing');

@@ -26,7 +26,10 @@ async function bootstrap() {
   // Graceful shutdown: flush persistence before dying
   app.enableShutdownHooks();
 
+  let shuttingDown = false;
   const shutdownHandler = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     logger.warn(`Received ${signal}. Starting graceful shutdown...`);
     try {
       const persistence = app.get(ArenaPersistenceService);
@@ -35,7 +38,8 @@ async function bootstrap() {
     } catch (err) {
       logger.error('Failed to flush persistence during shutdown', err);
     }
-    // NestJS shutdown hooks handle the rest (close server, disconnect sockets)
+    await app.close();
+    process.exit(0);
   };
 
   process.on('SIGTERM', () => shutdownHandler('SIGTERM'));

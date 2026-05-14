@@ -13,9 +13,9 @@ import { ArenaOrchestratorService } from './arena-orchestrator.service';
 import { ArenaStoreService } from './arena-store.service';
 import { GAME_CONFIG_VERSION } from '../game/engine-v2';
 import { ParticipantData } from '../game/types';
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { encodePacked, keccak256 } from 'viem';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 
 /**
  * Arena state from on-chain
@@ -35,6 +35,7 @@ export class ArenaRecoveryService implements OnModuleInit {
   private readonly MAX_RETRY_COUNT = 3;
   private readonly RECOVERY_DELAY_MS = 5000; // Wait 5 seconds after boot before recovery
   private recentlyTriggered: Set<string> = new Set();
+  private recoveryInProgress = false;
 
   constructor(
     private persistence: ArenaPersistenceService,
@@ -115,40 +116,66 @@ export class ArenaRecoveryService implements OnModuleInit {
    * Main recovery process - runs on boot and every 2 minutes
    */
   async runRecovery(): Promise<void> {
-    this.logger.log('Starting arena recovery process...');
-
-    // 1. Get arenas that need recovery
-    const needsRecovery = this.persistence.getArenasNeedingRecovery();
-    this.logger.log(`Found ${needsRecovery.length} arenas needing recovery`);
-
-    if (needsRecovery.length === 0) {
-      this.logger.log('No arenas need recovery');
+    if (this.recoveryInProgress) {
+      this.logger.debug('Recovery already in progress, skipping overlapping run');
       return;
     }
 
-    // 2. Process each arena
-    for (const record of needsRecovery) {
-      try {
-        await this.recoverArena(record);
-      } catch (error) {
-        this.logger.error(`Failed to recover arena ${record.arenaId}`, error);
-        this.persistence.updateStatus(record.arenaId, 'failed', (error as Error).message);
-      }
-    }
+    this.recoveryInProgress = true;
 
-    // 3. Log summary
-    const counts = this.persistence.getStatusCounts();
-    this.logger.log(`Recovery complete. Status counts: ${JSON.stringify(counts)}`);
+    try {
+      this.logger.log('Starting arena recovery process...');
+
+      // 1. Get arenas that need recovery
+      const needsRecovery = this.persistence.getArenasNeedingRecovery();
+      this.logger.log(`Found ${needsRecovery.length} arenas needing recovery`);
+
+      if (needsRecovery.length === 0) {
+        this.logger.log('No arenas need recovery');
+        return;
+      }
+
+      // 2. Process each arena
+      for (const record of needsRecovery) {
+        try {
+          await this.recoverArena(record);
+        } catch (error) {
+          this.logger.error(`Failed to recover arena ${record.arenaId}`, error);
+          this.persistence.updateStatus(record.arenaId, 'failed', (error as Error).message);
+        }
+      }
+
+      // 3. Log summary
+      const counts = this.persistence.getStatusCounts();
+      this.logger.log(`Recovery complete. Status counts: ${JSON.stringify(counts)}`);
+    } finally {
+      this.recoveryInProgress = false;
+    }
   }
 
   /**
    * Recover a single arena based on its last known state
    */
   private async recoverArena(record: ArenaProcessingRecord): Promise<void> {
+    const isActivelyProcessing = this.orchestrator
+      .getActiveProcessing()
+      .some((arena) => arena.arenaId.toString() === record.arenaId);
+
+    if (isActivelyProcessing) {
+      this.logger.log(`Arena ${record.arenaId} is active in orchestrator, skipping recovery`);
+      return;
+    }
+
     this.logger.log(`Recovering arena ${record.arenaId} (status: ${record.status})`);
 
     // Check retry count
     if (record.retryCount >= this.MAX_RETRY_COUNT) {
+      const onChainState = await this.getOnChainArenaState(BigInt(record.arenaId));
+      if (onChainState === OnChainArenaState.FINISHED || onChainState === OnChainArenaState.CANCELLED) {
+        this.logger.log(`Arena ${record.arenaId} already ${OnChainArenaState[onChainState]} on-chain`);
+        this.persistence.markCompleted(record.arenaId);
+        return;
+      }
       this.logger.warn(`Arena ${record.arenaId} exceeded max retries (${record.retryCount}), marking as failed`);
       this.persistence.updateStatus(record.arenaId, 'failed', 'Max retries exceeded');
       return;
@@ -363,8 +390,63 @@ export class ArenaRecoveryService implements OnModuleInit {
 
     const arenaId = BigInt(record.arenaId);
     const { winnerId, totalTicks, resultHash } = record.simulationResult;
+    const commitRevealEnabled = await this.blockchain.isCommitRevealEnabled();
 
     try {
+      if (commitRevealEnabled) {
+        const configuredRevealDelayMs = parseInt(this.config.get<string>('REVEAL_DELAY_MS') || '0', 10);
+        const onChainRevealDelayMs = await this.blockchain.getRevealDelayMs();
+        const revealDelayMs = Math.max(configuredRevealDelayMs, onChainRevealDelayMs + 5000);
+        let salt = record.commitReveal?.salt as `0x${string}` | undefined;
+        let commitHash = record.commitReveal?.commitHash as `0x${string}` | undefined;
+
+        if (!salt || !commitHash || record.submitBattleResultTx?.state !== TxState.CONFIRMED) {
+          salt = `0x${randomBytes(32).toString('hex')}` as `0x${string}`;
+          commitHash = keccak256(
+            encodePacked(
+              ['uint256', 'uint256', 'uint256', 'bytes32', 'bytes32'],
+              [arenaId, BigInt(winnerId), BigInt(totalTicks), resultHash as `0x${string}`, salt],
+            ),
+          );
+
+          this.persistence.upsertArena({
+            arenaId: record.arenaId,
+            status: 'committing',
+            commitReveal: { salt, commitHash, committedAt: Date.now() },
+          });
+
+          const commitResult = await this.writer.commitBattleResult(arenaId, commitHash);
+          if (!commitResult.success) {
+            this.persistence.failSubmitTx(record.arenaId, commitResult.error || 'Unknown error');
+            return;
+          }
+          this.persistence.recordSubmitTx(record.arenaId, commitResult.hash);
+          this.persistence.confirmSubmitTx(record.arenaId);
+        }
+
+        this.persistence.updateStatus(record.arenaId, 'waiting_reveal');
+        await new Promise(resolve => setTimeout(resolve, revealDelayMs));
+        this.persistence.updateStatus(record.arenaId, 'revealing');
+
+        const revealResult = await this.writer.revealAndDistribute(
+          arenaId,
+          BigInt(winnerId),
+          BigInt(totalTicks),
+          resultHash as `0x${string}`,
+          salt,
+        );
+
+        if (revealResult.success) {
+          this.persistence.recordDistributeTx(record.arenaId, revealResult.hash);
+          this.persistence.confirmDistributeTx(record.arenaId);
+          this.persistence.markCompleted(record.arenaId);
+          this.logger.log(`Arena ${record.arenaId}: commit/reveal recovery complete`);
+        } else {
+          this.persistence.failDistributeTx(record.arenaId, revealResult.error || 'Unknown error');
+        }
+        return;
+      }
+
       // Submit battle result
       const submitResult = await this.writer.submitBattleResult(
         arenaId,

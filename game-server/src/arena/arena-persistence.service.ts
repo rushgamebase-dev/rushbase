@@ -50,6 +50,13 @@ export interface ArenaProcessingRecord {
     }>;
   };
 
+  // Commit/reveal data required to recover a committed result after restart
+  commitReveal?: {
+    salt: string;
+    commitHash: string;
+    committedAt: number;
+  };
+
   // Transaction tracking
   submitBattleResultTx?: {
     hash: string;
