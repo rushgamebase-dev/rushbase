@@ -214,7 +214,7 @@ export const ARENA_TIER_LIMITS: Record<
   ArenaTier,
   { minFeeEth: string; maxFeeEth: string; minPlayers: number; maxPlayers: number }
 > = {
-  0: { minFeeEth: "0.001", maxFeeEth: "0.005", minPlayers: 2, maxPlayers: 50 },
+  0: { minFeeEth: "0", maxFeeEth: "0", minPlayers: 2, maxPlayers: 50 },
   1: { minFeeEth: "0.006", maxFeeEth: "0.02", minPlayers: 10, maxPlayers: 100 },
   2: { minFeeEth: "0.021", maxFeeEth: "0.1", minPlayers: 20, maxPlayers: 100 },
   3: { minFeeEth: "0.101", maxFeeEth: "10", minPlayers: 20, maxPlayers: 50 },

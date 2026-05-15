@@ -266,7 +266,7 @@ export default function RushArenasPlayPage({ section = "join", initialArenaId }:
   const autoWatchArenaRef = useRef<string | null>(null);
   const [arenaForm, setArenaForm] = useState({
     tier: 0 as ArenaTier,
-    entryFee: "0.001",
+    entryFee: "0",
     minPlayers: "2",
     maxPlayers: "10",
     durationMinutes: "5",
@@ -1909,7 +1909,7 @@ function shipImageForSlot(arenaId: bigint, index: number) {
 }
 
 function formatEthInput(value: number) {
-  if (!Number.isFinite(value)) return "0.001";
+  if (!Number.isFinite(value)) return "0";
   return value.toFixed(3);
 }
 
