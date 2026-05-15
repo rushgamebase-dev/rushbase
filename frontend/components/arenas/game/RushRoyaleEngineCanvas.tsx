@@ -397,16 +397,19 @@ export function RushRoyaleEngineCanvas({ arenaId, arenaState, seed, participants
     startMatch(0);
   }, [arenaId, arenaState, clearTimers, engineParticipants.length, expectsServerStream, hasActualMatch, hasArenaSelection, ready, seed, startMatch]);
 
+  const seedText = hud.seed.toString();
+  const seedLabel = seedText.length > 18 ? `${seedText.slice(0, 8)}...${seedText.slice(-6)}` : seedText;
+
   return (
-    <div className="overflow-hidden rounded-lg border border-violet-400/25 bg-black shadow-[0_0_38px_rgba(139,92,246,0.18)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-zinc-950 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-violet-400/25 bg-black shadow-[0_0_38px_rgba(139,92,246,0.18)]">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-zinc-950 px-4 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-red-400/45 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-red-100" style={{ fontFamily: "monospace" }}>
             <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_14px_rgba(248,113,113,0.9)]" />
             {getModeLabel(streamMode, hasActualMatch, hasArenaSelection)}
           </span>
-          <span className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{hud.arenaId.toString()}</span>
-          <span className="text-xs font-black uppercase tracking-[0.16em] text-neutral-500" style={{ fontFamily: "monospace" }}>seed {hud.seed.toString()}</span>
+          <span className="shrink-0 text-xs font-black uppercase tracking-[0.16em] text-cyan-100" style={{ fontFamily: "monospace" }}>arena #{hud.arenaId.toString()}</span>
+          <span className="min-w-0 max-w-[150px] truncate text-xs font-black uppercase tracking-[0.16em] text-neutral-500 sm:max-w-[260px]" style={{ fontFamily: "monospace" }}>seed {seedLabel}</span>
         </div>
         <button
           type="button"

@@ -26,7 +26,7 @@ import {
 import { RushArenaCanvas } from "@/components/taptrade/RushArenaCanvas";
 import { WalletDrawer } from "@/components/taptrade/WalletDrawer";
 import { WinFloater } from "@/components/taptrade/WinFloater";
-import { WalletButton } from "@/components/WalletButton";
+import { WalletButton, useWalletModal } from "@/components/WalletButton";
 import {
   RUSH_MARKET,
   rushArenaClient,
@@ -45,7 +45,7 @@ import {
 } from "@/lib/taptrade/grid";
 import { useHaptic } from "@/hooks";
 import { useTapTradeAuth } from "@/hooks/use-taptrade-auth";
-import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
 
 // Future cells visible at any time. New cells are appended to the
 // world-time stream as wallNow advances; old ones slide off the left
@@ -157,22 +157,18 @@ interface RushArenaTradePageProps {
 export default function RushArenaTradePage({
   bypassAuthGate = false,
 }: RushArenaTradePageProps = {}) {
-  const router = useRouter();
+  const { address, isConnected } = useAccount();
+  const { openModal: openWalletModal, WalletModalComponent } = useWalletModal();
   const {
     isAuthenticated,
+    isSigningIn,
+    signIn,
+    error: authError,
     freeBalanceWei,
     refreshBalance,
   } = useTapTradeAuth();
 
-  // Auth gate: send unauthenticated visitors to /trade/connect.
-  // Done in `useEffect` so SSR rendering doesn't crash on
-  // `useRouter().replace`. Skipped in preview mode.
-  useEffect(() => {
-    if (bypassAuthGate) return;
-    if (!isAuthenticated) {
-      router.replace("/trade/connect");
-    }
-  }, [bypassAuthGate, isAuthenticated, router]);
+  const requiresSession = !bypassAuthGate && !isAuthenticated;
 
   const [round, setRound] = useState<RushRound | null>(null);
   const [fair, setFair] = useState<ProvablyFairState | null>(null);
@@ -715,6 +711,17 @@ export default function RushArenaTradePage({
   const handleCellClick = useCallback(
     async (cell: TapGridCell) => {
       if (cell.disabled || stakeAmount <= 0) return;
+      if (requiresSession) {
+        hapticError();
+        if (!isConnected) {
+          openWalletModal();
+          toast.error("Connect a Base wallet to play Rush Trade");
+        } else if (!isSigningIn) {
+          void signIn();
+          toast.error("Sign the Rush session before placing a bet");
+        }
+        return;
+      }
       if (stakeAmount > balance) {
         hapticError();
         toast.error("Insufficient balance");
@@ -800,7 +807,7 @@ export default function RushArenaTradePage({
         toast.error(error instanceof Error ? error.message : "Bet failed");
       }
     },
-    [balance, currentPrice, hapticError, hapticMedium, hapticTap, nowTime, playSound, stakeAmount]
+    [balance, currentPrice, hapticError, hapticMedium, hapticTap, isConnected, isSigningIn, nowTime, openWalletModal, playSound, requiresSession, signIn, stakeAmount]
   );
 
   const pctMove = round && round.initialPrice > 0
@@ -838,6 +845,7 @@ export default function RushArenaTradePage({
       />
 
       <WalletDrawer open={walletOpen} onClose={() => setWalletOpen(false)} />
+      <WalletModalComponent />
 
       {winFloaters.map((f) => (
         <WinFloater
@@ -880,6 +888,16 @@ export default function RushArenaTradePage({
               onCellHover={(cell) => setHoveredCellId(cell?.id ?? null)}
               className="h-full w-full"
             />
+            {requiresSession ? (
+              <SessionAccessPanel
+                isConnected={isConnected}
+                address={address}
+                isSigningIn={isSigningIn}
+                error={authError}
+                onConnect={openWalletModal}
+                onSignIn={() => void signIn()}
+              />
+            ) : null}
           </div>
 
           <MarketPanels nowTime={nowTime} />
@@ -909,6 +927,76 @@ export default function RushArenaTradePage({
         pathRegime={activeVrfPathBet?.pathRegime}
         betStatus={activeVrfPathBet?.status}
       />
+    </div>
+  );
+}
+
+function SessionAccessPanel({
+  isConnected,
+  address,
+  isSigningIn,
+  error,
+  onConnect,
+  onSignIn,
+}: {
+  isConnected: boolean;
+  address?: `0x${string}`;
+  isSigningIn: boolean;
+  error: string | null;
+  onConnect: () => void;
+  onSignIn: () => void;
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex justify-center sm:inset-x-auto sm:bottom-5 sm:left-5">
+      <div className="pointer-events-auto w-full max-w-[430px] rounded-xl border border-[#00ff66]/35 bg-[#020806]/94 p-4 shadow-[0_0_38px_rgba(0,255,102,0.18)] backdrop-blur-md">
+        <div className="font-mono text-[10px] font-black uppercase tracking-[0.28em] text-[#00ff66]">
+          Rush Trade session
+        </div>
+        <h2 className="mt-1 text-xl font-black text-white">Play inside Rush</h2>
+        <p className="mt-2 text-sm leading-5 text-[#9bbca7]">
+          Watch the live arena now. Connect and sign one gasless session when you are ready to place real ETH bets.
+        </p>
+
+        {isConnected && address ? (
+          <div className="mt-3 rounded-lg border border-[#1d3327] bg-[#06100f] px-3 py-2 font-mono text-xs font-bold text-[#b8c7d9]">
+            {address.slice(0, 6)}...{address.slice(-4)}
+          </div>
+        ) : null}
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {!isConnected ? (
+            <button
+              type="button"
+              onClick={onConnect}
+              className="h-12 rounded-lg border border-[#00ff66]/50 bg-[#00ff66] px-4 font-mono text-sm font-black uppercase tracking-[0.16em] text-[#021b0b] shadow-[0_0_22px_rgba(0,255,102,0.25)] transition hover:bg-[#35ff88]"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onSignIn}
+              disabled={isSigningIn}
+              className="h-12 rounded-lg border border-[#00ff66]/50 bg-[#00ff66] px-4 font-mono text-sm font-black uppercase tracking-[0.16em] text-[#021b0b] shadow-[0_0_22px_rgba(0,255,102,0.25)] transition hover:bg-[#35ff88] disabled:cursor-wait disabled:opacity-70"
+            >
+              {isSigningIn ? "Signing..." : "Sign Session"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="h-12 rounded-lg border border-[#1d3327] bg-[#06100f] px-4 font-mono text-sm font-black uppercase tracking-[0.16em] text-[#b8c7d9] transition hover:border-[#00ff66]/40 hover:text-[#00ff66]"
+          >
+            Watch First
+          </button>
+        </div>
+
+        {error ? (
+          <p className="mt-3 break-words rounded-md border border-[#ff3b4d]/35 bg-[#1a0a0c] px-3 py-2 text-xs font-bold text-[#ff8a94]">
+            {error}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -945,12 +1033,12 @@ function TopHeader({
             backgroundSize: "184%",
           }}
         />
-        {/* RUSH text + TapTrading subtitle — desktop only.
+        {/* RUSH text + trade subtitle — desktop only.
             Mobile gets just the logo to save horizontal space for
             price + balance which the player actually needs. */}
         <div className="hidden sm:block">
           <div className="font-sans text-3xl font-black leading-6 text-white">RUSH</div>
-          <div className="font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66]">TapTrading</div>
+          <div className="font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66]">Rush Trade</div>
         </div>
       </div>
 

@@ -452,7 +452,7 @@ export default function StakePage() {
         {/* Trust strip */}
         <section className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
           <Trust label="100% on-chain" body="Synthetix accumulator pattern. No epochs, no snapshots, no admin claims." />
-          <Trust label="real ETH" body="Rewards come from TapTrading house edge, paid in ETH on Base." />
+          <Trust label="real ETH" body="Rewards come from Rush Trade house edge, paid in ETH on Base." />
           <Trust label="no locks" body="Stake, unstake, claim — independently, any time. Zero penalties." />
         </section>
 

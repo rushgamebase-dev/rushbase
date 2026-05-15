@@ -1344,16 +1344,16 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
   const openCanLock = selectedArena?.state === 1 && selectedParticipantCount !== undefined && selectedParticipantCount >= selectedArena.minPlayers && (BigInt(now) >= selectedArena.registrationEnd || selectedParticipantCount >= selectedArena.maxPlayers);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="space-y-4">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-4">
         <SectionTitle icon={Play} eyebrow={`${activeArenas.length} active`} title="Watch queue" />
         <Panel>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             {arenas.map((row) => (
-              <button key={row.arena.arenaId.toString()} onClick={() => setSelectedArenaId(row.arena.arenaId)} className="flex items-center justify-between rounded-md border px-3 py-3 text-left transition-colors hover:border-[#ffd700]/35" style={{ borderColor: row.arena.arenaId === selectedArenaId ? "#ffd70066" : "#181818", background: row.arena.arenaId === selectedArenaId ? "rgba(255,215,0,0.08)" : "#090909" }}>
-                <span>
-                  <span className="block text-sm font-black text-white">Arena #{row.arena.arenaId.toString()}</span>
-                  <span className="mt-1 block text-xs text-neutral-500">{ARENA_TIER_LABELS[row.arena.tier]} - {formatEthValue(row.arena.entryFee)}</span>
+              <button key={row.arena.arenaId.toString()} onClick={() => setSelectedArenaId(row.arena.arenaId)} className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md border px-3 py-3 text-left transition-colors hover:border-[#ffd700]/35" style={{ borderColor: row.arena.arenaId === selectedArenaId ? "#ffd70066" : "#181818", background: row.arena.arenaId === selectedArenaId ? "rgba(255,215,0,0.08)" : "#090909" }}>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-white">Arena #{row.arena.arenaId.toString()}</span>
+                  <span className="mt-1 block truncate text-xs text-neutral-500">{ARENA_TIER_LABELS[row.arena.tier]} - {formatEthValue(row.arena.entryFee)}</span>
                 </span>
                 <StateBadge state={row.arena.state} />
               </button>
@@ -1362,7 +1362,7 @@ function WatchPanel({ arenas, activeArenas, selectedArena, selectedResult, selec
         </Panel>
       </div>
 
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <SectionTitle icon={Radio} eyebrow={selectedArena?.state === 3 ? "live battle feed" : "battle feed"} title="Watch Live" />
         <DemoBattlePreview arena={selectedArena} result={selectedResult} participants={selectedParticipants} />
 
@@ -1681,11 +1681,11 @@ function ReplayPanel({ arena, result, participants, lockedAt, startedAt, now }: 
   const visual = stateVisuals[arena.state] ?? stateVisuals[0];
   return (
     <Panel>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-900 pb-4">
-        <div><div className="text-xs font-black uppercase tracking-[0.18em] text-neutral-500" style={{ fontFamily: "monospace" }}>replay surface</div><div className="mt-1 text-sm text-neutral-300">{seed > BI_ZERO ? "Seed exists. Preview is deterministic from seed + fighter IDs." : "Waiting for VRF seed."}</div></div>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-neutral-900 pb-4">
+        <div className="min-w-0"><div className="text-xs font-black uppercase tracking-[0.18em] text-neutral-500" style={{ fontFamily: "monospace" }}>replay surface</div><div className="mt-1 text-sm text-neutral-300">{seed > BI_ZERO ? "Seed exists. Preview is deterministic from seed + fighter IDs." : "Waiting for VRF seed."}</div></div>
         <StateBadge state={arena.state} />
       </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="mt-5 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="relative min-h-[320px] overflow-hidden rounded-2xl border border-white/10 bg-black">
           <Image src={visual.image} alt={`Arena ${ARENA_STATE_LABELS[arena.state]}`} fill className="object-cover opacity-60" sizes="(min-width: 1024px) 640px, 100vw" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60" />
@@ -1714,7 +1714,7 @@ function ReplayPanel({ arena, result, participants, lockedAt, startedAt, now }: 
             </div>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <MiniFact label="Locked" value={lockedAt && lockedAt > BI_ZERO ? formatUnix(lockedAt) : "-"} />
           <MiniFact label="Started" value={startedAt && startedAt > BI_ZERO ? formatUnix(startedAt) : "-"} />
           <MiniFact label="Seed" value={seed > BI_ZERO ? shortBigInt(seed) : "Pending"} />
@@ -1735,7 +1735,7 @@ function SectionTitle({ icon: Icon, eyebrow, title }: { icon: typeof Swords; eye
 }
 
 function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-lg border p-5" style={{ borderColor: "#191919", background: "#0d0d0d" }}>{children}</div>;
+  return <div className="min-w-0 rounded-lg border p-5" style={{ borderColor: "#191919", background: "#0d0d0d" }}>{children}</div>;
 }
 
 function Pill({ icon: Icon, label, color }: { icon: typeof Radio; label: string; color: string }) {
@@ -1744,11 +1744,11 @@ function Pill({ icon: Icon, label, color }: { icon: typeof Radio; label: string;
 
 function StateBadge({ state }: { state: ArenaState }) {
   const tone = stateTone[state] ?? stateTone[0];
-  return <span className="inline-flex rounded px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: tone.fg, background: tone.bg, fontFamily: "monospace" }}>{tone.label}</span>;
+  return <span className="inline-flex shrink-0 rounded px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: tone.fg, background: tone.bg, fontFamily: "monospace" }}>{tone.label}</span>;
 }
 
 function MiniFact({ label, value }: { label: string; value?: string }) {
-  return <div className="rounded-md border border-neutral-900 bg-black/35 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-600" style={{ fontFamily: "monospace" }}>{label}</div><div className="mt-1 break-words text-sm font-bold text-neutral-200">{value ?? "-"}</div></div>;
+  return <div className="min-w-0 rounded-md border border-neutral-900 bg-black/35 px-3 py-2"><div className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-600" style={{ fontFamily: "monospace" }}>{label}</div><div className="mt-1 break-all text-sm font-bold text-neutral-200">{value ?? "-"}</div></div>;
 }
 
 function ActionNoticeBox({ notice, className = "" }: { notice: ActionNotice | null; className?: string }) {

@@ -155,7 +155,7 @@ export async function signInWithEthereum(opts: {
     `${domain} wants you to sign in with your Ethereum account:\n` +
     `${address}\n` +
     `\n` +
-    `Sign in to Rush TapTrade.\n` +
+    `Sign in to Rush Trade.\n` +
     `\n` +
     `URI: ${uri}\n` +
     `Version: 1\n` +

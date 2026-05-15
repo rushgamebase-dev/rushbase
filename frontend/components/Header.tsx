@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { BarChart3, CircleDollarSign, Gamepad2, Swords } from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import ShareButton from "@/components/ShareButton";
 import { useAccount } from "wagmi";
@@ -11,8 +13,21 @@ const ADMIN_ADDRESSES = [
   "0xdd12D83786C2BAc7be3D59869834C23E91449A2D",
 ].map((a) => a.toLowerCase());
 
+const MOBILE_NAV = [
+  { href: "/", label: "Play", icon: Gamepad2 },
+  { href: "/arenas", label: "Arenas", icon: Swords },
+  { href: "/trade", label: "Trade", icon: BarChart3 },
+  { href: "/stake", label: "Stake", icon: CircleDollarSign },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Header() {
   const { address } = useAccount();
+  const pathname = usePathname();
   const isAdmin = !!address && ADMIN_ADDRESSES.includes(address.toLowerCase());
 
   return (
@@ -50,7 +65,7 @@ export default function Header() {
         </Link>
 
         {/* Nav links */}
-        <nav className="flex items-center gap-1.5 sm:gap-2 md:gap-4 overflow-x-auto scrollbar-none" aria-label="Main navigation">
+        <nav className="hidden items-center gap-1.5 sm:gap-2 md:gap-4 xl:flex" aria-label="Main navigation">
           <Link
             href="/"
             className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
@@ -74,30 +89,30 @@ export default function Header() {
           </a>
 
           <Link
-            href="/series2"
+            href="/tiles"
             className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#ff6600", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff8833")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ff6600")}
+            style={{ color: "#ffd700", letterSpacing: "0.05em", fontFamily: "monospace" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#fff08a")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffd700")}
           >
-            SERIES 2
+            TILES
             <span
               className="px-1 py-0.5 rounded text-center"
               style={{
                 fontSize: 10,
-                background: "rgba(255,102,0,0.12)",
-                border: "1px solid rgba(255,102,0,0.3)",
-                color: "#ff6600",
+                background: "rgba(255,215,0,0.12)",
+                border: "1px solid rgba(255,215,0,0.3)",
+                color: "#ffd700",
                 fontFamily: "monospace",
                 letterSpacing: "0.06em",
                 lineHeight: 1,
               }}
             >
-              NEW
+              LEDGER
             </span>
           </Link>
 
-          {/* TRADE — touch-betting arena (TapTrading). Highlighted in
+          {/* TRADE — touch-betting arena. Highlighted in
               the same neon-cyan palette as the in-game canvas accents
               so the menu surface matches what the player sees once
               they land on /trade. */}
@@ -151,7 +166,7 @@ export default function Header() {
           </Link>
 
           {/* STAKE — single-sided $RUSH staking, ETH rewards from
-              TapTrading house edge. Synthetix accumulator pattern,
+              Rush Trade house edge. Synthetix accumulator pattern,
               live earned counter on the page. */}
           <Link
             href="/stake"
@@ -298,38 +313,31 @@ export default function Header() {
       </div>
     </header>
 
-      {/* Mobile-only Series 2 CTA — big and unmissable */}
-      <Link
-        href="/series2"
-        className="md:hidden flex items-center justify-center gap-3 w-full py-3"
-        style={{
-          background: "linear-gradient(90deg, rgba(255,102,0,0.15), rgba(255,60,0,0.2), rgba(255,102,0,0.15))",
-          borderBottom: "2px solid rgba(255,102,0,0.4)",
-        }}
-      >
-        <span
-          className="text-base font-black tracking-widest"
-          style={{
-            color: "#ff6600",
-            fontFamily: "monospace",
-            textShadow: "0 0 12px rgba(255,102,0,0.5)",
-          }}
-        >
-          SERIES 2 — TILES OPEN
-        </span>
-        <span
-          className="px-2 py-1 rounded-md text-xs font-black"
-          style={{
-            background: "rgba(255,102,0,0.2)",
-            border: "1px solid rgba(255,102,0,0.5)",
-            color: "#ff8833",
-            fontFamily: "monospace",
-            animation: "pulse 2s ease-in-out infinite",
-          }}
-        >
-          NEW
-        </span>
-      </Link>
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-[#172018] bg-[#060806]/96 px-2 pb-[calc(env(safe-area-inset-bottom)+6px)] pt-2 backdrop-blur-xl xl:hidden" aria-label="Primary mobile navigation">
+        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+          {MOBILE_NAV.map((item) => {
+            const Icon = item.icon;
+            const active = isActivePath(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.08em] transition-colors"
+                style={{
+                  borderColor: active ? "rgba(0,255,136,0.45)" : "transparent",
+                  background: active ? "rgba(0,255,136,0.12)" : "transparent",
+                  color: active ? "#00ff88" : "#7a8a80",
+                  fontFamily: "monospace",
+                }}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }
