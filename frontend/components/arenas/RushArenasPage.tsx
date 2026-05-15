@@ -301,7 +301,7 @@ export default function RushArenasPage({
                     letterSpacing: 0,
                   }}
                 >
-                  RUSH ARENAS
+                  RUSH ROYALE
                 </h1>
                 <p className="mt-5 max-w-2xl text-base leading-7 text-neutral-300 md:text-lg">
                   Autonomous fighters battle for ETH prize pools. The seed comes

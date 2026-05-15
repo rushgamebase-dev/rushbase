@@ -2,17 +2,17 @@ import type { ReactNode } from "react";
 
 export const metadata = {
   title: "Stats — Rush",
-  description: "Live volume, fees distributed to holders, markets resolved. On-chain verifiable.",
+  description: "Rush ecosystem stats for Royale, Tap Trading, prediction markets and verified contracts.",
   openGraph: {
-    title: "Rush — Live Protocol Stats",
-    description: "Volume, fees distributed, rounds resolved. All on-chain.",
+    title: "Rush — Ecosystem Stats",
+    description: "Royale, Tap Trading, prediction markets and verified contracts.",
     images: ["/og-image.png"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Rush — Live Protocol Stats",
-    description: "Volume, fees distributed, rounds resolved.",
+    title: "Rush — Ecosystem Stats",
+    description: "Royale, Tap Trading, prediction markets and verified contracts.",
     images: ["/og-image.png"],
   },
 };

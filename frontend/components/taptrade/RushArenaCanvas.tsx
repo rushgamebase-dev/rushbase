@@ -1114,7 +1114,7 @@ export function RushArenaCanvas({
     <div
       ref={containerRef}
       role="application"
-      aria-label="Rush Trade collision grid"
+      aria-label="Tap Trading collision grid"
       onPointerMove={handleMove}
       onPointerLeave={() => {
         hoverCellIdRef.current = null;

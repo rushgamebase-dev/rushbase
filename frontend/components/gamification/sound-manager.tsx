@@ -315,7 +315,7 @@ export function SoundManagerProvider({ children }: { children: ReactNode }) {
           break;
 
         case "loss":
-          // Rush Trade intentionally keeps losses silent.
+          // Tap Trading intentionally keeps losses silent.
           break;
 
         case "bigWin":

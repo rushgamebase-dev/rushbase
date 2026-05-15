@@ -827,8 +827,8 @@ export default function RushArenasPlayPage({ section = "join", initialArenaId }:
               </div>
 
               <div>
-                <div className="relative mb-2 h-16 w-[260px] md:h-20 md:w-[330px]">
-                  <Image src="/images/arenas/title-battle-arenas.png" alt="Battle Arenas" fill className="object-contain object-left drop-shadow-[0_0_24px_rgba(139,92,246,0.45)]" priority />
+                <div className="mb-3 font-mono text-xs font-black uppercase tracking-[0.26em] text-[#00ddff]">
+                  Rush ecosystem game
                 </div>
                 <h1 className="max-w-3xl text-5xl font-black leading-[0.95] md:text-7xl" style={{ color: "#f4f4f4", fontFamily: "ui-monospace, SFMono-Regular, monospace", letterSpacing: 0 }}>
                   RUSH ROYALE

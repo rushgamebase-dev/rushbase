@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trophy } from "lucide-react";
 import Header from "@/components/Header";
 import { useLeaderboard, type LeaderboardSort, type LeaderboardRow } from "@/profile-kit/hooks/useLeaderboard";
 import { useMyProfile } from "@/profile-kit/hooks/useMyProfile";
@@ -64,23 +64,39 @@ export default function LeaderboardPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-[#e0e0e0]">
       <Header />
 
-      <main className="max-w-3xl mx-auto p-4 md:p-6 space-y-5">
+      <main className="mx-auto w-full max-w-5xl space-y-5 p-4 pb-24 md:p-8">
         <div className="flex items-center gap-2 text-xs font-mono text-[#555]">
           <Link href="/" className="flex items-center gap-1 hover:text-[#00ff88] transition-colors">
             <ArrowLeft size={12} /> BACK
           </Link>
           <span>/</span>
-          <span className="text-[#888]">LEADERBOARD</span>
+          <span className="text-[#888]">RANKS</span>
         </div>
 
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl md:text-3xl font-mono font-black uppercase tracking-tight">
-            Leaderboard
-          </h1>
-          <div className="text-[10px] font-mono text-[#666] uppercase tracking-[0.2em]">
-            Top 50
+        <section className="overflow-hidden rounded-lg border border-[#1a1a1a] bg-[#0d0d0d]">
+          <div className="border-b border-[#1a1a1a] px-5 py-5 md:px-6">
+            <div className="mb-3 inline-flex items-center gap-2 rounded border border-[#00ff88]/25 bg-[#00ff88]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-[#00ff88]">
+              <Trophy size={13} />
+              Top 50
+            </div>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-tight text-white md:text-5xl">
+                  Rush Ranks
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a8a8a]">
+                  Cross-ecosystem player standings for volume, P&L, wins and activity.
+                </p>
+              </div>
+              {myRankForSort ? (
+                <div className="rounded-md border border-[#00ff88]/25 bg-black/40 px-4 py-3 text-right">
+                  <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#666]">Your rank</div>
+                  <div className="font-mono text-2xl font-black text-[#00ff88]">#{myRankForSort.rank}</div>
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </section>
 
         <div className="flex gap-1 border-b border-[#1a1a1a] overflow-x-auto scrollbar-none">
           {SORTS.map((s) => (

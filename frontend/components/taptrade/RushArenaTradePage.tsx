@@ -23,10 +23,11 @@ import {
   type ParticleSystemRef,
   useSoundManager,
 } from "@/components/gamification";
+import Header from "@/components/Header";
 import { RushArenaCanvas } from "@/components/taptrade/RushArenaCanvas";
 import { WalletDrawer } from "@/components/taptrade/WalletDrawer";
 import { WinFloater } from "@/components/taptrade/WinFloater";
-import { WalletButton, useWalletModal } from "@/components/WalletButton";
+import { useWalletModal } from "@/components/WalletButton";
 import {
   RUSH_MARKET,
   rushArenaClient,
@@ -150,7 +151,7 @@ interface RushArenaTradePageProps {
   /** When true, skip the SIWE auth redirect — used by the offline
    *  `/preview` sandbox so the canvas renders against the mocked
    *  rushArenaClient without a wallet/engine round-trip. Default
-   *  false (production `/trade` keeps the redirect). */
+   *  false for production sessions. */
   bypassAuthGate?: boolean;
 }
 
@@ -715,7 +716,7 @@ export default function RushArenaTradePage({
         hapticError();
         if (!isConnected) {
           openWalletModal();
-          toast.error("Connect a Base wallet to play Rush Trade");
+          toast.error("Connect a Base wallet to play Tap Trading");
         } else if (!isSigningIn) {
           void signIn();
           toast.error("Sign the Rush session before placing a bet");
@@ -832,101 +833,104 @@ export default function RushArenaTradePage({
   const ctaState = hydrated && activeBet ? "tracking" : hydrated && hoveredCell ? "ready" : "idle";
 
   return (
-    <div className="flex h-screen min-h-[640px] w-full flex-col overflow-hidden bg-[#020403] text-[#dfffe6] sm:min-h-[720px]">
-      <ParticleSystem onRef={(ref) => (particlesRef.current = ref)} />
+    <div className="flex min-h-screen flex-col bg-[#020403] text-[#dfffe6]">
+      <Header />
+      <div className="flex h-[calc(100dvh-3.5rem)] min-h-[640px] w-full flex-col overflow-hidden pb-[72px] sm:min-h-[720px] xl:pb-0">
+        <ParticleSystem onRef={(ref) => (particlesRef.current = ref)} />
 
-      <TopHeader
-        symbol="RUSH/ETH"
-        price={currentPrice}
-        pctMove={pctMove}
-        balance={balance}
-        onOpenWallet={() => setWalletOpen(true)}
-        balanceRef={balanceRef}
-      />
-
-      <WalletDrawer open={walletOpen} onClose={() => setWalletOpen(false)} />
-      <WalletModalComponent />
-
-      {winFloaters.map((f) => (
-        <WinFloater
-          key={f.id}
-          amountEth={f.amountEth}
-          multiplier={f.multiplier}
-          from={f.from}
-          to={f.to}
-          onComplete={() => {
-            setWinFloaters((prev) => prev.filter((entry) => entry.id !== f.id));
-            // After the float lands in the balance widget, ask the
-            // engine for the canonical post-settlement balance so
-            // the number visibly bumps right as the floater absorbs.
-            void refreshBalance();
-          }}
+        <TopHeader
+          symbol="RUSH/ETH"
+          price={currentPrice}
+          pctMove={pctMove}
+          balance={balance}
+          onOpenWallet={() => setWalletOpen(true)}
+          balanceRef={balanceRef}
         />
-      ))}
 
-      <main className="flex min-h-0 flex-1 gap-3 p-2 sm:p-3">
-        <section className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#10251d] bg-[#020806] shadow-[0_0_34px_rgba(0,255,102,0.05)]">
-            <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2">
-              <span className="rounded border border-[#1d3327] bg-[#020806]/85 px-2 py-1 font-mono text-xs font-black text-white">M1</span>
-              <span className="grid h-7 w-7 place-items-center rounded border border-[#1d3327] bg-[#020806]/85 text-[#b8c7d9]">⌁</span>
-              <span className="grid h-7 w-7 place-items-center rounded border border-[#1d3327] bg-[#020806]/85 text-[#b8c7d9]">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-              </span>
-            </div>
-            <div className="pointer-events-none absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded border border-[#1d3327] bg-[#020806]/85 px-2 py-1 font-mono text-[11px] font-bold text-[#00ff66]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00ff66] shadow-[0_0_6px_#00ff66]" />
-              <span>{heatmap.onlineCount} online</span>
-            </div>
-            <RushArenaCanvas
-              ticks={ticks}
-              currentPrice={currentPrice}
-              nowTime={nowTime}
-              cells={cells}
-              bets={bets}
-              onCellClick={handleCellClick}
-              onCellHover={(cell) => setHoveredCellId(cell?.id ?? null)}
-              className="h-full w-full"
-            />
-            {requiresSession ? (
-              <SessionAccessPanel
-                isConnected={isConnected}
-                address={address}
-                isSigningIn={isSigningIn}
-                error={authError}
-                onConnect={openWalletModal}
-                onSignIn={() => void signIn()}
+        <WalletDrawer open={walletOpen} onClose={() => setWalletOpen(false)} />
+        <WalletModalComponent />
+
+        {winFloaters.map((f) => (
+          <WinFloater
+            key={f.id}
+            amountEth={f.amountEth}
+            multiplier={f.multiplier}
+            from={f.from}
+            to={f.to}
+            onComplete={() => {
+              setWinFloaters((prev) => prev.filter((entry) => entry.id !== f.id));
+              // After the float lands in the balance widget, ask the
+              // engine for the canonical post-settlement balance so
+              // the number visibly bumps right as the floater absorbs.
+              void refreshBalance();
+            }}
+          />
+        ))}
+
+        <main className="flex min-h-0 flex-1 gap-3 p-2 sm:p-3">
+          <section className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#10251d] bg-[#020806] shadow-[0_0_34px_rgba(0,255,102,0.05)]">
+              <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2">
+                <span className="rounded border border-[#1d3327] bg-[#020806]/85 px-2 py-1 font-mono text-xs font-black text-white">M1</span>
+                <span className="grid h-7 w-7 place-items-center rounded border border-[#1d3327] bg-[#020806]/85 text-[#b8c7d9]">⌁</span>
+                <span className="grid h-7 w-7 place-items-center rounded border border-[#1d3327] bg-[#020806]/85 text-[#b8c7d9]">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <div className="pointer-events-none absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded border border-[#1d3327] bg-[#020806]/85 px-2 py-1 font-mono text-[11px] font-bold text-[#00ff66]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00ff66] shadow-[0_0_6px_#00ff66]" />
+                <span>{heatmap.onlineCount} online</span>
+              </div>
+              <RushArenaCanvas
+                ticks={ticks}
+                currentPrice={currentPrice}
+                nowTime={nowTime}
+                cells={cells}
+                bets={bets}
+                onCellClick={handleCellClick}
+                onCellHover={(cell) => setHoveredCellId(cell?.id ?? null)}
+                className="h-full w-full"
               />
-            ) : null}
-          </div>
+              {requiresSession ? (
+                <SessionAccessPanel
+                  isConnected={isConnected}
+                  address={address}
+                  isSigningIn={isSigningIn}
+                  error={authError}
+                  onConnect={openWalletModal}
+                  onSignIn={() => void signIn()}
+                />
+              ) : null}
+            </div>
 
-          <MarketPanels nowTime={nowTime} />
-        </section>
+            <MarketPanels nowTime={nowTime} />
+          </section>
 
-        <TradeSidebar
+          <TradeSidebar
+            stakeAmount={stakeAmount}
+            setStakeAmount={setStakeAmount}
+            balance={balance}
+            selectedTarget={selectedTarget}
+            selectedPayout={selectedPayout}
+            selectedTargetSeconds={selectedTargetSeconds}
+            ctaState={ctaState}
+          />
+        </main>
+
+        <MobileStakeStrip
           stakeAmount={stakeAmount}
           setStakeAmount={setStakeAmount}
           balance={balance}
-          selectedTarget={selectedTarget}
-          selectedPayout={selectedPayout}
-          selectedTargetSeconds={selectedTargetSeconds}
-          ctaState={ctaState}
         />
-      </main>
 
-      <MobileStakeStrip
-        stakeAmount={stakeAmount}
-        setStakeAmount={setStakeAmount}
-        balance={balance}
-      />
-
-      <RoundFooter
-        roundEndsInMs={roundEndsInMs}
-        serverSeedHash={activeVrfPathBet?.seedHash ?? fair?.serverSeedHash}
-        seedId={activeVrfPathBet?.seedId}
-        pathRegime={activeVrfPathBet?.pathRegime}
-        betStatus={activeVrfPathBet?.status}
-      />
+        <RoundFooter
+          roundEndsInMs={roundEndsInMs}
+          serverSeedHash={activeVrfPathBet?.seedHash ?? fair?.serverSeedHash}
+          seedId={activeVrfPathBet?.seedId}
+          pathRegime={activeVrfPathBet?.pathRegime}
+          betStatus={activeVrfPathBet?.status}
+        />
+      </div>
     </div>
   );
 }
@@ -950,7 +954,7 @@ function SessionAccessPanel({
     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex justify-center sm:inset-x-auto sm:bottom-5 sm:left-5">
       <div className="pointer-events-auto w-full max-w-[430px] rounded-xl border border-[#00ff66]/35 bg-[#020806]/94 p-4 shadow-[0_0_38px_rgba(0,255,102,0.18)] backdrop-blur-md">
         <div className="font-mono text-[10px] font-black uppercase tracking-[0.28em] text-[#00ff66]">
-          Rush Trade session
+          Tap Trading session
         </div>
         <h2 className="mt-1 text-xl font-black text-white">Play inside Rush</h2>
         <p className="mt-2 text-sm leading-5 text-[#9bbca7]">
@@ -1038,7 +1042,7 @@ function TopHeader({
             price + balance which the player actually needs. */}
         <div className="hidden sm:block">
           <div className="font-sans text-3xl font-black leading-6 text-white">RUSH</div>
-          <div className="font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66]">Rush Trade</div>
+          <div className="font-mono text-[11px] font-black uppercase tracking-[0.28em] text-[#00ff66]">Tap Trading</div>
         </div>
       </div>
 
@@ -1122,11 +1126,6 @@ function TopHeader({
             </span>
           </button>
         </div>
-        {/* Wallet connect/disconnect/switch — same RainbowKit-style
-            component the global Rush header uses. Without this the
-            user is stuck with whatever account MetaMask defaults to
-            and can't switch identities mid-session. */}
-        <WalletButton />
       </div>
     </header>
   );

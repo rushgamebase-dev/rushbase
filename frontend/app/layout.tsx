@@ -3,8 +3,8 @@ import Providers from "./providers";
 
 export const metadata = {
   metadataBase: new URL("https://rushgame.vip"),
-  title: "Rush — Live Prediction Market",
-  description: "On-chain vehicle count prediction market. Bet on traffic. Win ETH.",
+  title: "Rush — Royale, Tap Trading and On-Chain Games",
+  description: "Rush is a Base ecosystem for Royale battles, Tap Trading, ranks, stats and public ledger proof.",
   manifest: "/manifest.webmanifest",
   applicationName: "Rush",
   appleWebApp: {
@@ -21,8 +21,8 @@ export const metadata = {
     apple: "/logo.png",
   },
   openGraph: {
-    title: "Rush — Live Prediction Market",
-    description: "Predict vehicle counts on live cameras. Win ETH on Base Chain.",
+    title: "Rush — Royale, Tap Trading and On-Chain Games",
+    description: "Play Rush Royale, Tap Trading and inspect every result on Base.",
     url: "https://rushgame.vip",
     images: ["/og-image.png"],
     type: "website",
@@ -30,8 +30,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rush — Live Prediction Market",
-    description: "Predict vehicle counts on live cameras. Win ETH on Base Chain.",
+    title: "Rush — Royale, Tap Trading and On-Chain Games",
+    description: "Play Rush Royale, Tap Trading and inspect every result on Base.",
     images: ["/og-image.png"],
     site: "@rushgamebase",
   },

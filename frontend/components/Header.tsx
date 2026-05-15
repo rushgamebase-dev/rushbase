@@ -3,7 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { BarChart3, CircleDollarSign, Gamepad2, Swords } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  CircleDollarSign,
+  Database,
+  Home,
+  Swords,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import ShareButton from "@/components/ShareButton";
 import { useAccount } from "wagmi";
@@ -13,16 +22,38 @@ const ADMIN_ADDRESSES = [
   "0xdd12D83786C2BAc7be3D59869834C23E91449A2D",
 ].map((a) => a.toLowerCase());
 
+const DESKTOP_NAV: Array<{
+  href: string;
+  label: string;
+  accent?: string;
+  badge?: string;
+  icon: LucideIcon;
+}> = [
+  { href: "/", label: "Home", accent: "#00ff88", icon: Home },
+  { href: "/trade", label: "Tap Trading", accent: "#00ff66", badge: "LIVE", icon: BarChart3 },
+  { href: "/arenas", label: "Royale", accent: "#00ddff", badge: "PLAY", icon: Swords },
+  { href: "/stake", label: "Stake", accent: "#1aff84", icon: CircleDollarSign },
+  { href: "/leaderboard", label: "Ranks", icon: Trophy },
+  { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/docs", label: "Docs", icon: BookOpen },
+  { href: "/transparency", label: "Ledger", accent: "#ffd700", icon: Database },
+];
+
 const MOBILE_NAV = [
-  { href: "/", label: "Play", icon: Gamepad2 },
-  { href: "/arenas", label: "Arenas", icon: Swords },
-  { href: "/trade", label: "Trade", icon: BarChart3 },
-  { href: "/stake", label: "Stake", icon: CircleDollarSign },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/trade", label: "Tap Trading", icon: BarChart3 },
+  { href: "/arenas", label: "Royale", icon: Swords },
+  { href: "/transparency", label: "Ledger", icon: Database },
 ];
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function navColor(active: boolean, accent?: string) {
+  if (active) return accent ?? "#00ff88";
+  return "#737373";
 }
 
 export default function Header() {
@@ -64,173 +95,40 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Nav links */}
         <nav className="hidden items-center gap-1.5 sm:gap-2 md:gap-4 xl:flex" aria-label="Main navigation">
-          <Link
-            href="/"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
-          >
-            PREDICT
-          </Link>
-
-          <a
-            href="https://markets.rushgame.vip/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#00aaff", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#44ccff")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#00aaff")}
-          >
-            MARKETS
-          </a>
-
-          <Link
-            href="/tiles"
-            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#ffd700", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#fff08a")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#ffd700")}
-          >
-            TILES
-            <span
-              className="px-1 py-0.5 rounded text-center"
-              style={{
-                fontSize: 10,
-                background: "rgba(255,215,0,0.12)",
-                border: "1px solid rgba(255,215,0,0.3)",
-                color: "#ffd700",
-                fontFamily: "monospace",
-                letterSpacing: "0.06em",
-                lineHeight: 1,
-              }}
-            >
-              LEDGER
-            </span>
-          </Link>
-
-          {/* TRADE — touch-betting arena. Highlighted in
-              the same neon-cyan palette as the in-game canvas accents
-              so the menu surface matches what the player sees once
-              they land on /trade. */}
-          <Link
-            href="/trade"
-            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#00ff66", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#5dffaa")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#00ff66")}
-          >
-            TRADE
-            <span
-              className="px-1 py-0.5 rounded text-center"
-              style={{
-                fontSize: 10,
-                background: "rgba(0,255,102,0.12)",
-                border: "1px solid rgba(0,255,102,0.3)",
-                color: "#00ff66",
-                fontFamily: "monospace",
-                letterSpacing: "0.06em",
-                lineHeight: 1,
-              }}
-            >
-              NEW
-            </span>
-          </Link>
-
-          {/* Rush Arenas exposes the battle-arena module under Rush naming. */}
-          <Link
-            href="/arenas"
-            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#00ddff", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#66f0ff")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#00ddff")}
-          >
-            ARENAS
-            <span
-              className="px-1 py-0.5 rounded text-center"
-              style={{
-                fontSize: 10,
-                background: "rgba(0,221,255,0.12)",
-                border: "1px solid rgba(0,221,255,0.3)",
-                color: "#00ddff",
-                fontFamily: "monospace",
-                letterSpacing: "0.06em",
-                lineHeight: 1,
-              }}
-            >
-              AI
-            </span>
-          </Link>
-
-          {/* STAKE — single-sided $RUSH staking, ETH rewards from
-              Rush Trade house edge. Synthetix accumulator pattern,
-              live earned counter on the page. */}
-          <Link
-            href="/stake"
-            className="flex items-center gap-1 text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap"
-            style={{ color: "#1aff84", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#7dffaa")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#1aff84")}
-          >
-            STAKE
-            <span
-              className="px-1 py-0.5 rounded text-center"
-              style={{
-                fontSize: 10,
-                background: "rgba(26,255,132,0.12)",
-                border: "1px solid rgba(26,255,132,0.3)",
-                color: "#1aff84",
-                fontFamily: "monospace",
-                letterSpacing: "0.06em",
-                lineHeight: 1,
-              }}
-            >
-              NEW
-            </span>
-          </Link>
-
-          <Link
-            href="/leaderboard"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
-          >
-            RANKS
-          </Link>
-
-          <Link
-            href="/stats"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
-          >
-            STATS
-          </Link>
-
-          <Link
-            href="/docs"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#00ff88")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
-          >
-            DOCS
-          </Link>
-
-          <Link
-            href="/transparency"
-            className="text-[11px] md:text-xs font-medium transition-colors whitespace-nowrap"
-            style={{ color: "#666", letterSpacing: "0.05em", fontFamily: "monospace" }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#ffd700")}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "#666")}
-          >
-            LEDGER
-          </Link>
+          {DESKTOP_NAV.map((item) => {
+            const active = isActivePath(pathname, item.href);
+            const color = navColor(active, item.accent);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-1 text-[11px] font-bold transition-colors whitespace-nowrap"
+                style={{ color, letterSpacing: "0.05em", fontFamily: "monospace" }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = item.accent ?? "#00ff88")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = color)}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label.toUpperCase()}
+                {item.badge ? (
+                  <span
+                    className="px-1 py-0.5 rounded text-center"
+                    style={{
+                      fontSize: 10,
+                      background: `${item.accent ?? "#00ff88"}1f`,
+                      border: `1px solid ${item.accent ?? "#00ff88"}55`,
+                      color: item.accent ?? "#00ff88",
+                      fontFamily: "monospace",
+                      letterSpacing: "0.06em",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
 
           {address && (
             <Link
@@ -291,7 +189,7 @@ export default function Header() {
         </div>
         <span style={{ color: "#333" }}>|</span>
         <span className="text-sm font-medium" style={{ color: "#aaa" }}>
-          Live Prediction Market
+          Rush ecosystem online
         </span>
       </div>
 

@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Transparency — Rush",
-  description: "Every round's evidence, SHA-256 hashes, and on-chain settlement. Verify any outcome yourself.",
+  title: "Ledger — Rush",
+  description: "Rush ledger for on-chain proof, game accounting, contracts and legacy holder claims.",
   openGraph: {
-    title: "Rush — Transparency Ledger",
-    description: "Timestamped evidence with SHA-256 per round. Verify on Basescan.",
+    title: "Rush Ledger",
+    description: "On-chain proof, game accounting, contracts and legacy holder claims.",
     images: ["/og-image.png"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Rush — Transparency Ledger",
-    description: "SHA-256 evidence per round. Fully auditable.",
+    title: "Rush Ledger",
+    description: "On-chain proof, game accounting, contracts and legacy holder claims.",
     images: ["/og-image.png"],
   },
 };

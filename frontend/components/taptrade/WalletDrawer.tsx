@@ -2,7 +2,7 @@
 
 /**
  * WalletDrawer — slide-in panel for funding and exiting the
- * Rush Trade vault. Sits on top of the arena, never replaces it.
+ * Tap Trading vault. Sits on top of the arena, never replaces it.
  *
  * Two flows:
  *   - Deposit: user → TradingVault.deposit() (payable). Engine

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, BarChart3, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { useStats } from "@/hooks/useStats";
@@ -11,36 +11,57 @@ import {
   RUSH_TILES_V2_ADDRESS,
   RUSH_TOKEN_ADDRESS,
 } from "@/lib/contracts";
+import { RUSH_ARENAS_CONTRACTS } from "@/lib/contracts/rushArenas";
 
 const BASESCAN = "https://basescan.org";
 
 const CONTRACTS = [
   {
-    name: "MarketFactory",
+    name: "Prediction MarketFactory",
     address: FACTORY_ADDRESS,
     desc: "Creates ETH prediction markets",
-    tag: "production",
-    highlight: true,
   },
   {
     name: "$RUSH Token",
     address: RUSH_TOKEN_ADDRESS,
     desc: "ERC-20 on Flaunch — trading fee revenue",
+    tag: "token",
+    highlight: true,
   },
   {
-    name: "RushTiles Series 1",
-    address: RUSH_TILES_ADDRESS,
-    desc: "100 revenue-sharing tiles (Harberger tax)",
+    name: "Royale Agent Registry",
+    address: RUSH_ARENAS_CONTRACTS.agentRegistry,
+    desc: "Rush Royale fighter identities",
+    tag: "royale",
   },
   {
-    name: "RushTiles Series 2",
-    address: RUSH_TILES_V2_ADDRESS,
-    desc: "100 tiles — Founder (5 shares) + Normal (1 share)",
+    name: "Royale Arena Manager",
+    address: RUSH_ARENAS_CONTRACTS.arenaManager,
+    desc: "Rush Royale arenas and player entry",
+    tag: "royale",
+  },
+  {
+    name: "Royale Battle Engine",
+    address: RUSH_ARENAS_CONTRACTS.battleEngine,
+    desc: "VRF request, deterministic battle result and payouts",
+    tag: "royale",
   },
   {
     name: "Oracle",
     address: "0x4c385830c2E241EfeEd070Eb92606B6AedeDA277",
     desc: "AI vehicle count settlement",
+  },
+  {
+    name: "RushTiles Series 1",
+    address: RUSH_TILES_ADDRESS,
+    desc: "Legacy holder rewards and claims",
+    tag: "legacy",
+  },
+  {
+    name: "RushTiles Series 2",
+    address: RUSH_TILES_V2_ADDRESS,
+    desc: "Legacy holder management and claims",
+    tag: "legacy",
   },
 ];
 
@@ -49,7 +70,7 @@ export default function StatsPage() {
 
   const overview = [
     {
-      label: "Markets Resolved",
+      label: "Predict Markets",
       value: S.marketsResolved.toLocaleString(),
       sub: "All time",
       color: "#ffd700",
@@ -61,9 +82,9 @@ export default function StatsPage() {
       color: "#00aaff",
     },
     {
-      label: "Distributed to Holders",
+      label: "Legacy Distributions",
       value: `${S.feesDistributed.toFixed(2)} ETH`,
-      sub: "Series 1 tile rewards",
+      sub: "Holder rewards",
       color: "#aa88ff",
     },
     {
@@ -76,13 +97,12 @@ export default function StatsPage() {
 
   const details = [
     { label: "Chain", value: "Base (8453)" },
-    { label: "Settlement", value: "AI Oracle" },
-    { label: "Round Duration", value: "5 minutes" },
-    { label: "Betting Window", value: "2:30" },
-    { label: "Currency", value: "ETH" },
-    { label: "Protocol Fee", value: "0%" },
-    { label: "Total Tiles", value: "200 (Series 1 + 2)" },
-    { label: "Founder Shares", value: "5x per tile" },
+    { label: "Royale", value: "VRF battle arenas" },
+    { label: "Tap Trading", value: "Price-touch arena" },
+    { label: "Prediction", value: "AI Oracle markets" },
+    { label: "Currency", value: "ETH on Base" },
+    { label: "Ledger", value: "On-chain proof" },
+    { label: "Legacy Claims", value: "Available from Ledger" },
   ];
 
   return (
@@ -105,9 +125,20 @@ export default function StatsPage() {
           </Link>
           <span style={{ color: "#333" }}>/</span>
           <span className="text-sm font-bold tracking-widest" style={{ color: "#e0e0e0", fontFamily: "monospace" }}>
-            PLATFORM STATS
+            STATS
           </span>
         </div>
+
+        <section className="mb-10 overflow-hidden rounded-lg border border-[#1a1a1a] bg-[#0d0d0d] p-5 md:p-6">
+          <div className="mb-3 inline-flex items-center gap-2 rounded border border-[#00ff88]/25 bg-[#00ff88]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-[#00ff88]">
+            <BarChart3 size={13} />
+            Ecosystem
+          </div>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-white md:text-5xl">Rush Stats</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a8a8a]">
+            Live protocol counters, verified contracts and legacy accounting in one place.
+          </p>
+        </section>
 
         {/* Platform Overview */}
         <section aria-label="Platform overview" className="mb-10">
@@ -144,16 +175,16 @@ export default function StatsPage() {
         {/* Payout Model */}
         <section aria-label="Payout model" className="mb-10">
           <div className="text-xs font-bold tracking-widest mb-4" style={{ color: "#555", fontFamily: "monospace" }}>
-            PAYOUT MODEL
+            ECOSYSTEM MODEL
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg p-4 text-center" style={{ background: "#0a150a", border: "1px solid #00ff8822" }}>
-              <div className="text-2xl font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>100%</div>
-              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>TO WINNERS</div>
+              <div className="text-2xl font-black" style={{ color: "#00ff88", fontFamily: "monospace" }}>LIVE</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>ROYALE + TAP TRADING</div>
             </div>
             <div className="rounded-lg p-4 text-center" style={{ background: "#0d0d0d", border: "1px solid #ffd70022" }}>
-              <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>0%</div>
-              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>PROTOCOL FEES</div>
+              <div className="text-2xl font-black" style={{ color: "#ffd700", fontFamily: "monospace" }}>BASE</div>
+              <div className="text-xs mt-1" style={{ color: "#555", fontFamily: "monospace" }}>ON-CHAIN PROOF</div>
             </div>
           </div>
         </section>
@@ -190,7 +221,7 @@ export default function StatsPage() {
                     {"tag" in contract && contract.tag && (
                       <span
                         className="text-xs px-1.5 py-0.5 rounded"
-                        style={{ background: "#0a2a0a", color: "#00ff88", border: "1px solid #00ff8833", fontSize: "0.65rem", fontWeight: 700 }}
+                        style={contractTagStyle(contract.tag)}
                       >
                         {contract.tag}
                       </span>
@@ -254,7 +285,7 @@ export default function StatsPage() {
         {/* CTAs */}
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
-            href="/"
+            href="/arenas"
             className="inline-flex items-center gap-2 px-6 py-3 rounded font-bold text-sm transition-all"
             style={{
               background: "rgba(0,255,136,0.1)",
@@ -266,21 +297,21 @@ export default function StatsPage() {
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,136,0.1)")}
           >
             <span className="live-dot" style={{ width: 6, height: 6 }} aria-hidden="true" />
-            WATCH LIVE
+            OPEN ROYALE
           </Link>
           <Link
-            href="/series2"
+            href="/trade"
             className="inline-flex items-center gap-2 px-6 py-3 rounded font-bold text-sm transition-all"
             style={{
-              background: "rgba(255,215,0,0.1)",
-              border: "1px solid rgba(255,215,0,0.3)",
-              color: "#ffd700",
+              background: "rgba(0,255,102,0.1)",
+              border: "1px solid rgba(0,255,102,0.3)",
+              color: "#00ff66",
               fontFamily: "monospace",
             }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.18)")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.1)")}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,102,0.18)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(0,255,102,0.1)")}
           >
-            FOUNDER TILES
+            TAP TRADING
           </Link>
           <a
             href={`https://flaunch.gg/base/coins/${RUSH_TOKEN_ADDRESS}`}
@@ -303,4 +334,34 @@ export default function StatsPage() {
       </main>
     </div>
   );
+}
+
+function contractTagStyle(tag: string) {
+  if (tag === "legacy") {
+    return {
+      background: "#2a1a00",
+      color: "#ffaa00",
+      border: "1px solid #ffaa0033",
+      fontSize: "0.65rem",
+      fontWeight: 700,
+    };
+  }
+
+  if (tag === "token") {
+    return {
+      background: "#1a1600",
+      color: "#ffd700",
+      border: "1px solid #ffd70033",
+      fontSize: "0.65rem",
+      fontWeight: 700,
+    };
+  }
+
+  return {
+    background: "#061827",
+    color: "#00ddff",
+    border: "1px solid #00ddff33",
+    fontSize: "0.65rem",
+    fontWeight: 700,
+  };
 }

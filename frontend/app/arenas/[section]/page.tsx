@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import RushArenasPlayPage from "@/components/arenas/RushArenasPlayPage";
 
 export const metadata: Metadata = {
-  title: "Rush Arenas — Rush Royale",
+  title: "Rush Royale",
   description:
     "Rush Royale arena flows are moving under the Rush ecosystem on Base.",
 };

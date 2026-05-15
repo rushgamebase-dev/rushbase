@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/Header";
+import Link from "next/link";
 import {
   FACTORY_ADDRESS,
   RUSH_TILES_ADDRESS,
@@ -36,6 +37,89 @@ const S = {
 };
 
 export default function DocsPage() {
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-[#e0e0e0]">
+      <Header />
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 pb-24 md:px-8">
+        <section className="overflow-hidden rounded-lg border border-[#1a1a1a] bg-[#0d0d0d] p-5 md:p-7">
+          <div className="mb-3 inline-flex rounded border border-[#00ff88]/25 bg-[#00ff88]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-[#00ff88]">
+            Documentation
+          </div>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-white md:text-5xl">Rush Docs</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#9a9a9a]">
+            Current surfaces are Royale, Tap Trading, Ranks, Stats and Ledger. Legacy holder contracts remain accessible for claims and audit, but they are no longer a primary product path.
+          </p>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-2">
+          <DocCard
+            title="Royale"
+            label="Battle game"
+            body="Fighters enter Base mainnet arenas, VRF seeds the match, and the replay surface follows deterministic game-engine ticks."
+            href="/arenas"
+          />
+          <DocCard
+            title="Tap Trading"
+            label="Price-touch game"
+            body="Players tap a price/time cell, sign one session, and the engine settles the result through the Tap Trading vault."
+            href="/trade"
+          />
+          <DocCard
+            title="Ledger"
+            label="Proof and claims"
+            body="Contracts, market reports, legacy holder actions and accounting records live in the public ledger."
+            href="/transparency"
+          />
+          <DocCard
+            title="Ranks and Stats"
+            label="Player/accounting views"
+            body="Ranks track player performance. Stats exposes ecosystem counters and verified contract addresses."
+            href="/stats"
+          />
+        </section>
+
+        <section className="mt-6 rounded-lg border border-[#1a1a1a] bg-[#0d0d0d] p-5">
+          <div className="font-mono text-xs font-black uppercase tracking-[0.18em] text-[#666]">Production contracts</div>
+          <div className="mt-4 grid gap-3">
+            <ContractRow name="Prediction MarketFactory" address={FACTORY_ADDRESS} />
+            <ContractRow name="$RUSH Token" address={RUSH_TOKEN_ADDRESS} token />
+            <ContractRow name="Legacy RushTiles Series 1" address={RUSH_TILES_ADDRESS} />
+            <ContractRow name="Legacy RushTiles Series 2" address={RUSH_TILES_V2_ADDRESS} />
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function DocCard({ title, label, body, href }: { title: string; label: string; body: string; href: string }) {
+  return (
+    <Link href={href} className="rounded-lg border border-[#1a1a1a] bg-[#101010] p-5 transition-colors hover:border-[#00ff88]/35">
+      <div className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-[#00ff88]">{label}</div>
+      <h2 className="mt-2 text-2xl font-black text-white">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-[#888]">{body}</p>
+    </Link>
+  );
+}
+
+function ContractRow({ name, address, token = false }: { name: string; address: `0x${string}`; token?: boolean }) {
+  const path = token ? "token" : "address";
+  return (
+    <a
+      href={`https://basescan.org/${path}/${address}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex min-w-0 flex-col gap-1 rounded-md border border-[#171717] bg-black/35 px-4 py-3 transition-colors hover:border-[#ffd700]/30 md:flex-row md:items-center md:justify-between"
+    >
+      <span className="font-mono text-sm font-bold text-white">{name}</span>
+      <code className="break-all font-mono text-xs text-[#ffd700]">{address}</code>
+    </a>
+  );
+}
+
+// Kept as a non-rendered source reference for legacy holder copy.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyDocsPage() {
   return (
     <div style={S.page}>
       <Header />

@@ -17,10 +17,9 @@ import RoundHistory from "@/components/RoundHistory";
 import StatsBar from "@/components/StatsBar";
 import { useOracleState } from "@/hooks/useOracleState";
 // ClaimBanner removed — distributeAll auto-pays winners, no manual claim needed
-import WelcomeOverlay from "@/components/WelcomeOverlay";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Shield, Zap, Brain, Coins } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Brain, Coins, Database, Shield, Swords, Trophy, Zap } from "lucide-react";
 import { timeAgo, type LiveMarket } from "@/lib/mock";
 import { useMarketStream } from "@/hooks/useMarketStream";
 import BetToast from "@/components/BetToast";
@@ -76,14 +75,56 @@ const WHY_RUSH = [
   },
   {
     icon: <Coins size={20} />,
-    title: "Revenue Sharing",
-    desc: "Own a tile, earn from every market. 100 seats, Harberger model.",
+    title: "Public Ledger",
+    desc: "Contracts, payouts, matches and protocol accounting stay inspectable from one place.",
   },
 ];
 
 const BUILT_WITH = [
   { label: "Built on Base" },
   { label: "Powered by AI" },
+];
+
+const ECOSYSTEM_APPS = [
+  {
+    title: "Royale",
+    eyebrow: "battle arena",
+    href: "/arenas",
+    action: "Enter Royale",
+    body: "Create fighters, join ETH arenas, watch deterministic replays and audit final payouts.",
+    image: "/images/arenas/battle.jpg",
+    accent: "#00ddff",
+    icon: Swords,
+    stats: ["Free Bronze", "VRF seeds", "Live replay"],
+  },
+  {
+    title: "Tap Trading",
+    eyebrow: "price-touch game",
+    href: "/trade",
+    action: "Open Tap Trading",
+    body: "Tap a price band, watch the live Rush line and settle real-time ETH outcomes.",
+    image: "/taptrade/mascot.gif",
+    accent: "#00ff66",
+    icon: BarChart3,
+    stats: ["Live grid", "Gasless session", "ETH vault"],
+  },
+  {
+    title: "Ledger",
+    eyebrow: "proof layer",
+    href: "/transparency",
+    action: "Open Ledger",
+    body: "Review protocol balances, market history, legacy reward claims and on-chain proof.",
+    image: "/images/headers/headerarenas.jpg",
+    accent: "#ffd700",
+    icon: Database,
+    stats: ["Base mainnet", "Claims", "Contracts"],
+  },
+];
+
+const ECOSYSTEM_LINKS = [
+  { href: "/leaderboard", label: "Ranks", icon: Trophy },
+  { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/docs", label: "Docs", icon: BookOpen },
 ];
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
@@ -274,8 +315,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col" style={{ background: "#0a0a0a", color: "#e0e0e0", minHeight: "100vh", paddingBottom: "calc(60px + env(safe-area-inset-bottom))" }}>
-      <WelcomeOverlay />
       <Header />
+      <EcosystemHub stats={stats} distributed={onChainDistributed > 0 ? onChainDistributed : stats.feesDistributed} />
       <StatsBar
         volume24h={stats.volume24h}
         totalDistributed={onChainDistributed > 0 ? onChainDistributed : stats.feesDistributed}
@@ -597,6 +638,141 @@ export default function Home() {
   );
 }
 
+function EcosystemHub({
+  stats,
+  distributed,
+}: {
+  stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number; volume24h?: number };
+  distributed: number;
+}) {
+  return (
+    <section
+      className="relative overflow-hidden border-b"
+      style={{
+        borderColor: "#161616",
+        backgroundImage:
+          "linear-gradient(90deg, rgba(0,0,0,0.9), rgba(0,0,0,0.58), rgba(0,0,0,0.92)), linear-gradient(0deg, #0a0a0a 0%, rgba(10,10,10,0.18) 48%, #0a0a0a 100%), url('/images/headers/headerarenas.jpg')",
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
+    >
+      <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
+      <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-10 md:px-8 md:py-14 xl:grid-cols-[minmax(0,0.86fr)_minmax(460px,1.14fr)]">
+        <motion.div initial="hidden" animate="show" variants={fadeUp} custom={0} className="flex min-h-[440px] flex-col justify-center">
+          <div className="mb-5 flex flex-wrap gap-2">
+            <HubPill label="BASE MAINNET" color="#00ff88" />
+            <HubPill label="REAL ETH GAMES" color="#7ddcff" />
+            <HubPill label="PUBLIC LEDGER" color="#ffd700" />
+          </div>
+
+          <h1 className="max-w-4xl text-5xl font-black leading-[0.92] text-white md:text-7xl" style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", letterSpacing: 0 }}>
+            RUSH
+          </h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-neutral-200 md:text-xl">
+            One ecosystem for Royale battles, Tap Trading and on-chain proof.
+          </p>
+
+          <div className="mt-8 grid max-w-xl grid-cols-2 gap-3">
+            <HubMetric label="Resolved" value={stats.marketsResolved.toLocaleString()} />
+            <HubMetric label="Players" value={stats.uniqueBettors.toLocaleString()} />
+            <HubMetric label="Distributed" value={formatHubEth(distributed)} />
+            <HubMetric label="Volume" value={formatHubEth(stats.totalVolume)} />
+          </div>
+        </motion.div>
+
+        <motion.div initial="hidden" animate="show" variants={fadeUp} custom={0.08} className="grid content-center gap-4 lg:grid-cols-3 xl:grid-cols-1">
+          {ECOSYSTEM_APPS.map((app) => (
+            <ProductCard key={app.href} app={app} />
+          ))}
+        </motion.div>
+      </div>
+
+      <div className="relative mx-auto flex max-w-7xl flex-wrap gap-2 px-4 pb-8 md:px-8">
+        {ECOSYSTEM_LINKS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-black/45 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-neutral-300 transition-colors hover:border-[#00ff88]/40 hover:text-[#00ff88]"
+              style={{ fontFamily: "monospace" }}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ProductCard({ app }: { app: (typeof ECOSYSTEM_APPS)[number] }) {
+  const Icon = app.icon;
+  return (
+    <Link
+      href={app.href}
+      className="group grid min-h-[178px] overflow-hidden rounded-lg border border-white/10 bg-[#101010]/88 transition-all hover:-translate-y-0.5 hover:border-white/25 md:grid-cols-[172px_minmax(0,1fr)]"
+      style={{ boxShadow: `0 0 28px ${app.accent}16` }}
+    >
+      <div
+        className="relative min-h-[130px] bg-cover bg-center"
+        style={{ backgroundImage: `linear-gradient(0deg, rgba(0,0,0,0.42), rgba(0,0,0,0.18)), url('${app.image}')` }}
+      >
+        <div className="absolute left-3 top-3 rounded-md border bg-black/70 p-2" style={{ borderColor: `${app.accent}66`, color: app.accent }}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-col justify-between p-4">
+        <div>
+          <div className="font-mono text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: app.accent }}>
+            {app.eyebrow}
+          </div>
+          <h2 className="mt-1 text-2xl font-black text-white">{app.title}</h2>
+          <p className="mt-2 text-sm leading-5 text-neutral-400">{app.body}</p>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-1.5">
+            {app.stats.map((stat) => (
+              <span key={stat} className="rounded border border-white/10 bg-black/40 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                {stat}
+              </span>
+            ))}
+          </div>
+          <span className="inline-flex items-center gap-1 font-mono text-xs font-black uppercase tracking-[0.16em]" style={{ color: app.accent }}>
+            {app.action}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function formatHubEth(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "0.00 ETH";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M ETH`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K ETH`;
+  return `${value.toFixed(value >= 100 ? 1 : 2)} ETH`;
+}
+
+function HubMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/55 px-3 py-3">
+      <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">{label}</div>
+      <div className="mt-1 whitespace-nowrap font-mono text-base font-black text-white md:text-lg">{value}</div>
+    </div>
+  );
+}
+
+function HubPill({ label, color }: { label: string; color: string }) {
+  return (
+    <span className="rounded-md border px-3 py-1.5 font-mono text-[11px] font-black uppercase tracking-[0.16em]" style={{ borderColor: `${color}55`, background: `${color}14`, color }}>
+      {label}
+    </span>
+  );
+}
+
 // ─── Platform Stats section ───────────────────────────────────────────────────
 
 function PlatformStatsSection({ stats, distributed }: { stats: { totalVolume: number; marketsResolved: number; feesDistributed: number; uniqueBettors: number }; distributed?: number }) {
@@ -712,130 +888,6 @@ function WhyRush() {
             </div>
           </motion.div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-// ─── Tiles preview section ────────────────────────────────────────────────────
-
-function TilesPreview() {
-  const TOTAL_TILES = 100;
-  const tilesContract = useTilesContract();
-
-  const ownedCount = tilesContract.totalActiveTiles;
-  const totalDist = parseFloat(tilesContract.totalDistributed);
-  const treasury = parseFloat(tilesContract.treasuryBalance);
-
-  const miniTiles = tilesContract.tiles.length > 0
-    ? tilesContract.tiles.slice(0, 25).map((t, i) => ({
-        id: i,
-        owned: t.owner !== "0x0000000000000000000000000000000000000000",
-        mine: false,
-      }))
-    : Array.from({ length: 25 }, (_, i) => ({ id: i, owned: false, mine: false }));
-
-  return (
-    <section
-      className="p-4 rounded animate-fade-in-up"
-      aria-label="Tiles revenue sharing preview"
-      style={{
-        background: "#0f0f0f",
-        border: "1px solid rgba(255,215,0,0.2)",
-        boxShadow: "0 0 24px rgba(255,215,0,0.04)",
-      }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-xs font-black tracking-widest" style={{ color: "#ffd700", fontFamily: "monospace" }}>
-            REVENUE SHARES
-          </div>
-          <div className="text-xs mt-0.5" style={{ color: "#555" }}>
-            Own a tile, earn from every market
-          </div>
-        </div>
-        <Link
-          href="/tiles"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all"
-          style={{
-            background: "rgba(255,215,0,0.1)",
-            border: "1px solid rgba(255,215,0,0.3)",
-            color: "#ffd700",
-            fontFamily: "monospace",
-          }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.18)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,215,0,0.1)")}
-        >
-          Claim your tile
-          <span style={{ fontSize: 14, lineHeight: 1 }} aria-hidden="true">→</span>
-        </Link>
-      </div>
-
-      <div className="flex gap-4 mb-3">
-        {[
-          { label: "TOTAL TILES", value: String(TOTAL_TILES) },
-          { label: "OWNED", value: String(ownedCount) },
-          { label: "DISTRIBUTED", value: `${totalDist.toFixed(4)} ETH` },
-          { label: "TREASURY", value: `${treasury.toFixed(4)} ETH` },
-        ].map((s) => (
-          <div key={s.label}>
-            <div className="text-xs" style={{ color: "#444", fontFamily: "monospace" }}>{s.label}</div>
-            <div className="text-sm font-black tabular" style={{ color: "#ffd700", fontFamily: "monospace" }}>{s.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div
-        className="grid gap-0.5"
-        style={{ gridTemplateColumns: "repeat(25, 1fr)" }}
-        aria-hidden="true"
-      >
-        {miniTiles.map((t) => (
-          <div
-            key={t.id}
-            className="aspect-square rounded-sm"
-            style={{
-              background: t.owned ? "rgba(255,215,0,0.25)" : "#1a1a1a",
-              border: t.owned ? "1px solid rgba(255,215,0,0.3)" : "1px solid #222",
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="flex gap-3 mt-2 text-xs" style={{ fontFamily: "monospace" }}>
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(0,255,136,0.5)", border: "1px solid rgba(0,255,136,0.7)" }} />
-          <span style={{ color: "#555" }}>Yours</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(255,215,0,0.25)", border: "1px solid rgba(255,215,0,0.3)" }} />
-          <span style={{ color: "#555" }}>Owned</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "#1a1a1a", border: "1px solid #222" }} />
-          <span style={{ color: "#555" }}>Available</span>
-        </div>
-      </div>
-
-      <div className="mt-2 text-xs flex items-center gap-2 flex-wrap" style={{ color: "#444", fontFamily: "monospace" }}>
-        <span>Become a partner · Earn from every trade</span>
-        <span style={{ color: "#333" }}>|</span>
-        <a
-          href="https://flaunch.gg/base/coins/0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#ffd700" }}
-          className="hover:underline"
-        >
-          $RUSH
-        </a>
-        <button
-          onClick={() => { navigator.clipboard.writeText("0xB36A127dBa73F3aA7C70B4e00B7395B86A60e73b"); }}
-          style={{ color: "#666", cursor: "pointer", background: "none", border: "none", fontFamily: "monospace", fontSize: "inherit" }}
-          title="Copy contract address"
-        >
-          0xB36A...e73b
-        </button>
       </div>
     </section>
   );

@@ -330,24 +330,36 @@ export default function TransparencyPage() {
           </Link>
           <span style={{ color: "#333" }}>/</span>
           <span className="text-sm font-bold" style={{ color: "#e0e0e0", fontFamily: "monospace", letterSpacing: "0.1em" }}>
-            TRANSPARENCY
+            LEDGER
           </span>
         </div>
 
         {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <h1 style={{ fontSize: "2rem", fontWeight: 900, fontFamily: "monospace", color: "#ffd700", marginBottom: "0.5rem" }}>
-            On-Chain Transparency Report
+            Rush Ledger
           </h1>
           <p style={{ color: "#777", fontSize: "0.9rem", lineHeight: 1.7, maxWidth: "700px", marginBottom: "0.5rem" }}>
-            Every transaction in the Rush Protocol is on-chain and verifiable. This report is generated directly from
-            Base mainnet event logs — no off-chain data, no edits, no filters. Every bet, every fee, every distribution
-            is documented with its transaction hash.
+            On-chain proof for Rush: Royale contracts, Tap Trading accounting, prediction market history and legacy holder records.
+            Hidden legacy pages stay reachable from here for claims and management, but they are no longer primary navigation.
           </p>
           <p style={{ color: "#444", fontSize: "0.75rem", fontFamily: "monospace" }}>
             Block {m.latestBlock.toLocaleString()} &middot; {m.extractedAt.replace("T", " ").split(".")[0]} UTC
           </p>
         </motion.div>
+
+        <section id="legacy-claims" className="mt-6 grid gap-3 md:grid-cols-2">
+          <Link href="/tiles" className="rounded-lg border border-[#ffd700]/25 bg-[#121006] p-4 transition-colors hover:border-[#ffd700]/45">
+            <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#ffd700]">legacy claims</div>
+            <div className="mt-1 text-lg font-black text-white">Series 1 holder actions</div>
+            <p className="mt-2 text-sm leading-6 text-[#9a8f67]">Claim pending fees, inspect old seats, manage abandon/deposit flows if your wallet still has active legacy state.</p>
+          </Link>
+          <Link href="/series2" className="rounded-lg border border-[#00ff88]/20 bg-[#06120c] p-4 transition-colors hover:border-[#00ff88]/40">
+            <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-[#00ff88]">legacy holders</div>
+            <div className="mt-1 text-lg font-black text-white">Series 2 holder actions</div>
+            <p className="mt-2 text-sm leading-6 text-[#79a58d]">Sales are closed. Existing holders can still claim fees or manage their old position from the legacy interface.</p>
+          </Link>
+        </section>
 
         <div style={{ height: "2rem" }} />
 
