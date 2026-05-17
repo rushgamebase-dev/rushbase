@@ -2,12 +2,14 @@
 
 use crate::api::state::AppState;
 use crate::db::repositories::{TouchBetRepository, UserRepository};
+use crate::market_feed::RealPriceFeed;
 use crate::ws::broadcaster::Broadcaster;
 use crate::ws::messages::{BetData, ClientMessage, PriceData, ServerMessage};
 use crate::ws::session::WsSession;
 use actix::{Actor, ActorContext, AsyncContext, Handler, Message, StreamHandler};
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
@@ -191,14 +193,23 @@ impl WsActor {
                 );
             }
             ClientMessage::GetPrices => {
-                // Single-symbol VRF arena: snapshot returns the
-                // current Rush Index. No per-symbol map.
                 let snap = self.app_state.arena_index.snapshot();
-                let prices = vec![PriceData {
+                let mut prices = vec![PriceData {
                     symbol: snap.symbol,
                     price_q8: snap.price_q8.to_string(),
                     timestamp: snap.timestamp_ms,
                 }];
+                prices.extend(
+                    self.app_state
+                        .real_price_feed
+                        .snapshots()
+                        .into_iter()
+                        .map(|p| PriceData {
+                            symbol: p.symbol,
+                            price_q8: p.price_q8.to_string(),
+                            timestamp: p.timestamp_ms,
+                        }),
+                );
                 self.send(ctx, ServerMessage::PricesSnapshot { prices });
             }
             ClientMessage::GetActiveBets => {
@@ -351,26 +362,49 @@ pub async fn ws_handler(
 pub async fn start_price_broadcaster(
     broadcaster: Arc<Broadcaster>,
     arena_index: Arc<crate::arena_index::ArenaIndex>,
+    real_price_feed: Arc<RealPriceFeed>,
 ) {
-    let mut interval = tokio::time::interval(Duration::from_millis(
-        crate::arena_index::TICK_MS as u64,
-    ));
-    let mut last_q8: i64 = i64::MIN;
+    let mut interval =
+        tokio::time::interval(Duration::from_millis(crate::arena_index::TICK_MS as u64));
+    let mut last_q8: HashMap<String, i64> = HashMap::new();
     loop {
         interval.tick().await;
         let snap = arena_index.snapshot();
-        if snap.price_q8 == last_q8 {
-            continue;
+        let changed = last_q8
+            .get(&snap.symbol)
+            .map_or(true, |last| *last != snap.price_q8);
+        if changed {
+            last_q8.insert(snap.symbol.clone(), snap.price_q8);
+            broadcaster.broadcast_to_channel(
+                &format!("prices:{}", snap.symbol),
+                ServerMessage::PriceUpdate {
+                    symbol: snap.symbol,
+                    price_q8: snap.price_q8.to_string(),
+                    timestamp: snap.timestamp_ms,
+                },
+            );
         }
-        last_q8 = snap.price_q8;
-        broadcaster.broadcast_to_channel(
-            &format!("prices:{}", snap.symbol),
-            ServerMessage::PriceUpdate {
-                symbol: snap.symbol,
-                price_q8: snap.price_q8.to_string(),
-                timestamp: snap.timestamp_ms,
-            },
-        );
+
+        for price in real_price_feed.snapshots() {
+            if price.stale {
+                continue;
+            }
+            let changed = last_q8
+                .get(&price.symbol)
+                .map_or(true, |last| *last != price.price_q8);
+            if !changed {
+                continue;
+            }
+            last_q8.insert(price.symbol.clone(), price.price_q8);
+            broadcaster.broadcast_to_channel(
+                &format!("prices:{}", price.symbol),
+                ServerMessage::PriceUpdate {
+                    symbol: price.symbol,
+                    price_q8: price.price_q8.to_string(),
+                    timestamp: price.timestamp_ms,
+                },
+            );
+        }
     }
 }
 

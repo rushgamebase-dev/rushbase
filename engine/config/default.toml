@@ -43,6 +43,16 @@ signer_private_key = "0x00000000000000000000000000000000000000000000000000000000
 min_confirmations = 2
 withdraw_auth_ttl_secs = 900
 
+[real_price]
+enabled = true
+source = "binance"
+symbols = ["ETHUSDT", "BTCUSDT", "SOLUSDT"]
+default_symbol = "ETHUSDT"
+binance_ws_base_url = "wss://stream.binance.com:9443"
+binance_rest_base_url = "https://api.binance.com"
+stale_after_ms = 5000
+history_window_ms = 180000
+
 [touch]
 min_stake_wei = "100000000000000"              # 0.0001 ETH (~$0.30 — entry-level cherry tap)
 max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
@@ -50,7 +60,7 @@ max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
 # with `max_payout_per_bet_wei` and `max_potential_payout_per_user_wei`
 # in [risk], this caps a Sybil-coordinated drain attempt sharply.
 max_active_bets_per_user = 3
-allowed_window_ms = [3000, 6000, 9000, 12000, 18000, 30000, 60000]
+allowed_window_ms = [3000, 5000, 6000, 9000, 12000, 18000, 30000, 60000]
 # Bands closer than 2 bps to the live price are inside the noise
 # floor of the path generator — first-passage is near-certain, EV
 # turns positive at the floor multiplier. Quote-grid disables them

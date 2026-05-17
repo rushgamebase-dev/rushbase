@@ -482,11 +482,7 @@ export function RushArenaCanvas({
         const activeMin = Math.min(...cellPrices);
         const activeMax = Math.max(...cellPrices);
         const activeSpan = Math.max(activeMax - activeMin, bandStep);
-        const targetSpan = Math.max(
-          bandStep * visualRowCount,
-          activeSpan * 1.08,
-          targetPrice * 0.002
-        );
+        const targetSpan = Math.max(bandStep * visualRowCount, activeSpan);
         let minPrice = renderedPrice - targetSpan / 2;
         let maxPrice = renderedPrice + targetSpan / 2;
         if (activeMin < minPrice) {

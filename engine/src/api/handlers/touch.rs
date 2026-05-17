@@ -1,8 +1,8 @@
 use crate::api::anti_replay::{idempotency_key, NonceError};
 use crate::api::dto::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
-    OpenBetRequest, PublicBetEntry, PublicBetListResponse, QuoteGridCellResponse,
-    QuoteGridRequest, QuoteGridResponse, QuoteRequest, QuoteResponse,
+    OpenBetRequest, PublicBetEntry, PublicBetListResponse, QuoteGridCellResponse, QuoteGridRequest,
+    QuoteGridResponse, QuoteRequest, QuoteResponse,
 };
 use crate::api::middleware::AuthenticatedUser;
 use crate::api::state::AppState;
@@ -30,8 +30,9 @@ fn parse_direction(s: &str) -> Result<TouchDirection, ApiError> {
 }
 
 fn parse_u256(name: &str, s: &str) -> Result<U256, ApiError> {
-    U256::from_str(s)
-        .map_err(|_| ApiError::validation_error(format!("{} must be a uint256 decimal string", name)))
+    U256::from_str(s).map_err(|_| {
+        ApiError::validation_error(format!("{} must be a uint256 decimal string", name))
+    })
 }
 
 /// Quote a touch bet: returns the multiplier the engine would honour
@@ -55,9 +56,14 @@ pub async fn quote(
     let target_min = parse_u256("target_row_min_q8", &body.target_row_min_q8)?;
     let target_max = parse_u256("target_row_max_q8", &body.target_row_max_q8)?;
     if target_max <= target_min {
-        return Err(ApiError::validation_error("target_row_max must be > target_row_min"));
+        return Err(ApiError::validation_error(
+            "target_row_max must be > target_row_min",
+        ));
     }
-    let symbol = body.symbol.to_uppercase();
+    let symbol = app_state
+        .touch_engine
+        .canonical_symbol(&body.symbol)
+        .ok_or_else(|| ApiError::bad_request("Unsupported Tap Trading symbol"))?;
     let q = app_state
         .touch_engine
         .quote(
@@ -69,18 +75,10 @@ pub async fn quote(
             body.window_duration_ms,
         )
         .map_err(map_err)?;
-    // Single-symbol arena: only RUSH_INDEX is priced. Bets resolve
-    // via per-bet VRF path; the entry comes from the in-process
-    // Rush Index, not any external feed.
-    if !symbol.eq_ignore_ascii_case(crate::arena_index::RUSH_INDEX_SYMBOL) {
-        return Err(ApiError::bad_request(
-            "Only RUSH_INDEX is supported in the VRF arena",
-        ));
-    }
-    let entry = app_state.arena_index.current_q8();
-    if entry <= 0 {
-        return Err(ApiError::bad_request("Rush Index unavailable"));
-    }
+    let entry = app_state
+        .touch_engine
+        .current_entry_q8(&symbol)
+        .map_err(map_err)?;
     let entry_u = U256::from(entry as u64);
     let now_ms = chrono::Utc::now().timestamp_millis();
     let quote_id = Uuid::new_v4();
@@ -141,21 +139,21 @@ pub async fn quote_grid(
     app_state: web::Data<AppState>,
     body: web::Json<QuoteGridRequest>,
 ) -> Result<HttpResponse, ApiError> {
-    let symbol = body.symbol.to_uppercase();
-    if !symbol.eq_ignore_ascii_case(crate::arena_index::RUSH_INDEX_SYMBOL) {
-        return Err(ApiError::bad_request(
-            "Only RUSH_INDEX is supported in the VRF arena",
-        ));
-    }
-    let entry = app_state.arena_index.current_q8();
-    if entry <= 0 {
-        return Err(ApiError::bad_request("Rush Index unavailable"));
-    }
+    let symbol = app_state
+        .touch_engine
+        .canonical_symbol(&body.symbol)
+        .ok_or_else(|| ApiError::bad_request("Unsupported Tap Trading symbol"))?;
+    let entry = app_state
+        .touch_engine
+        .current_entry_q8(&symbol)
+        .map_err(map_err)?;
 
     let now_ms = chrono::Utc::now().timestamp_millis();
-    // Rush Index is in-process and advances on a tokio interval —
-    // there is no concept of a stale feed in the VRF arena.
-    let stale = false;
+    let stale = app_state
+        .real_price_feed
+        .snapshot(&symbol)
+        .map_or(false, |snapshot| snapshot.stale);
+    let real_price_symbol = app_state.touch_engine.is_real_price_symbol(&symbol);
 
     let calc = app_state.touch_engine.multiplier();
     let cfg = calc.config();
@@ -227,7 +225,7 @@ pub async fn quote_grid(
             Some("TOO_EASY".to_string())
         } else if q.distance_bps > max_distance {
             Some("TOO_RISKY".to_string())
-        } else if !q.from_empirical {
+        } else if !real_price_symbol && !q.from_empirical {
             // No calibrated entry for this `(distance, duration,
             // offset)` triple. Bachelier fallback systematically
             // under-prices wide bands against the VRF generator —
@@ -256,8 +254,7 @@ pub async fn quote_grid(
         let max_stake = if q.multiplier_bps == 0 {
             U256::ZERO
         } else {
-            (max_payout.saturating_mul(U256::from(10_000u64)))
-                / U256::from(q.multiplier_bps as u64)
+            (max_payout.saturating_mul(U256::from(10_000u64))) / U256::from(q.multiplier_bps as u64)
         };
 
         cells_out.push(QuoteGridCellResponse {
@@ -293,9 +290,7 @@ pub async fn quote_grid(
     ),
     tag = "trade",
 )]
-pub async fn multiplier_config(
-    app_state: web::Data<AppState>,
-) -> Result<HttpResponse, ApiError> {
+pub async fn multiplier_config(app_state: web::Data<AppState>) -> Result<HttpResponse, ApiError> {
     let cfg = app_state.touch_engine.multiplier().config();
     let cells: Vec<EmpiricalCellDto> = cfg
         .empirical_p_touch_table
@@ -359,7 +354,10 @@ pub async fn open_bet(
     let stake = parse_u256("stake_wei", &body.stake_wei)?;
     let target_min = parse_u256("target_row_min_q8", &body.target_row_min_q8)?;
     let target_max = parse_u256("target_row_max_q8", &body.target_row_max_q8)?;
-    let symbol = body.symbol.to_uppercase();
+    let symbol = app_state
+        .touch_engine
+        .canonical_symbol(&body.symbol)
+        .ok_or_else(|| ApiError::bad_request("Unsupported Tap Trading symbol"))?;
     let window_duration_ms = (body.window_end_ms - body.window_start_ms).max(0) as u64;
 
     // Idempotency: if the client supplied a key and we've already seen
@@ -571,13 +569,16 @@ pub async fn verify_bet(
     // be a data-integrity bug; we don't reward it with a payload).
     let now_ms = chrono::Utc::now().timestamp_millis();
     if now_ms < bet.window_end_ms || bet.status == crate::models::touch_bet::TouchStatus::Active {
-        return Ok(HttpResponse::build(actix_web::http::StatusCode::from_u16(425).unwrap())
-            .json(serde_json::json!({
-                "code": "WINDOW_NOT_ELAPSED",
-                "message": "Bet window is still open — verify after window_end_ms",
-                "window_end_ms": bet.window_end_ms,
-                "server_time_ms": now_ms,
-            })));
+        return Ok(
+            HttpResponse::build(actix_web::http::StatusCode::from_u16(425).unwrap()).json(
+                serde_json::json!({
+                    "code": "WINDOW_NOT_ELAPSED",
+                    "message": "Bet window is still open — verify after window_end_ms",
+                    "window_end_ms": bet.window_end_ms,
+                    "server_time_ms": now_ms,
+                }),
+            ),
+        );
     }
 
     // Pull the reveal columns. If any is missing the resolver
@@ -667,9 +668,7 @@ pub async fn list_history(
                 body = PublicBetListResponse)),
     tag = "trade",
 )]
-pub async fn list_public_active(
-    app_state: web::Data<AppState>,
-) -> Result<HttpResponse, ApiError> {
+pub async fn list_public_active(app_state: web::Data<AppState>) -> Result<HttpResponse, ApiError> {
     // 50 rows is plenty for a canvas-side scrolling panel; bumping
     // would mostly inflate response size without UX gain.
     let rows = app_state
@@ -694,22 +693,22 @@ pub async fn list_public_active(
                 body = crate::api::dto::touch::HeatmapResponse)),
     tag = "trade",
 )]
-pub async fn get_heatmap(
-    app_state: web::Data<AppState>,
-) -> Result<HttpResponse, ApiError> {
+pub async fn get_heatmap(app_state: web::Data<AppState>) -> Result<HttpResponse, ApiError> {
     let (online_count, cells) = app_state
         .touch_engine
         .bet_repo()
         .list_active_heatmap()
         .await
         .map_err(|e| ApiError::internal(format!("DB: {}", e)))?;
-    Ok(HttpResponse::Ok().json(crate::api::dto::touch::HeatmapResponse {
-        online_count,
-        cells: cells
-            .iter()
-            .map(crate::api::dto::touch::HeatmapCell::from)
-            .collect(),
-    }))
+    Ok(
+        HttpResponse::Ok().json(crate::api::dto::touch::HeatmapResponse {
+            online_count,
+            cells: cells
+                .iter()
+                .map(crate::api::dto::touch::HeatmapCell::from)
+                .collect(),
+        }),
+    )
 }
 
 /// `GET /api/v1/trade/wins/public` — anonymised list of recent WON
@@ -722,9 +721,7 @@ pub async fn get_heatmap(
                 body = PublicBetListResponse)),
     tag = "trade",
 )]
-pub async fn list_public_wins(
-    app_state: web::Data<AppState>,
-) -> Result<HttpResponse, ApiError> {
+pub async fn list_public_wins(app_state: web::Data<AppState>) -> Result<HttpResponse, ApiError> {
     let rows = app_state
         .touch_engine
         .bet_repo()
@@ -752,9 +749,10 @@ fn quote_err_to_api(e: QuoteTokenError) -> ApiError {
         BadSignature | BadFormat | BadEncoding | BadPayload => {
             ApiError::bad_request("Quote token invalid")
         }
-        Mismatch { field } => {
-            ApiError::bad_request(format!("Quote token does not match request: {} drift", field))
-        }
+        Mismatch { field } => ApiError::bad_request(format!(
+            "Quote token does not match request: {} drift",
+            field
+        )),
         BadKey => ApiError::internal("Engine quote signing key misconfigured"),
     }
 }
@@ -762,33 +760,38 @@ fn quote_err_to_api(e: QuoteTokenError) -> ApiError {
 fn map_err(e: TradingError) -> ApiError {
     use TradingError::*;
     match e {
-        InsufficientBalance { required_wei, available_wei } => ApiError::bad_request(format!(
+        InsufficientBalance {
+            required_wei,
+            available_wei,
+        } => ApiError::bad_request(format!(
             "Insufficient balance: required {} wei, available {} wei",
             required_wei, available_wei
         )),
         BetAlreadyResolved => ApiError::conflict("Bet already resolved"),
         BetNotFound(_) => ApiError::not_found("Bet not found"),
         BetNotOwned => ApiError::forbidden("You don't own this bet"),
-        MaxActiveBetsReached { current, max } => ApiError::bad_request(format!(
-            "Maximum active bets: {} of {}",
-            current, max
-        )),
+        MaxActiveBetsReached { current, max } => {
+            ApiError::bad_request(format!("Maximum active bets: {} of {}", current, max))
+        }
         CircuitBreakerOpen => ApiError::service_unavailable("Trading temporarily suspended"),
         SafeMode => ApiError::service_unavailable("Engine in safe mode"),
-        PriceUnavailable(s) => ApiError::bad_request(format!("Price unavailable for {}", s)),
-        StalePrice { symbol, age_ms } => ApiError::service_unavailable(format!(
-            "Price for {} stale ({}ms)",
-            symbol, age_ms
-        )),
-        QuoteMismatch { expected_multiplier_bps, actual_multiplier_bps } => ApiError::bad_request(
-            format!(
-                "Quote mismatch: client expected {}, server quotes {}. Re-quote required.",
-                expected_multiplier_bps, actual_multiplier_bps
-            ),
-        ),
-        InvalidSymbol(_) | InvalidStakeAmount { .. } | InvalidWindow { .. } | InvalidBand { .. } => {
-            ApiError::validation_error(e.to_string())
+        PriceUnavailable(s) => {
+            ApiError::service_unavailable(format!("Price unavailable for {}", s))
         }
+        StalePrice { symbol, age_ms } => {
+            ApiError::service_unavailable(format!("Price for {} stale ({}ms)", symbol, age_ms))
+        }
+        QuoteMismatch {
+            expected_multiplier_bps,
+            actual_multiplier_bps,
+        } => ApiError::bad_request(format!(
+            "Quote mismatch: client expected {}, server quotes {}. Re-quote required.",
+            expected_multiplier_bps, actual_multiplier_bps
+        )),
+        InvalidSymbol(_)
+        | InvalidStakeAmount { .. }
+        | InvalidWindow { .. }
+        | InvalidBand { .. } => ApiError::validation_error(e.to_string()),
         HouseSolvencyViolated { .. }
         | HouseBufferTooLow { .. }
         | PerSymbolExposureLimitExceeded { .. }

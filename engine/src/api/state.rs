@@ -1,12 +1,11 @@
 //! HTTP/WebSocket shared state. Wired up in `main.rs` and injected into
 //! every handler via `web::Data<AppState>`.
 
-use crate::api::anti_replay::{
-    ActiveStatusStore, IdempotencyStore, NonceStore, RateLimitStore,
-};
+use crate::api::anti_replay::{ActiveStatusStore, IdempotencyStore, NonceStore, RateLimitStore};
 use crate::arena_index::ArenaIndex;
 use crate::auth::{JwtService, SiweVerifier};
 use crate::chain::WithdrawService;
+use crate::market_feed::RealPriceFeed;
 use crate::metrics::EngineMetrics;
 use crate::risk::ExposureTracker;
 use crate::touch::{QuoteSigner, TouchEngine};
@@ -25,6 +24,7 @@ pub struct AppState {
     /// only the visual reference for `entry_price_q8` and the
     /// scrolling line.
     pub arena_index: Arc<ArenaIndex>,
+    pub real_price_feed: Arc<RealPriceFeed>,
     pub touch_engine: Arc<TouchEngine>,
     pub withdraw_service: Arc<WithdrawService>,
     pub broadcaster: Arc<Broadcaster>,

@@ -29,16 +29,23 @@ import { WalletDrawer } from "@/components/taptrade/WalletDrawer";
 import { WinFloater } from "@/components/taptrade/WinFloater";
 import { useWalletModal } from "@/components/WalletButton";
 import {
-  RUSH_MARKET,
   rushArenaClient,
   type LeaderboardEntry,
   type ProvablyFairState,
   type PublicBetEntry,
+  type QuoteGridCellRequest,
+  type QuoteGridCellResponse,
   type RushArenaBet,
   type RushArenaEvent,
   type RushRound,
   type RushTick,
 } from "@/lib/api/rushArenaClient";
+import {
+  DEFAULT_TAP_TRADE_ASSET,
+  TAP_TRADE_ASSETS,
+  getTapTradeAsset,
+  type RealTapTradeSymbol,
+} from "@/lib/taptrade/assets";
 import {
   DEFAULT_GRID,
   buildDynamicCells,
@@ -54,7 +61,7 @@ import { useAccount } from "wagmi";
 const GRID_FUTURE_COLS = 3;
 const GRID_PAST_COLS = 16;
 const ACTIVATION_DELAY_MS = 3_000;
-const COLUMN_MS = 3_000;
+const COLUMN_MS = 5_000;
 const PRICE_STEP_BPS = 40;
 // Stake presets are in ETH (the canonical unit on Base). Tier 1 caps
 // (Base mainnet smoke test, 2026-05-04) cap max_stake at 0.01 ETH via
@@ -66,7 +73,7 @@ const STAKE_PRESETS = [0.0001, 0.0005, 0.001, 0.005];
 // The empirical table is calibrated against exactly these durations;
 // passing the list to `buildDynamicCells` lets the local quote refuse
 // (`INVALID_WINDOW`) any cell whose duration drifted off-catalog.
-const ALLOWED_WINDOW_MS = [3_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_000];
+const ALLOWED_WINDOW_MS = [3_000, 5_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_000];
 
 // `stakeAmount` carries an ETH amount as a regular JS number — fine
 // for the canvas math because the engine accepts a wei string we
@@ -80,6 +87,48 @@ function stakeWei(ethAmount: number) {
   // wei within Number precision.
   const wei = BigInt(Math.round(ethAmount * 1e18));
   return wei.toString();
+}
+
+function priceToQ8(price: number) {
+  return BigInt(Math.round(price * 1e8)).toString();
+}
+
+function directionForCell(cell: TapGridCell, referencePrice: number): "UP" | "DOWN" {
+  const bandMid = (cell.pMin + cell.pMax) / 2;
+  return bandMid >= referencePrice ? "UP" : "DOWN";
+}
+
+function formatQuoteDisabledReason(reason: string) {
+  switch (reason) {
+    case "UNCALIBRATED":
+      return "Uncalibrated";
+    case "EV_POSITIVE":
+      return "Too easy";
+    case "INVALID_BAND":
+      return "Invalid band";
+    case "INVALID_WINDOW":
+      return "Invalid window";
+    case "PRICE_STALE":
+      return "Price stale";
+    case "TOO_EASY":
+      return "Too easy";
+    case "TOO_RISKY":
+      return "Too risky";
+    default:
+      return reason
+        .toLowerCase()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+  }
+}
+
+function weiGreaterThan(a: string, b: string) {
+  try {
+    return BigInt(a) > BigInt(b);
+  } catch {
+    return false;
+  }
 }
 
 /// Format an ETH amount with a fixed precision suited to Tier 1
@@ -155,6 +204,13 @@ interface RushArenaTradePageProps {
   bypassAuthGate?: boolean;
 }
 
+type QuoteGridSnapshot = {
+  symbol: RealTapTradeSymbol;
+  receivedAtMs: number;
+  serverTimeMs: number;
+  byId: Map<string, QuoteGridCellResponse>;
+};
+
 export default function RushArenaTradePage({
   bypassAuthGate = false,
 }: RushArenaTradePageProps = {}) {
@@ -174,7 +230,14 @@ export default function RushArenaTradePage({
   const [round, setRound] = useState<RushRound | null>(null);
   const [fair, setFair] = useState<ProvablyFairState | null>(null);
   const [ticks, setTicks] = useState<RushTick[]>([]);
-  const [currentPrice, setCurrentPrice] = useState(1_245.73);
+  const [selectedSymbol, setSelectedSymbol] = useState<RealTapTradeSymbol>(
+    DEFAULT_TAP_TRADE_ASSET.symbol
+  );
+  const selectedAsset = useMemo(
+    () => getTapTradeAsset(selectedSymbol),
+    [selectedSymbol]
+  );
+  const [currentPrice, setCurrentPrice] = useState(DEFAULT_TAP_TRADE_ASSET.defaultPrice);
   const [nowTime, setNowTime] = useState(() => Date.now());
   const [bets, setBets] = useState<RushArenaBet[]>([]);
   const [stakeAmount, setStakeAmount] = useState(0.005);
@@ -217,6 +280,8 @@ export default function RushArenaTradePage({
   const lastTickRef = useRef<RushTick | null>(null);
   const particlesRef = useRef<ParticleSystemRef | null>(null);
   const handledResolutionRef = useRef<Set<string>>(new Set());
+  const quoteGridSeqRef = useRef(0);
+  const currentPriceRef = useRef(currentPrice);
   const vrfPlaybackActiveRef = useRef(false);
   const wasVrfPlaybackActiveRef = useRef(false);
   const anchorPriceRef = useRef(0);
@@ -226,6 +291,10 @@ export default function RushArenaTradePage({
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    currentPriceRef.current = currentPrice;
+  }, [currentPrice]);
 
   // Anchor is latched ONCE on the first valid price and NEVER moves.
   // Every catalog cell (and every bet snapshot) derives its
@@ -248,6 +317,20 @@ export default function RushArenaTradePage({
   if (roundOriginRef.current <= 0 && nowTime > 0) {
     roundOriginRef.current = Math.ceil((nowTime + ACTIVATION_DELAY_MS) / COLUMN_MS) * COLUMN_MS;
   }
+
+  useEffect(() => {
+    anchorPriceRef.current = 0;
+    roundOriginRef.current = Math.ceil((Date.now() + ACTIVATION_DELAY_MS) / COLUMN_MS) * COLUMN_MS;
+    lastTickRef.current = null;
+    setRound(null);
+    setFair(null);
+    setTicks([]);
+    setBets([]);
+    setHoveredCellId(null);
+    setCurrentPrice(selectedAsset.defaultPrice);
+    setNowTime(Date.now());
+  }, [selectedAsset.defaultPrice, selectedSymbol]);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -266,9 +349,9 @@ export default function RushArenaTradePage({
           return null;
         });
       const [nextRound, history, fairState, activeBets] = await Promise.all([
-        settle(rushArenaClient.getSynthRound()),
+        settle(rushArenaClient.getSynthRound(selectedSymbol)),
         settle(rushArenaClient.getSynthTicks()),
-        settle(rushArenaClient.getProvablyFair()),
+        settle(rushArenaClient.getProvablyFair(selectedSymbol)),
         settle(rushArenaClient.getActiveBets()),
       ]);
       if (cancelled) return;
@@ -281,13 +364,15 @@ export default function RushArenaTradePage({
       } else if (nextRound) {
         setCurrentPrice(nextRound.currentPrice);
       }
-      if (activeBets) setBets(activeBets);
+      if (activeBets) {
+        setBets(activeBets.filter((bet) => bet.symbol === selectedSymbol));
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedSymbol]);
 
   useEffect(() => {
     const stop = rushArenaClient.connectWebSocket((event: RushArenaEvent) => {
@@ -300,12 +385,16 @@ export default function RushArenaTradePage({
       }
       if (event.type === "RoundState") setRound(event.payload);
       if (event.type === "ProvablyFairState") setFair(event.payload);
-      if (event.type === "BetsSnapshot") setBets(event.payload);
-      if (event.type === "BetPlaced") setBets((items) => [event.payload, ...items]);
+      if (event.type === "BetsSnapshot") {
+        setBets(event.payload.filter((bet) => bet.symbol === selectedSymbol));
+      }
+      if (event.type === "BetPlaced" && event.payload.symbol === selectedSymbol) {
+        setBets((items) => [event.payload, ...items]);
+      }
       if (event.type === "ResolutionEvent") {
         setBets((items) => items.map((bet) => bet.id === event.payload.id ? event.payload : bet));
       }
-    });
+    }, selectedSymbol);
     // 500 ms wallclock tick. The canvas itself runs at 60 fps via its
     // own requestAnimationFrame loop, so this only governs how often
     // React re-runs the cells `useMemo` (which would otherwise rebuild
@@ -316,7 +405,7 @@ export default function RushArenaTradePage({
       stop();
       window.clearInterval(clock);
     };
-  }, []);
+  }, [selectedSymbol]);
 
   // Heatmap polling — feeds the per-cell glow + the "X online" pill.
   // 2 s cadence gives a "live" feeling without melting the engine; the
@@ -325,6 +414,8 @@ export default function RushArenaTradePage({
     onlineCount: number;
     byKey: Map<string, { nBets: number; totalStakeWei: string }>;
   }>({ onlineCount: 0, byKey: new Map() });
+  const [quoteGrid, setQuoteGrid] = useState<QuoteGridSnapshot | null>(null);
+  const [quoteGridError, setQuoteGridError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -365,11 +456,12 @@ export default function RushArenaTradePage({
   // saved snapshot, independent of the live grid).
   const centerLevel = useMemo(() => {
     if (anchorPrice <= 0 || currentPrice <= 0) return 0;
-    const stepFraction = PRICE_STEP_BPS / 10_000;
-    const step = anchorPrice * stepFraction;
+    const step = selectedAsset.priceStepUsd > 0
+      ? selectedAsset.priceStepUsd
+      : anchorPrice * (PRICE_STEP_BPS / 10_000);
     if (step <= 0) return 0;
     return Math.round((currentPrice - anchorPrice) / step);
-  }, [anchorPrice, currentPrice]);
+  }, [anchorPrice, currentPrice, selectedAsset.priceStepUsd]);
 
   const firstFutureCol = roundOriginRef.current > 0
     ? Math.ceil((nowTime + ACTIVATION_DELAY_MS - roundOriginRef.current) / COLUMN_MS)
@@ -397,6 +489,7 @@ export default function RushArenaTradePage({
       activationDelayMs: ACTIVATION_DELAY_MS,
       columnDurationMs: COLUMN_MS,
       priceStepBps: PRICE_STEP_BPS,
+      priceStepUsd: selectedAsset.priceStepUsd,
       minDistanceBps: 0,
       maxDistanceBps: DEFAULT_GRID.maxDistanceBps,
       minMultiplier: DEFAULT_GRID.minMultiplier,
@@ -410,28 +503,79 @@ export default function RushArenaTradePage({
     // intentionally not direct deps: sub-step price ticks and the
     // 500 ms wallclock pulse should not rebuild the catalog.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchorPrice, centerLevel, firstFutureCol]);
+  }, [anchorPrice, centerLevel, firstFutureCol, selectedAsset.priceStepUsd]);
 
-  // Final cells passed to the canvas. The multiplier is part of the
-  // cell's identity now — it was set by the empirical-table quote
-  // when `baseCells` was last built and stays fixed until the cell
-  // expires. This is what `BC.GAME / Tap Trading` and similar
-  // touch-grid products do: cells are quoted once and locked, the
-  // price line is the only thing that animates. Two side-effects:
-  //
-  //   1. No more drift between what the canvas shows and what the
-  //      engine quotes on click — the empirical table the engine
-  //      uses (`pricing.rs:213-243`) is the same one bundled in
-  //      `lib/taptrade/empiricalPricing.ts`, so the local lookup
-  //      and the server quote agree to the bp.
-  //
-  //   2. No more flicker on snake movement — the multiplier doesn't
-  //      depend on `currentPrice` in this layer, so the wallclock
-  //      tick only updates the time-based "Locked" flag and
-  //      `windowStartOffsetMs` (used by the canvas to lay out the
-  //      cell horizontally).
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: number | undefined;
+
+    const refreshQuotes = async () => {
+      const requestNow = Date.now();
+      const referencePrice = currentPriceRef.current;
+      const requests: QuoteGridCellRequest[] = baseCells
+        .filter((cell) => cell.windowStartMs >= requestNow + ACTIVATION_DELAY_MS - 250)
+        .map((cell) => ({
+          cellId: cell.id,
+          direction: directionForCell(cell, referencePrice),
+          targetRowMinQ8: priceToQ8(cell.pMin),
+          targetRowMaxQ8: priceToQ8(cell.pMax),
+          windowStartOffsetMs: Math.max(0, cell.windowStartMs - requestNow),
+          windowDurationMs: cell.windowDurationMs,
+        }));
+
+      if (requests.length === 0) {
+        if (!cancelled) {
+          setQuoteGrid({
+            symbol: selectedSymbol,
+            receivedAtMs: Date.now(),
+            serverTimeMs: Date.now(),
+            byId: new Map(),
+          });
+          setQuoteGridError(null);
+        }
+        return;
+      }
+
+      const seq = ++quoteGridSeqRef.current;
+      try {
+        const response = await rushArenaClient.getQuoteGrid(selectedSymbol, requests);
+        if (cancelled || seq !== quoteGridSeqRef.current) return;
+        setQuoteGrid({
+          symbol: selectedSymbol,
+          receivedAtMs: Date.now(),
+          serverTimeMs: response.serverTimeMs,
+          byId: new Map(response.cells.map((cell) => [cell.cellId, cell])),
+        });
+        setQuoteGridError(null);
+      } catch (error) {
+        if (cancelled || seq !== quoteGridSeqRef.current) return;
+        setQuoteGridError(error instanceof Error ? error.message : "Quote grid unavailable");
+      }
+    };
+
+    void refreshQuotes();
+    intervalId = window.setInterval(() => void refreshQuotes(), 1_000);
+    return () => {
+      cancelled = true;
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    };
+  }, [baseCells, selectedSymbol]);
+
+  const quoteGridFresh =
+    quoteGrid &&
+    quoteGrid.symbol === selectedSymbol &&
+    nowTime - quoteGrid.receivedAtMs <= 2_500
+      ? quoteGrid
+      : null;
+  const quoteGridStatus = quoteGridFresh ? "live" : quoteGridError ? "offline" : "syncing";
+
+  // Final cells passed to the canvas. Geometry stays local because the
+  // canvas needs stable world-time cells; price/multiplier/disabled
+  // state is server-authoritative from `/trade/quote-grid`. A bettable
+  // cell without a fresh backend quote is intentionally disabled.
   const cells = useMemo(() => {
     if (baseCells.length === 0) return baseCells;
+    const selectedStakeWei = stakeWei(stakeAmount);
     // Build the heatmap key the way the engine emits it. The engine
     // stores prices as Q8 integers; the canvas builds floats from
     // `priceStepBps`. Convert to Q8 with the same rounding the engine
@@ -439,21 +583,48 @@ export default function RushArenaTradePage({
     return baseCells.map((cell) => {
       const offset = cell.windowStartMs - nowTime;
       const locallyLocked = cell.windowStartMs < nowTime + ACTIVATION_DELAY_MS - 1;
-      const disabled = locallyLocked || cell.disabled;
-      const pMinQ8 = Math.round(cell.pMin * 1e8).toString();
-      const pMaxQ8 = Math.round(cell.pMax * 1e8).toString();
+      const serverQuote = quoteGridFresh?.byId.get(cell.id);
+      const missingServerQuote = !locallyLocked && !serverQuote;
+      const serverDisabledReason = serverQuote?.disabledReason ?? null;
+      const stakeAboveServerMax = serverQuote
+        ? weiGreaterThan(selectedStakeWei, serverQuote.maxStakeWei)
+        : false;
+      const disabled =
+        locallyLocked ||
+        missingServerQuote ||
+        Boolean(serverDisabledReason) ||
+        stakeAboveServerMax;
+      const multiplierBps = serverQuote?.multiplierBps && serverQuote.multiplierBps > 0
+        ? serverQuote.multiplierBps
+        : cell.multiplierBps;
+      const pMinQ8 = priceToQ8(cell.pMin);
+      const pMaxQ8 = priceToQ8(cell.pMax);
       const heatKey = `${pMinQ8}|${pMaxQ8}|${cell.windowStartMs}|${cell.windowEndMs}`;
       const heat = heatmap.byKey.get(heatKey);
       return {
         ...cell,
         windowStartOffsetMs: offset,
+        multiplier: multiplierBps / 10_000,
+        multiplierBps,
+        distanceBps: serverQuote?.distanceBps ?? cell.distanceBps,
         disabled,
-        reason: locallyLocked ? "Locked" : cell.reason,
+        reason: locallyLocked
+          ? "Locked"
+          : missingServerQuote
+            ? quoteGridError
+              ? "Pricing offline"
+              : "Pricing"
+            : stakeAboveServerMax
+              ? "Reduce stake"
+              : serverDisabledReason
+                ? formatQuoteDisabledReason(serverDisabledReason)
+                : undefined,
+        disabledReason: null,
         nBets: heat?.nBets,
         totalStakeWei: heat?.totalStakeWei,
       };
     });
-  }, [baseCells, nowTime, heatmap]);
+  }, [baseCells, nowTime, heatmap, quoteGridFresh, quoteGridError, stakeAmount]);
 
   const activeVrfPathBet = useMemo(() => {
     return [...bets]
@@ -733,8 +904,8 @@ export default function RushArenaTradePage({
       const stakeAmountWei = stakeWei(stakeAmount);
       const pendingBet: RushArenaBet = {
         id,
-        market: RUSH_MARKET,
-        symbol: RUSH_MARKET,
+        market: selectedSymbol,
+        symbol: selectedSymbol,
         cell: { ...cell },
         stakeAmount,
         stakeAmountWei,
@@ -754,6 +925,7 @@ export default function RushArenaTradePage({
 
       try {
         const quote = await rushArenaClient.requestQuote({
+          symbol: selectedSymbol,
           cell,
           stakeAmountWei,
           livePrice: currentPrice,
@@ -777,6 +949,7 @@ export default function RushArenaTradePage({
           )
         );
         const placed = await rushArenaClient.placeBet({
+          symbol: selectedSymbol,
           quote,
           cell: quotedCell,
           stakeAmount,
@@ -808,7 +981,7 @@ export default function RushArenaTradePage({
         toast.error(error instanceof Error ? error.message : "Bet failed");
       }
     },
-    [balance, currentPrice, hapticError, hapticMedium, hapticTap, isConnected, isSigningIn, nowTime, openWalletModal, playSound, requiresSession, signIn, stakeAmount]
+    [balance, currentPrice, hapticError, hapticMedium, hapticTap, isConnected, isSigningIn, nowTime, openWalletModal, playSound, requiresSession, selectedSymbol, signIn, stakeAmount]
   );
 
   const pctMove = round && round.initialPrice > 0
@@ -839,10 +1012,11 @@ export default function RushArenaTradePage({
         <ParticleSystem onRef={(ref) => (particlesRef.current = ref)} />
 
         <TopHeader
-          symbol="RUSH/ETH"
           price={currentPrice}
           pctMove={pctMove}
           balance={balance}
+          selectedSymbol={selectedSymbol}
+          onSelectSymbol={setSelectedSymbol}
           onOpenWallet={() => setWalletOpen(true)}
           balanceRef={balanceRef}
         />
@@ -878,7 +1052,19 @@ export default function RushArenaTradePage({
                 </span>
               </div>
               <div className="pointer-events-none absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded border border-[#1d3327] bg-[#020806]/85 px-2 py-1 font-mono text-[11px] font-bold text-[#00ff66]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00ff66] shadow-[0_0_6px_#00ff66]" />
+                <span
+                  className={`h-1.5 w-1.5 animate-pulse rounded-full ${
+                    quoteGridStatus === "live"
+                      ? "bg-[#00ff66] shadow-[0_0_6px_#00ff66]"
+                      : quoteGridStatus === "syncing"
+                        ? "bg-[#ffd43b] shadow-[0_0_6px_#ffd43b]"
+                        : "bg-[#ff3b4d] shadow-[0_0_6px_#ff3b4d]"
+                  }`}
+                />
+                <span className={quoteGridStatus === "offline" ? "text-[#ff8a94]" : undefined}>
+                  {quoteGridStatus === "live" ? "quotes live" : quoteGridStatus === "syncing" ? "quotes syncing" : "quotes offline"}
+                </span>
+                <span className="text-[#355243]">/</span>
                 <span>{heatmap.onlineCount} online</span>
               </div>
               <RushArenaCanvas
@@ -1006,17 +1192,19 @@ function SessionAccessPanel({
 }
 
 function TopHeader({
-  symbol,
   price,
   pctMove,
   balance,
+  selectedSymbol,
+  onSelectSymbol,
   onOpenWallet,
   balanceRef,
 }: {
-  symbol: string;
   price: number;
   pctMove: number;
   balance: number;
+  selectedSymbol: RealTapTradeSymbol;
+  onSelectSymbol: (symbol: RealTapTradeSymbol) => void;
   onOpenWallet: () => void;
   balanceRef?: React.RefObject<HTMLDivElement>;
 }) {
@@ -1046,12 +1234,31 @@ function TopHeader({
         </div>
       </div>
 
-      {/* Symbol pill — compact on phone (no chevron, no R-circle, smaller font) */}
-      <button className="flex h-9 min-w-0 shrink-0 items-center gap-1.5 rounded-md border border-[#1d3327] bg-[#040b0f] px-2 font-mono text-[12px] font-black text-white transition hover:border-[#00ff66]/60 sm:h-11 sm:gap-3 sm:rounded-lg sm:px-4 sm:text-lg">
-        <span className="hidden h-5 w-5 place-items-center rounded-full bg-[#00ff66] text-xs text-[#02260f] sm:grid">R</span>
-        {symbol}
-        <ChevronDown className="hidden h-4 w-4 text-[#7b9186] sm:block" />
-      </button>
+      <div className="flex h-9 min-w-0 shrink-0 items-center overflow-hidden rounded-md border border-[#1d3327] bg-[#040b0f] sm:h-11 sm:rounded-lg">
+        {TAP_TRADE_ASSETS.map((asset) => {
+          const active = asset.symbol === selectedSymbol;
+          return (
+            <button
+              key={asset.symbol}
+              type="button"
+              onClick={() => onSelectSymbol(asset.symbol)}
+              className={`h-full px-2 font-mono text-[11px] font-black transition sm:px-3 sm:text-sm ${
+                active
+                  ? "bg-[#00ff66] text-[#02260f]"
+                  : "text-[#8aa393] hover:bg-[#092016] hover:text-white"
+              }`}
+              aria-label={`Trade ${asset.displaySymbol}`}
+              title={asset.label}
+            >
+              <span className="sm:hidden">{asset.displaySymbol.split("/")[0]}</span>
+              <span className="hidden sm:inline">{asset.displaySymbol}</span>
+            </button>
+          );
+        })}
+        <span className="hidden h-full items-center border-l border-[#1d3327] px-2 text-[#7b9186] lg:flex">
+          <ChevronDown className="h-4 w-4" />
+        </span>
+      </div>
 
       {/* Price + pct — now visible on mobile too (compact). Was
           desktop-only before; mobile players had no live price text

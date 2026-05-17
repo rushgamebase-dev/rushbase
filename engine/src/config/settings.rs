@@ -10,6 +10,8 @@ pub struct Settings {
     pub jwt: JwtConfig,
     pub siwe: SiweConfig,
     pub chain: ChainConfig,
+    #[serde(default)]
+    pub real_price: RealPriceConfig,
     pub touch: TouchConfig,
     pub multiplier: MultiplierConfig,
     pub risk: RiskConfig,
@@ -47,9 +49,8 @@ impl Default for VrfConfig {
     fn default() -> Self {
         Self {
             // Sentinel — production guard panics if this leaks past dev.
-            encryption_key:
-                "00000000000000000000000000000000000000000000000000000000000000ff"
-                    .to_string(),
+            encryption_key: "00000000000000000000000000000000000000000000000000000000000000ff"
+                .to_string(),
         }
     }
 }
@@ -158,7 +159,11 @@ where
         Csv(String),
     }
     Ok(match Form::deserialize(deserializer)? {
-        Form::List(v) => v.into_iter().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect(),
+        Form::List(v) => v
+            .into_iter()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
         Form::Csv(s) => s
             .split(',')
             .map(|s| s.trim().to_string())
@@ -239,6 +244,79 @@ fn default_min_confirmations() -> u64 {
 
 fn default_withdraw_auth_ttl() -> i64 {
     900
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RealPriceConfig {
+    /// Real-market Tap Trading mode. When enabled, symbols in
+    /// `symbols` are backed by the in-process market feed and can be
+    /// quoted, bet, and settled independently from RUSH_INDEX.
+    #[serde(default = "default_real_price_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_real_price_source")]
+    pub source: String,
+    #[serde(
+        default = "default_real_price_symbols",
+        deserialize_with = "deserialize_csv"
+    )]
+    pub symbols: Vec<String>,
+    #[serde(default = "default_real_price_default_symbol")]
+    pub default_symbol: String,
+    #[serde(default = "default_binance_ws_base_url")]
+    pub binance_ws_base_url: String,
+    #[serde(default = "default_binance_rest_base_url")]
+    pub binance_rest_base_url: String,
+    #[serde(default = "default_real_price_stale_after_ms")]
+    pub stale_after_ms: i64,
+    #[serde(default = "default_real_price_history_window_ms")]
+    pub history_window_ms: i64,
+}
+
+impl Default for RealPriceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_real_price_enabled(),
+            source: default_real_price_source(),
+            symbols: default_real_price_symbols(),
+            default_symbol: default_real_price_default_symbol(),
+            binance_ws_base_url: default_binance_ws_base_url(),
+            binance_rest_base_url: default_binance_rest_base_url(),
+            stale_after_ms: default_real_price_stale_after_ms(),
+            history_window_ms: default_real_price_history_window_ms(),
+        }
+    }
+}
+
+fn default_real_price_enabled() -> bool {
+    true
+}
+
+fn default_real_price_source() -> String {
+    "binance".into()
+}
+
+fn default_real_price_symbols() -> Vec<String> {
+    vec!["ETHUSDT".into(), "BTCUSDT".into(), "SOLUSDT".into()]
+}
+
+fn default_real_price_default_symbol() -> String {
+    "ETHUSDT".into()
+}
+
+fn default_binance_ws_base_url() -> String {
+    "wss://stream.binance.com:9443".into()
+}
+
+fn default_binance_rest_base_url() -> String {
+    "https://api.binance.com".into()
+}
+
+fn default_real_price_stale_after_ms() -> i64 {
+    5_000
+}
+
+fn default_real_price_history_window_ms() -> i64 {
+    180_000
 }
 
 /// Touch-bet placement and resolution parameters.

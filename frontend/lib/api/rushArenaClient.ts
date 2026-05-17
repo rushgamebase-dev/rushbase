@@ -8,6 +8,7 @@ const WS_URL =
 
 export const RUSH_MARKET = "RUSH_INDEX" as const;
 export const RUSH_DISPLAY = "Rush Index";
+export type TapTradeSymbol = typeof RUSH_MARKET | "ETHUSDT" | "BTCUSDT" | "SOLUSDT" | string;
 // Mock mode is OPT-IN for development. In production builds it stays
 // off no matter what — the trade page must consume real quotes from the
 // backend or refuse to take a bet. See audit report ("Pricing OK to
@@ -44,8 +45,8 @@ export type RushPathPoint = RushTick;
 
 export type RushRound = {
   roundId: string;
-  market: typeof RUSH_MARKET;
-  displayName: typeof RUSH_DISPLAY;
+  market: TapTradeSymbol;
+  displayName: string;
   startedAt: number;
   endsAt: number;
   tickMs: number;
@@ -81,8 +82,8 @@ export type RushBetStatus = "PENDING" | "ACTIVE" | "WON" | "LOST" | "CANCELLED";
 
 export type RushArenaBet = {
   id: string;
-  market: typeof RUSH_MARKET;
-  symbol: typeof RUSH_MARKET;
+  market: TapTradeSymbol;
+  symbol: TapTradeSymbol;
   cell: TapGridCell;
   stakeAmount: number;
   stakeAmountWei: string;
@@ -156,6 +157,7 @@ type BackendWsMessage =
   | { type: string; payload?: unknown };
 
 type RequestQuoteParams = {
+  symbol?: TapTradeSymbol;
   cell: TapGridCell;
   stakeAmountWei: string;
   livePrice?: number;
@@ -220,6 +222,7 @@ export type QuoteGridResponse = {
 };
 
 type PlaceBetParams = {
+  symbol?: TapTradeSymbol;
   quote: RushQuote;
   cell: TapGridCell;
   stakeAmount: number;
@@ -449,10 +452,11 @@ function normalizeBackendBet(
     ((response.multiplierBps ?? fallback?.multiplierBps ?? 10_000) / 10_000);
   const stakeAmount = response.stakeAmount ?? fallback?.stakeAmount ?? 0;
   const fallbackStatus = fallback?.status ?? "PENDING";
+  const symbol = response.symbol ?? fallback?.symbol ?? RUSH_MARKET;
   return {
     id: response.id ?? fallback?.id ?? `rush-${Date.now()}`,
-    market: RUSH_MARKET,
-    symbol: RUSH_MARKET,
+    market: symbol,
+    symbol,
     cell,
     stakeAmount,
     stakeAmountWei: response.stakeAmountWei ?? fallback?.stakeAmountWei ?? "0",
@@ -786,6 +790,7 @@ export const rushArenaClient = {
   },
 
   async requestQuote({
+    symbol = RUSH_MARKET,
     cell,
     stakeAmountWei: _stakeAmountWei,
     livePrice,
@@ -832,7 +837,7 @@ export const rushArenaClient = {
     }>("/trade/quote", {
       method: "POST",
       body: JSON.stringify({
-        symbol: RUSH_MARKET,
+        symbol,
         direction,
         target_row_min_q8: BigInt(Math.round(cell.pMin * 1e8)).toString(),
         target_row_max_q8: BigInt(Math.round(cell.pMax * 1e8)).toString(),
@@ -849,6 +854,7 @@ export const rushArenaClient = {
   },
 
   async placeBet({
+    symbol = RUSH_MARKET,
     quote,
     cell,
     stakeAmount,
@@ -861,8 +867,8 @@ export const rushArenaClient = {
       await new Promise((resolve) => setTimeout(resolve, 80));
       return {
         id,
-        market: RUSH_MARKET,
-        symbol: RUSH_MARKET,
+        market: symbol,
+        symbol,
         cell,
         stakeAmount,
         stakeAmountWei,
@@ -890,7 +896,7 @@ export const rushArenaClient = {
         "Idempotency-Key": id,
       },
       body: JSON.stringify({
-        symbol: RUSH_MARKET,
+        symbol,
         direction,
         stake_wei: stakeAmountWei,
         target_row_min_q8: BigInt(Math.round(cell.pMin * 1e8)).toString(),
@@ -904,6 +910,7 @@ export const rushArenaClient = {
 
     return normalizeBackendBet(response, {
       id,
+      symbol,
       cell,
       stakeAmount,
       stakeAmountWei,
@@ -924,19 +931,20 @@ export const rushArenaClient = {
   /// shape so the canvas, which still reads `currentPrice` and
   /// `serverSeedHash`, keeps working until it's refactored to
   /// consume the index directly.
-  async getSynthRound(): Promise<RushRound> {
+  async getSynthRound(symbol: TapTradeSymbol = RUSH_MARKET): Promise<RushRound> {
     if (isRushArenaMockMode()) return currentRound();
     const data = await requestJson<{
       symbol: string;
       price_q8: string;
       timestamp: number;
-      server_seed_hash: string;
-    }>(`/prices/${RUSH_MARKET}`);
+      server_seed_hash?: string;
+      kind?: string;
+    }>(`/prices/${encodeURIComponent(symbol)}`);
     const currentPrice = Number(data.price_q8) / 1e8;
     return {
-      roundId: `rush-index-${data.server_seed_hash.slice(0, 12)}`,
-      market: RUSH_MARKET,
-      displayName: RUSH_DISPLAY,
+      roundId: `${data.symbol.toLowerCase()}-${(data.server_seed_hash ?? "real-price").slice(0, 12)}`,
+      market: data.symbol,
+      displayName: data.symbol === RUSH_MARKET ? RUSH_DISPLAY : data.symbol,
       startedAt: 0,
       endsAt: Number.MAX_SAFE_INTEGER,
       tickMs: 150,
@@ -945,7 +953,7 @@ export const rushArenaClient = {
       initialPrice: currentPrice,
       currentPrice,
       volatility: 0.001,
-      serverSeedHash: data.server_seed_hash,
+      serverSeedHash: data.server_seed_hash ?? "",
       revealedSeed: null,
       status: "active",
     };
@@ -986,18 +994,23 @@ export const rushArenaClient = {
   /// the seed hash that drives the index trajectory; per-bet
   /// commit/reveal lives separately on each bet's `/verify`
   /// endpoint.
-  async getProvablyFair(): Promise<ProvablyFairState> {
+  async getProvablyFair(symbol: TapTradeSymbol = RUSH_MARKET): Promise<ProvablyFairState> {
     if (isRushArenaMockMode()) return provablyFair();
     const data = await requestJson<{
       symbol: string;
       price_q8: string;
       timestamp: number;
-      server_seed_hash: string;
-    }>(`/prices/${RUSH_MARKET}`);
+      server_seed_hash?: string;
+      kind?: string;
+      source?: string;
+    }>(`/prices/${encodeURIComponent(symbol)}`);
+    const isRushIndex = data.symbol === RUSH_MARKET;
     return {
-      roundId: `rush-index-${data.server_seed_hash.slice(0, 12)}`,
-      algorithm: "VRF arena: SHA256(seed||counter) → uniform → regime + path",
-      serverSeedHash: data.server_seed_hash,
+      roundId: `${data.symbol.toLowerCase()}-${(data.server_seed_hash ?? "real-price").slice(0, 12)}`,
+      algorithm: isRushIndex
+        ? "VRF arena: SHA256(seed||counter) -> uniform -> regime + path"
+        : `Real market feed: ${data.source ?? "market"} trade stream -> first touch`,
+      serverSeedHash: data.server_seed_hash ?? "",
       revealedSeed: null,
       tickMs: 150,
       volatility: 0.001,
@@ -1119,7 +1132,10 @@ export const rushArenaClient = {
     }));
   },
 
-  connectWebSocket(onEvent: (event: RushArenaEvent) => void) {
+  connectWebSocket(
+    onEvent: (event: RushArenaEvent) => void,
+    symbol: TapTradeSymbol = RUSH_MARKET
+  ) {
     if (isRushArenaMockMode()) {
       syncMockClock();
       const id = window.setInterval(() => {
@@ -1143,7 +1159,7 @@ export const rushArenaClient = {
       price_q8: string | number;
       timestamp: number;
     }) => {
-      if (priceData.symbol !== RUSH_MARKET) return;
+      if (priceData.symbol !== symbol) return;
       const q8 = Number(priceData.price_q8);
       if (!Number.isFinite(q8) || q8 <= 0) return;
       const price = q8 / 1e8;
@@ -1162,13 +1178,12 @@ export const rushArenaClient = {
       socket = new WebSocket(WS_URL);
       socket.onopen = () => {
         // Engine subscription protocol: `SubscribePrices` with the
-        // list of symbols (we only have RUSH_INDEX). `GetPrices`
-        // forces an immediate snapshot so the canvas doesn't show
-        // an empty trail until the next tick fires.
+        // active symbol. `GetPrices` forces an immediate snapshot so
+        // the canvas doesn't show an empty trail until the next tick.
         socket?.send(
           JSON.stringify({
             type: "SubscribePrices",
-            payload: { symbols: [RUSH_MARKET] },
+            payload: { symbols: [symbol] },
           })
         );
         socket?.send(JSON.stringify({ type: "GetPrices" }));

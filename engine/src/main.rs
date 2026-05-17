@@ -33,6 +33,7 @@ use rush_engine::chain::{
 };
 use rush_engine::config::Settings;
 use rush_engine::db::create_pool;
+use rush_engine::market_feed::{spawn_binance_feed, spawn_market_tick_writer, RealPriceFeed};
 use rush_engine::metrics::{spawn_sampler, EngineMetrics};
 use rush_engine::monitors::{spawn_ws_revalidator, WsRevalidateConfig};
 use rush_engine::risk::{bd_or_zero_u256, limits_from_config, ExposureTracker};
@@ -83,7 +84,10 @@ async fn main() -> std::io::Result<()> {
         {
             bad.push("APP_JWT__SECRET");
         }
-        if settings.quote.signing_secret.contains("change-in-production")
+        if settings
+            .quote
+            .signing_secret
+            .contains("change-in-production")
             || settings.quote.signing_secret.len() < 32
         {
             bad.push("APP_QUOTE__SIGNING_SECRET");
@@ -150,6 +154,10 @@ async fn main() -> std::io::Result<()> {
         seed_hash = %arena_index.seed_hash(),
         "Rush Index advancer started"
     );
+
+    let real_price_feed = Arc::new(RealPriceFeed::new(&settings.real_price));
+    spawn_market_tick_writer(pool.clone(), real_price_feed.clone());
+    spawn_binance_feed(real_price_feed.clone(), settings.real_price.clone());
     // ExposureTracker mirrors breaker transitions to `house_state` so a
     // process restart doesn't silently un-trip the breaker.
     let exposure = Arc::new(
@@ -271,8 +279,8 @@ async fn main() -> std::io::Result<()> {
     // in production would erode the key-custody story. The boot
     // panics with a clear message if KMS is requested but the binary
     // wasn't built with `--features aws-kms`.
-    let vault_addr = Address::from_str(&settings.chain.vault_address)
-        .expect("Invalid vault_address in config");
+    let vault_addr =
+        Address::from_str(&settings.chain.vault_address).expect("Invalid vault_address in config");
     let withdraw_signer = if let Some(kms_id) = settings.chain.signer_kms_key_id.clone() {
         tracing::info!(kms_key_id = %kms_id, "Initializing KMS-backed engine signer");
         Arc::new(
@@ -298,6 +306,7 @@ async fn main() -> std::io::Result<()> {
     let touch_engine = Arc::new(TouchEngine::new(
         pool.clone(),
         arena_index.clone(),
+        real_price_feed.clone(),
         exposure.clone(),
         vrf_cipher.clone(),
         withdraw_signer.clone(),
@@ -312,14 +321,13 @@ async fn main() -> std::io::Result<()> {
     // a metric. New signer (first time seen) → insert with kind='boot'
     // and age = 0. Existing signer → no insert, just read the oldest
     // activation row.
-    let existing_first_seen: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
-        "SELECT MIN(activated_at) FROM signer_audit WHERE signer_address = $1",
-    )
-    .bind(&signer_addr_str)
-    .fetch_optional(&pool)
-    .await
-    .ok()
-    .flatten();
+    let existing_first_seen: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT MIN(activated_at) FROM signer_audit WHERE signer_address = $1")
+            .bind(&signer_addr_str)
+            .fetch_optional(&pool)
+            .await
+            .ok()
+            .flatten();
     let signer_age_days: i64 = match existing_first_seen {
         Some(ts) => (chrono::Utc::now() - ts).num_days().max(0),
         None => {
@@ -343,9 +351,8 @@ async fn main() -> std::io::Result<()> {
     }
 
     let metrics_registry = Registry::new();
-    let engine_metrics = Arc::new(
-        EngineMetrics::new(&metrics_registry).expect("failed to register engine metrics"),
-    );
+    let engine_metrics =
+        Arc::new(EngineMetrics::new(&metrics_registry).expect("failed to register engine metrics"));
     engine_metrics.signer_age_days.set(signer_age_days);
     spawn_sampler(
         (*engine_metrics).clone(),
@@ -358,10 +365,7 @@ async fn main() -> std::io::Result<()> {
     // solvency monitor. Plain JSON-RPC over the configured HTTP URL so we
     // don't need a long-lived alloy `Provider`.
     let vault_balance_provider: Arc<dyn rush_engine::chain::VaultBalanceProvider> =
-        AlloyVaultBalanceProvider::shared(
-            settings.chain.rpc_http_url.clone(),
-            vault_addr,
-        );
+        AlloyVaultBalanceProvider::shared(settings.chain.rpc_http_url.clone(), vault_addr);
 
     let withdraw_service = Arc::new(WithdrawService::new(
         pool.clone(),
@@ -412,8 +416,9 @@ async fn main() -> std::io::Result<()> {
     // clients. No real market feed; the index is in-process.
     let price_broadcaster = broadcaster.clone();
     let arena_for_ws = arena_index.clone();
+    let real_feed_for_ws = real_price_feed.clone();
     tokio::spawn(async move {
-        start_price_broadcaster(price_broadcaster, arena_for_ws).await
+        start_price_broadcaster(price_broadcaster, arena_for_ws, real_feed_for_ws).await
     });
 
     // Withdraw-authorization expiration sweep.
@@ -506,6 +511,7 @@ async fn main() -> std::io::Result<()> {
         jwt_service: jwt_service.clone(),
         siwe_verifier: siwe_verifier.clone(),
         arena_index: arena_index.clone(),
+        real_price_feed: real_price_feed.clone(),
         touch_engine: touch_engine.clone(),
         withdraw_service: withdraw_service.clone(),
         broadcaster: broadcaster.clone(),

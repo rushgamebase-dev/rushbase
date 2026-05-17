@@ -4,4 +4,6 @@ pub mod repositories;
 
 pub use postgres::create_pool;
 pub use redis::create_pool as create_redis_pool;
-pub use repositories::{LedgerRepository, TouchBetRepository, UserRepository};
+pub use repositories::{
+    LedgerRepository, MarketPriceTickRepository, TouchBetRepository, UserRepository,
+};

@@ -8,8 +8,11 @@
 use crate::arena_index::{ArenaIndex, RUSH_INDEX_SYMBOL};
 use crate::chain::WithdrawSigner;
 use crate::config::settings::{MultiplierConfig as MultiplierCfgToml, RiskConfig, TouchConfig};
-use crate::db::repositories::{LedgerRepository, TouchBetRepository, UserRepository};
+use crate::db::repositories::{
+    LedgerRepository, MarketPriceTickRepository, TouchBetRepository, UserRepository,
+};
 use crate::errors::TradingError;
+use crate::market_feed::RealPriceFeed;
 use crate::models::ledger::TransactionType;
 use crate::models::touch_bet::{TouchBet, TouchDirection, TouchStatus};
 use crate::models::user::User;
@@ -17,8 +20,8 @@ use crate::risk::{bd_or_zero_u256, ExposureTracker};
 use crate::touch::pricing::{MultiplierCalculator, MultiplierConfig, MultiplierQuote};
 use crate::utils::wei::{bd_to_q8_i64, bd_to_u256, i256_to_bd, u256_to_bd};
 use crate::vrf::{
-    compute_commit_hash, seed_to_hex, select_regime, sign_commit, CommitPreimage,
-    SeedCipher, COMMIT_DOMAIN_TAG, PATH_CONFIG_VERSION,
+    compute_commit_hash, seed_to_hex, select_regime, sign_commit, CommitPreimage, SeedCipher,
+    COMMIT_DOMAIN_TAG, PATH_CONFIG_VERSION,
 };
 use alloy::primitives::{Address, U256};
 use bigdecimal::{BigDecimal, Zero};
@@ -28,21 +31,6 @@ use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
-
-/// Tick spacing for the VRF path. 100 ms is dense enough to make
-/// sub-tick interpolation rarely matter while keeping the path short
-/// (a 60 s window has 600 points). Bumping this would invalidate
-/// every existing commit/path_points_hash — gate behind a
-/// PATH_CONFIG_VERSION bump.
-const VRF_TICK_MS: i64 = 100;
-/// Per-tick volatility for the path generator. Same number the
-/// pricing model uses; keeping them aligned means quote and
-/// resolution share the same world-model.
-const VRF_VOLATILITY_BPS: f64 = 2.8;
-/// Reflection bound for the path. ±1.9 % from `entry_price`. Bigger
-/// than any realistic touch band, so the bound only kicks in for
-/// genuinely degenerate seeds (mean reversion handles the rest).
-const VRF_BOUND_BPS: f64 = 190.0;
 
 #[derive(Debug, Clone)]
 pub struct OpenBet {
@@ -70,11 +58,17 @@ pub struct TouchEngine {
     pool: PgPool,
     user_repo: UserRepository,
     bet_repo: TouchBetRepository,
+    market_tick_repo: MarketPriceTickRepository,
     /// Deterministic in-process Rush Index. Provides `entry_price_q8`
     /// at quote/place time so bands can be expressed in bps and the
     /// UX can render a live "now" line. **Not consulted during bet
     /// resolution** — that's 100 % VRF path (`vrf::path`).
     arena_index: Arc<ArenaIndex>,
+    /// Real-market price feed for the principal Tap Trading mode
+    /// (ETH/BTC/SOL). The Rush Index remains supported as a legacy
+    /// symbol through `arena_index`; all other accepted symbols come
+    /// from this feed.
+    real_price_feed: Arc<RealPriceFeed>,
     exposure: Arc<ExposureTracker>,
     multiplier: MultiplierCalculator,
     /// VRF seed cipher (AES-256-GCM). Used at place time to encrypt
@@ -110,6 +104,7 @@ impl TouchEngine {
     pub fn new(
         pool: PgPool,
         arena_index: Arc<ArenaIndex>,
+        real_price_feed: Arc<RealPriceFeed>,
         exposure: Arc<ExposureTracker>,
         vrf_cipher: Arc<SeedCipher>,
         commit_signer: Arc<WithdrawSigner>,
@@ -121,6 +116,7 @@ impl TouchEngine {
         Self {
             user_repo: UserRepository::new(pool.clone()),
             bet_repo: TouchBetRepository::new(pool.clone()),
+            market_tick_repo: MarketPriceTickRepository::new(pool.clone()),
             multiplier: MultiplierCalculator::new(MultiplierConfig {
                 house_edge_bps: multiplier_cfg.house_edge_bps,
                 min_multiplier_bps: multiplier_cfg.min_multiplier_bps,
@@ -155,13 +151,12 @@ impl TouchEngine {
             max_per_symbol_potential_payout_wei: parse(
                 &risk_cfg.max_per_symbol_potential_payout_wei,
             ),
-            max_potential_payout_per_user_wei: parse(
-                &risk_cfg.max_potential_payout_per_user_wei,
-            ),
+            max_potential_payout_per_user_wei: parse(&risk_cfg.max_potential_payout_per_user_wei),
             max_payout_per_bet_wei: parse(&risk_cfg.max_payout_per_bet_wei),
             min_house_buffer_wei: parse(&risk_cfg.min_house_buffer_wei),
             pool,
             arena_index,
+            real_price_feed,
             exposure,
             vrf_cipher,
             commit_signer,
@@ -170,6 +165,9 @@ impl TouchEngine {
 
     pub fn arena_index(&self) -> &Arc<ArenaIndex> {
         &self.arena_index
+    }
+    pub fn real_price_feed(&self) -> &Arc<RealPriceFeed> {
+        &self.real_price_feed
     }
     pub fn bet_repo(&self) -> &TouchBetRepository {
         &self.bet_repo
@@ -200,6 +198,36 @@ impl TouchEngine {
         v
     }
 
+    pub fn canonical_symbol(&self, symbol: &str) -> Option<String> {
+        let upper = symbol.trim().to_uppercase();
+        if upper.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
+            return Some(RUSH_INDEX_SYMBOL.to_string());
+        }
+        self.real_price_feed.normalize_symbol(&upper)
+    }
+
+    pub fn is_real_price_symbol(&self, symbol: &str) -> bool {
+        self.canonical_symbol(symbol)
+            .map_or(false, |s| !s.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL))
+    }
+
+    pub fn current_entry_q8(&self, symbol: &str) -> Result<i64, TradingError> {
+        let Some(symbol) = self.canonical_symbol(symbol) else {
+            return Err(TradingError::InvalidSymbol(symbol.to_string()));
+        };
+        if symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
+            let entry = self.arena_index.current_q8();
+            if entry <= 0 {
+                return Err(TradingError::PriceUnavailable(symbol));
+            }
+            return Ok(entry);
+        }
+        self.real_price_feed
+            .current_q8(&symbol)
+            .filter(|entry| *entry > 0)
+            .ok_or(TradingError::PriceUnavailable(symbol))
+    }
+
     /// Quote the multiplier the engine *would* assign to a bet right now.
     /// `window_start_offset_ms` is the gap between "now" and the start of
     /// the window — col 1 of the grid is 0, col N is `(N-1) * duration`.
@@ -214,16 +242,7 @@ impl TouchEngine {
         window_start_offset_ms: u64,
         window_duration_ms: u64,
     ) -> Result<MultiplierQuote, TradingError> {
-        // Only the Rush Index is supported. The arena is intentionally
-        // single-symbol — its movement comes from the in-process index,
-        // not any market.
-        if !symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
-            return Err(TradingError::InvalidSymbol(symbol.to_string()));
-        }
-        let entry = self.arena_index.current_q8();
-        if entry <= 0 {
-            return Err(TradingError::PriceUnavailable(symbol.to_string()));
-        }
+        let entry = self.current_entry_q8(symbol)?;
         Ok(self.multiplier.quote(
             entry as u128,
             u256_to_u128_saturating(target_row_min_q8),
@@ -236,19 +255,19 @@ impl TouchEngine {
 
     /// Place a new touch-bet. All write effects land atomically.
     pub async fn open_bet(&self, req: OpenBet) -> Result<TouchBet, TradingError> {
+        let mut req = req;
+        req.symbol = self
+            .canonical_symbol(&req.symbol)
+            .ok_or_else(|| TradingError::InvalidSymbol(req.symbol.clone()))?;
         if self.exposure.is_circuit_breaker_triggered() {
             return Err(TradingError::CircuitBreakerOpen);
         }
         self.validate_request(&req)?;
 
-        // Read entry from the in-process Rush Index. There is no
-        // staleness check — the index advances on a tokio interval
-        // and is always within one tick of `now`. No external feed,
-        // no oracle, no Binance.
-        let entry_q8 = self.arena_index.current_q8();
-        if entry_q8 <= 0 {
-            return Err(TradingError::PriceUnavailable(req.symbol.clone()));
-        }
+        // Read entry from the symbol's authoritative source. RUSH_INDEX
+        // uses the deterministic arena index; real-price symbols use
+        // the live market feed and fail closed when stale.
+        let entry_q8 = self.current_entry_q8(&req.symbol)?;
         let now_ms = Utc::now().timestamp_millis();
         let entry_q8_u = U256::from(entry_q8 as u64);
 
@@ -328,20 +347,17 @@ impl TouchEngine {
         }
         // Refuse cells outside the calibrated empirical table.
         // Bachelier fallback under-prices wide bands against the
-        // VRF generator and lets a player drain the vault — see
-        // `tests/economic_safety.rs` for the documented exploit.
-        // The grid handler marks these as `UNCALIBRATED` pre-quote;
-        // this is the defense-in-depth gate that catches a client
-        // bypassing the grid.
-        if !quote.from_empirical {
+        // deterministic RUSH_INDEX generator, so the legacy mode still
+        // requires calibrated empirical cells. Real-market symbols use
+        // the model quote directly because their volatility comes from
+        // live market movement instead of the VRF/index table.
+        if req.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) && !quote.from_empirical {
             return Err(TradingError::InvalidBand {
                 reason: format!(
                     "Cell not in calibrated table (distance={} bps, \
                      duration={} ms, offset={} ms). Run `bin/calibrate_vrf` \
                      to extend coverage.",
-                    quote.distance_bps,
-                    quote.window_duration_ms,
-                    quote.window_start_offset_ms,
+                    quote.distance_bps, quote.window_duration_ms, quote.window_start_offset_ms,
                 ),
             });
         }
@@ -363,7 +379,8 @@ impl TouchEngine {
         // check against a client tampering with `expected_multiplier_bps`.
         // The previous 1% tolerance was rejecting roughly half of all
         // honest clicks during fast price moves.
-        let mult_drift_bps = (quote.multiplier_bps as i64 - req.expected_multiplier_bps as i64).abs();
+        let mult_drift_bps =
+            (quote.multiplier_bps as i64 - req.expected_multiplier_bps as i64).abs();
         let mult_tolerance = (req.expected_multiplier_bps as i64 / 10).max(500); // 10% of expected, ≥500 bps
         if mult_drift_bps > mult_tolerance {
             return Err(TradingError::QuoteMismatch {
@@ -385,10 +402,8 @@ impl TouchEngine {
         // house's expected take is `stake * edge_bps / 10_000`. Surfaced
         // for transparency on each ledger entry.
         let house_edge_bps = self.multiplier.config().house_edge_bps as u64;
-        let house_edge_wei = req
-            .stake_wei
-            .saturating_mul(U256::from(house_edge_bps))
-            / U256::from(10_000u64);
+        let house_edge_wei =
+            req.stake_wei.saturating_mul(U256::from(house_edge_bps)) / U256::from(10_000u64);
 
         if payout > self.max_payout_per_bet_wei {
             return Err(TradingError::PayoutCapExceeded {
@@ -403,11 +418,10 @@ impl TouchEngine {
         // buffer floor satisfied or fails atomically — no partial state
         // gets installed and no concurrent open can sneak past while we
         // still hold a stale snapshot.
-        let house_buffer_bd: BigDecimal = sqlx::query_scalar(
-            "SELECT house_buffer_wei FROM house_state LIMIT 1",
-        )
-        .fetch_one(&self.pool)
-        .await?;
+        let house_buffer_bd: BigDecimal =
+            sqlx::query_scalar("SELECT house_buffer_wei FROM house_state LIMIT 1")
+                .fetch_one(&self.pool)
+                .await?;
         let house_buffer_u = bd_or_zero_u256(&house_buffer_bd);
 
         self.exposure
@@ -447,7 +461,13 @@ impl TouchEngine {
 
         // Wrapper that releases the in-memory reservation if the DB write fails.
         let result = self
-            .commit_open(req.clone(), entry_q8_u, payout, house_edge_wei, quote.multiplier_bps)
+            .commit_open(
+                req.clone(),
+                entry_q8_u,
+                payout,
+                house_edge_wei,
+                quote.multiplier_bps,
+            )
             .await;
         if result.is_err() {
             self.exposure
@@ -689,20 +709,34 @@ impl TouchEngine {
             });
         }
 
-        // Resolution against the visible Rush Index history. The
-        // resolver replays the index path inside the bet's window,
-        // checks first-passage against the band, and settles. This
-        // is the same line the player watched in the canvas — no
-        // hidden VRF cobra, no surprise.
+        // Resolution against the same line the player watched. Legacy
+        // RUSH_INDEX bets replay the deterministic arena history;
+        // real-price bets replay the market feed history for their
+        // symbol.
         //
         // The legacy commit/reveal VRF code is left in `vrf/` for
         // historical reference and was the resolver until 2026-05-04.
         let p_min = (bd_to_q8_i64(&bet.target_row_min_q8) as f64) / 1e8;
         let p_max = (bd_to_q8_i64(&bet.target_row_max_q8) as f64) / 1e8;
 
-        let path = self
-            .arena_index
-            .path_window(bet.window_start_ms, bet.window_end_ms);
+        let path = if bet.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
+            self.arena_index
+                .path_window(bet.window_start_ms, bet.window_end_ms)
+        } else {
+            let persisted = self
+                .market_tick_repo
+                .path_window(&bet.symbol, bet.window_start_ms, bet.window_end_ms)
+                .await?;
+            if persisted.is_empty() {
+                self.real_price_feed.path_window(
+                    &bet.symbol,
+                    bet.window_start_ms,
+                    bet.window_end_ms,
+                )
+            } else {
+                persisted
+            }
+        };
         if path.is_empty() {
             // History buffer evicted before we got around to settling.
             // Two cases:
@@ -753,10 +787,7 @@ impl TouchEngine {
     /// CANCELLED, stake is released back to the player, no PnL is
     /// realised. Idempotent under the FOR UPDATE re-check inside the
     /// transaction.
-    async fn cancel_unresolvable(
-        &self,
-        bet: TouchBet,
-    ) -> Result<ResolveOutcome, TradingError> {
+    async fn cancel_unresolvable(&self, bet: TouchBet) -> Result<ResolveOutcome, TradingError> {
         let mut tx = self.pool.begin().await?;
         let row: TouchBet = sqlx::query_as("SELECT * FROM touch_bets WHERE id = $1 FOR UPDATE")
             .bind(bet.id)
@@ -952,15 +983,18 @@ impl TouchEngine {
             .await?;
         }
 
-        let new_status = if won { TouchStatus::Won } else { TouchStatus::Lost };
+        let new_status = if won {
+            TouchStatus::Won
+        } else {
+            TouchStatus::Lost
+        };
         // Honest touched_at: VRF gives us the exact (interpolated)
         // millisecond the band was first crossed. Persist that
         // instead of `now`, so the verifier (which regenerates the
         // same path from the revealed seed) can compare against an
         // authoritative timestamp.
-        let touched_at = touched_at_ms.map(|ms| {
-            chrono::DateTime::<Utc>::from_timestamp_millis(ms).unwrap_or_else(Utc::now)
-        });
+        let touched_at = touched_at_ms
+            .map(|ms| chrono::DateTime::<Utc>::from_timestamp_millis(ms).unwrap_or_else(Utc::now));
         // The `revealed_seed_size` check requires NULL or exactly 32
         // bytes. Under the arena_index resolver there is no per-bet
         // seed, so map the empty vector to NULL instead of binding a
@@ -1016,12 +1050,7 @@ impl TouchEngine {
     }
 
     fn validate_request(&self, req: &OpenBet) -> Result<(), TradingError> {
-        // Only RUSH_INDEX is supported in the VRF arena. Per-bet
-        // resolution is via VRF path, but we still pin the symbol
-        // so the schema/UX stays single-source-of-truth and so
-        // `entry_price_q8` is never accidentally read from a
-        // different reference.
-        if !req.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
+        if self.canonical_symbol(&req.symbol).is_none() {
             return Err(TradingError::InvalidSymbol(req.symbol.clone()));
         }
         if req.stake_wei < self.min_stake_wei || req.stake_wei > self.max_stake_wei {
@@ -1048,7 +1077,11 @@ impl TouchEngine {
         if entry.is_zero() {
             return 0;
         }
-        let diff = if edge >= entry { edge - entry } else { entry - edge };
+        let diff = if edge >= entry {
+            edge - entry
+        } else {
+            entry - edge
+        };
         let bps = diff.saturating_mul(U256::from(10_000u64)) / entry;
         bps.try_into().unwrap_or(u32::MAX)
     }
@@ -1095,9 +1128,40 @@ pub fn check_activation_gate(
 /// for any single bet is bounded by the window duration / TICK_MS
 /// (≤ 60 000 / 150 = 400 entries).
 fn first_touch_in_path(path: &[(i64, f64)], p_min: f64, p_max: f64) -> Option<i64> {
-    path.iter()
-        .find(|(_, price)| *price >= p_min && *price <= p_max)
-        .map(|(t, _)| *t)
+    let mut iter = path.iter();
+    let mut prev = *iter.next()?;
+    if prev.1 >= p_min && prev.1 <= p_max {
+        return Some(prev.0);
+    }
+
+    for &current in iter {
+        if current.1 >= p_min && current.1 <= p_max {
+            return Some(current.0);
+        }
+        let low = prev.1.min(current.1);
+        let high = prev.1.max(current.1);
+        if high >= p_min && low <= p_max && current.0 > prev.0 {
+            // The sampled line crossed through the band between two
+            // feed events. Approximate the first boundary touch by
+            // linear interpolation so narrow real-price bands don't
+            // miss obvious crossings.
+            let boundary = if prev.1 < p_min && current.1 >= p_min {
+                p_min
+            } else if prev.1 > p_max && current.1 <= p_max {
+                p_max
+            } else {
+                p_min.max(low).min(high)
+            };
+            let denom = current.1 - prev.1;
+            if denom.abs() > f64::EPSILON {
+                let ratio = ((boundary - prev.1) / denom).clamp(0.0, 1.0);
+                return Some(prev.0 + ((current.0 - prev.0) as f64 * ratio).round() as i64);
+            }
+            return Some(current.0);
+        }
+        prev = current;
+    }
+    None
 }
 
 /// Stable digest of an index slice used in the bet's resolution
@@ -1142,6 +1206,13 @@ mod tests {
         let now = 1_000_000_000_i64;
         assert!(check_activation_gate(now, now, 0).is_ok());
         assert!(check_activation_gate(now - 1, now, 0).is_err());
+    }
+
+    #[test]
+    fn first_touch_detects_segment_crossing_between_ticks() {
+        let path = vec![(1_000, 99.0), (2_000, 101.0)];
+        let touched = first_touch_in_path(&path, 100.0, 100.5);
+        assert_eq!(touched, Some(1_500));
     }
 
     #[test]

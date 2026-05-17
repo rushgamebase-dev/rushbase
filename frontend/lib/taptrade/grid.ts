@@ -456,7 +456,11 @@ export type DynamicTapGridConfig = {
   futureCols: number;
   columnDurationMs: number;
   activationDelayMs?: number;
-  priceStepBps: number;
+  priceStepBps?: number;
+  /** Fixed absolute price step, in USD/USDT units. Real-price Tap
+   *  Trading uses this so the chart ruler can say "one row = $0.50"
+   *  instead of moving the row size as a percentage of price. */
+  priceStepUsd?: number;
   minDistanceBps?: number;
   maxDistanceBps?: number;
   minMultiplier?: number;
@@ -491,8 +495,13 @@ export function buildDynamicCells(config: DynamicTapGridConfig): TapGridCell[] {
 
   // Absolute price step (units of price). A "level" is an integer
   // number of `step`s away from `anchorPrice`. Levels never move.
-  const stepFraction = config.priceStepBps / 10_000;
-  const step = config.anchorPrice * stepFraction;
+  // Legacy RUSH_INDEX uses bps; real-price mode uses a fixed dollar
+  // increment per row, e.g. ETH/USD = $0.50.
+  const priceStepBps = config.priceStepBps ?? DEFAULT_GRID.priceStepBps;
+  const fixedUsdStep = config.priceStepUsd && config.priceStepUsd > 0
+    ? config.priceStepUsd
+    : null;
+  const step = fixedUsdStep ?? config.anchorPrice * (priceStepBps / 10_000);
   if (step <= 0) return [];
 
   // Current snake level — integer index of the level closest to the
@@ -510,12 +519,15 @@ export function buildDynamicCells(config: DynamicTapGridConfig): TapGridCell[] {
 
   const cells: TapGridCell[] = [];
   for (let level = minLevel; level <= maxLevel; level += 1) {
-    // Absolute, immutable band for this level. (level - 0.5) … (level + 0.5)
-    // expressed as bps offsets from the anchor price.
-    const lowBps = (level - 0.5) * config.priceStepBps;
-    const highBps = (level + 0.5) * config.priceStepBps;
-    const pMin = config.anchorPrice * (1 + lowBps / 10_000);
-    const pMax = config.anchorPrice * (1 + highBps / 10_000);
+    // Absolute, immutable band for this level. Real-price mode keeps
+    // each ruler row at a fixed dollar width; legacy mode keeps the
+    // old bps geometry.
+    const pMin = fixedUsdStep
+      ? Math.max(0.00000001, config.anchorPrice + (level - 0.5) * step)
+      : config.anchorPrice * (1 + ((level - 0.5) * priceStepBps) / 10_000);
+    const pMax = fixedUsdStep
+      ? Math.max(0.00000001, config.anchorPrice + (level + 0.5) * step)
+      : config.anchorPrice * (1 + ((level + 0.5) * priceStepBps) / 10_000);
     // Distance from the *current* snake to the band's near edge,
     // in bps. Used for client-side multiplier preview only — the
     // backend re-derives this against its own current price.

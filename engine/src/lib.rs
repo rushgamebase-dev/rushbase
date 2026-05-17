@@ -9,6 +9,7 @@ pub mod config;
 pub mod db;
 pub mod errors;
 pub mod ledger;
+pub mod market_feed;
 pub mod metrics;
 pub mod models;
 pub mod monitors;

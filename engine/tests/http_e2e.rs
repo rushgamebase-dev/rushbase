@@ -32,13 +32,14 @@ use rush_engine::api::anti_replay::{
     MemoryActiveCache, MemoryIdempotency, MemoryNonceStore, MemoryRateLimit,
 };
 use rush_engine::api::{configure_routes, AppState};
+use rush_engine::arena_index::{ArenaIndex, RUSH_INDEX_SYMBOL};
 use rush_engine::auth::{JwtService, SiweVerifier};
 use rush_engine::chain::WithdrawSigner;
 use rush_engine::config::settings::{
     JwtConfig as JwtCfgToml, MultiplierConfig, RiskConfig, TouchConfig,
 };
+use rush_engine::market_feed::RealPriceFeed;
 use rush_engine::metrics::EngineMetrics;
-use rush_engine::arena_index::{ArenaIndex, RUSH_INDEX_SYMBOL};
 use rush_engine::risk::{limits_from_config, ExposureTracker};
 use rush_engine::touch::{QuoteSigner, TouchEngine};
 use rush_engine::vrf::SeedCipher;
@@ -46,8 +47,7 @@ use rush_engine::ws::Broadcaster;
 
 const SYMBOL: &str = "BTCUSDT";
 const ENTRY_PRICE_Q8: i64 = 50_000_00000000;
-const SIGNER_HEX: &str =
-    "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+const SIGNER_HEX: &str = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
 // ─── infrastructure helpers ─────────────────────────────────────────────
 
@@ -87,16 +87,22 @@ fn mult_cfg() -> MultiplierConfig {
     use rush_engine::config::settings::EmpiricalCell;
     let empirical_cells = vec![
         EmpiricalCell {
-            distance_bps: 40, duration_ms: 3_000,
-            window_start_offset_ms: 0, p_touch: 0.4436,
+            distance_bps: 40,
+            duration_ms: 3_000,
+            window_start_offset_ms: 0,
+            p_touch: 0.4436,
         },
         EmpiricalCell {
-            distance_bps: 80, duration_ms: 3_000,
-            window_start_offset_ms: 0, p_touch: 0.0669,
+            distance_bps: 80,
+            duration_ms: 3_000,
+            window_start_offset_ms: 0,
+            p_touch: 0.0669,
         },
         EmpiricalCell {
-            distance_bps: 120, duration_ms: 3_000,
-            window_start_offset_ms: 0, p_touch: 0.0032,
+            distance_bps: 120,
+            duration_ms: 3_000,
+            window_start_offset_ms: 0,
+            p_touch: 0.0032,
         },
     ];
     MultiplierConfig {
@@ -130,6 +136,12 @@ fn jwt_cfg() -> JwtCfgToml {
 
 async fn build_app_state(pool: PgPool) -> web::Data<AppState> {
     let arena_index = Arc::new(ArenaIndex::new("http-e2e-test-seed"));
+    let real_price_feed = Arc::new(RealPriceFeed::new(&Default::default()));
+    real_price_feed.record_price(
+        SYMBOL,
+        ENTRY_PRICE_Q8 as f64 / 1e8,
+        chrono::Utc::now().timestamp_millis(),
+    );
 
     let exposure = Arc::new(
         ExposureTracker::new(limits_from_config(&risk_cfg())).with_persistence(pool.clone()),
@@ -140,17 +152,15 @@ async fn build_app_state(pool: PgPool) -> web::Data<AppState> {
         .await
         .expect("seed house_state");
 
-    let vrf_cipher = Arc::new(
-        SeedCipher::from_hex(&"a".repeat(64)).expect("http_e2e seed cipher"),
-    );
+    let vrf_cipher = Arc::new(SeedCipher::from_hex(&"a".repeat(64)).expect("http_e2e seed cipher"));
     let vault_addr = Address::from([0u8; 20]);
-    let withdraw_signer = Arc::new(
-        WithdrawSigner::from_hex(SIGNER_HEX, 8453, vault_addr).expect("signer"),
-    );
+    let withdraw_signer =
+        Arc::new(WithdrawSigner::from_hex(SIGNER_HEX, 8453, vault_addr).expect("signer"));
 
     let touch_engine = Arc::new(TouchEngine::new(
         pool.clone(),
         arena_index.clone(),
+        real_price_feed.clone(),
         exposure.clone(),
         vrf_cipher.clone(),
         withdraw_signer.clone(),
@@ -180,6 +190,7 @@ async fn build_app_state(pool: PgPool) -> web::Data<AppState> {
         jwt_service,
         siwe_verifier,
         arena_index: arena_index.clone(),
+        real_price_feed,
         touch_engine,
         withdraw_service,
         broadcaster: Arc::new(Broadcaster::new()),
@@ -226,7 +237,11 @@ async fn make_user(pool: &PgPool, free_balance_wei: &str, is_admin: bool) -> Uui
 }
 
 fn token_for(state: &AppState, user_id: Uuid, wallet: &str) -> String {
-    state.jwt_service.issue(user_id, wallet).expect("token").access_token
+    state
+        .jwt_service
+        .issue(user_id, wallet)
+        .expect("token")
+        .access_token
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────
@@ -271,6 +286,7 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
             "target_row_min_q8": "5010000000000",
             "target_row_max_q8": "5020000000000",
             "window_duration_ms": 3_000_u64,
+            "window_start_offset_ms": 1_500_u64,
         }))
         .to_request();
     let quote_resp = test::call_service(&app, quote_req).await;
@@ -284,9 +300,13 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
         .get("multiplier_bps")
         .and_then(|v| v.as_u64())
         .expect("multiplier_bps");
+    let quote_server_time_ms = quote_body
+        .get("server_time_ms")
+        .and_then(|v| v.as_i64())
+        .expect("server_time_ms");
 
     // 2. Open bet using the signed quote
-    let now_ms = chrono::Utc::now().timestamp_millis();
+    let window_start_ms = quote_server_time_ms + 1_500;
     let open_req = test::TestRequest::post()
         .uri("/api/v1/trade/bets")
         .insert_header(("Authorization", format!("Bearer {}", token)))
@@ -297,14 +317,18 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
             "stake_wei": "100000000000000000",
             "target_row_min_q8": "5010000000000",
             "target_row_max_q8": "5020000000000",
-            "window_start_ms": now_ms + 1_500,
-            "window_end_ms": now_ms + 4_500,
+            "window_start_ms": window_start_ms,
+            "window_end_ms": window_start_ms + 3_000,
             "expected_multiplier_bps": multiplier_bps,
             "quote_token": quote_token,
         }))
         .to_request();
     let open_resp = test::call_service(&app, open_req).await;
-    assert_eq!(open_resp.status(), StatusCode::CREATED, "bet should be created");
+    assert_eq!(
+        open_resp.status(),
+        StatusCode::CREATED,
+        "bet should be created"
+    );
     let bet1: serde_json::Value = test::read_body_json(open_resp).await;
     let bet_id = bet1.get("id").and_then(|v| v.as_str()).expect("bet id");
 
@@ -327,7 +351,11 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
         }))
         .to_request();
     let replay_resp = test::call_service(&app, replay_req).await;
-    assert_eq!(replay_resp.status(), StatusCode::CREATED, "replay returns 201");
+    assert_eq!(
+        replay_resp.status(),
+        StatusCode::CREATED,
+        "replay returns 201"
+    );
     assert_eq!(
         replay_resp
             .headers()
@@ -337,7 +365,10 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
         "replay marker should be present"
     );
     let bet2: serde_json::Value = test::read_body_json(replay_resp).await;
-    assert_eq!(bet2.get("id"), Some(&serde_json::Value::String(bet_id.into())));
+    assert_eq!(
+        bet2.get("id"),
+        Some(&serde_json::Value::String(bet_id.into()))
+    );
 }
 
 #[actix_web::test]
@@ -623,7 +654,10 @@ async fn logout_revokes_only_caller_token() {
     let token_a = token_for(&state, user, &format!("0x{:040x}", user.as_u128()));
     // A second token for the SAME user — simulates a second device.
     let token_b = token_for(&state, user, &format!("0x{:040x}", user.as_u128()));
-    assert_ne!(token_a, token_b, "JWTs share the user but have distinct jti");
+    assert_ne!(
+        token_a, token_b,
+        "JWTs share the user but have distinct jti"
+    );
     let governor_conf = governor();
     let app = test::init_service(
         App::new()
@@ -666,7 +700,10 @@ async fn logout_revokes_only_caller_token() {
         .uri("/api/v1/user/balance")
         .insert_header(("Authorization", format!("Bearer {}", token_b)))
         .to_request();
-    assert_eq!(test::call_service(&app, post_b).await.status(), StatusCode::OK);
+    assert_eq!(
+        test::call_service(&app, post_b).await.status(),
+        StatusCode::OK
+    );
 }
 
 #[actix_web::test]
@@ -764,17 +801,16 @@ async fn breaker_state_persists_across_recovery() {
     let state = build_app_state(pool.clone()).await;
     state.exposure.trigger_circuit_breaker("persist test");
     // Simulated process restart: build a fresh tracker and recover.
-    let restored = ExposureTracker::new(limits_from_config(&risk_cfg()))
-        .with_persistence(pool.clone());
+    let restored =
+        ExposureTracker::new(limits_from_config(&risk_cfg())).with_persistence(pool.clone());
     // Wait briefly for the spawn that persisted the trip to land.
     for _ in 0..30 {
-        let row: Option<bool> = sqlx::query_scalar(
-            "SELECT circuit_breaker_triggered FROM house_state LIMIT 1",
-        )
-        .fetch_optional(&pool)
-        .await
-        .unwrap()
-        .flatten();
+        let row: Option<bool> =
+            sqlx::query_scalar("SELECT circuit_breaker_triggered FROM house_state LIMIT 1")
+                .fetch_optional(&pool)
+                .await
+                .unwrap()
+                .flatten();
         if row == Some(true) {
             break;
         }
