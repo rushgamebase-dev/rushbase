@@ -557,8 +557,9 @@ export function RushArenaCanvas({
       ctx.clip();
 
       // Left side is the price chart. Right side is the target zone.
-      // Keep the background grid faint and stop it at NOW so cells are
-      // the only strong grid on the future side.
+      // Euphoria-style tap trading keeps the ruler/grid continuous
+      // across both history and future cells; playable tiles are just
+      // a stronger layer on top of the same lattice.
       ctx.fillStyle = "rgba(0,255,102,0.012)";
       ctx.fillRect(plotLeft, plotTop, nowX - plotLeft, plotHeight);
       const futureShade = ctx.createLinearGradient(nowX, 0, plotRight, 0);
@@ -572,9 +573,12 @@ export function RushArenaCanvas({
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 3]);
       const firstGridTime = Math.ceil(visibleStartTime / futureDuration) * futureDuration;
-      for (let t = firstGridTime; t <= wallNow; t += futureDuration) {
+      for (let t = firstGridTime; t <= visibleEndTime + futureDuration; t += futureDuration) {
         const x = xForTime(t, viewport);
-        if (x < plotLeft - 1 || x > nowX + 1) continue;
+        if (x < plotLeft - 1 || x > plotRight + 1) continue;
+        ctx.strokeStyle = t >= wallNow
+          ? "rgba(198,214,205,0.105)"
+          : "rgba(198,214,205,0.075)";
         ctx.beginPath();
         ctx.moveTo(x, plotTop);
         ctx.lineTo(x, plotBottom);
@@ -590,9 +594,10 @@ export function RushArenaCanvas({
       ) {
         const y = yForPrice(priceLine, viewport);
         if (y < plotTop - 1 || y > plotBottom + 1) continue;
+        ctx.strokeStyle = "rgba(198,214,205,0.075)";
         ctx.beginPath();
         ctx.moveTo(plotLeft, y);
-        ctx.lineTo(nowX, y);
+        ctx.lineTo(plotRight, y);
         ctx.stroke();
       }
       ctx.restore();
@@ -666,11 +671,8 @@ export function RushArenaCanvas({
         // Cells with bets skip the empty render and let Layer 6 paint.
         if (visualBetByCellId.has(cell.id)) continue;
 
-        // If a tile is visible as a tile, it must be clickable. Locked
-        // cells are not rendered at all, so the user never sees a
-        // non-actionable green square.
-        if (cell.disabled) continue;
-        screenCells.push({ cell, x0, x1, y0, y1 });
+        const isPlayable = !cell.disabled;
+        if (isPlayable) screenCells.push({ cell, x0, x1, y0, y1 });
 
         const drawX = x0 + 1;
         const drawY = y0 + 1;
@@ -688,12 +690,16 @@ export function RushArenaCanvas({
         const positionRamp = Math.max(0, Math.min(1, (plotRight - x0) / Math.max(1, drawW)));
         const fadeIn = Math.min(ageRamp, positionRamp);
 
-        const baseAlpha = hover ? 0.28 : 0.18;
+        const baseAlpha = isPlayable
+          ? hover ? 0.28 : 0.18
+          : cell.reason === "Locked" ? 0.035 : 0.06;
         ctx.fillStyle = `rgba(0,255,102,${baseAlpha * fadeIn})`;
         ctx.fillRect(drawX, drawY, drawW, drawH);
-        ctx.strokeStyle = `rgba(0,255,102,${0.18 * fadeIn})`;
+        ctx.strokeStyle = `rgba(0,255,102,${(isPlayable ? 0.18 : 0.10) * fadeIn})`;
         ctx.lineWidth = 1;
         ctx.strokeRect(drawX + 0.5, drawY + 0.5, drawW - 1, drawH - 1);
+
+        if (!isPlayable) continue;
 
         // Heatmap overlay: cells with bets from other players get an
         // amber wash whose intensity scales with log(n_bets). Subtle

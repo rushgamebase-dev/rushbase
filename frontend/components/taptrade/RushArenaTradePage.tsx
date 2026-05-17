@@ -58,7 +58,7 @@ import { useAccount } from "wagmi";
 // Future cells visible at any time. New cells are appended to the
 // world-time stream as wallNow advances; old ones slide off the left
 // edge of the plot.
-const GRID_FUTURE_COLS = 3;
+const GRID_FUTURE_COLS = 12;
 const GRID_PAST_COLS = 16;
 const ACTIVATION_DELAY_MS = 3_000;
 const COLUMN_MS = 5_000;
