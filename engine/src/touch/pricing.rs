@@ -44,6 +44,10 @@ fn erfc(x: f64) -> f64 {
     1.0 - erf
 }
 
+fn normal_pdf(z: f64) -> f64 {
+    (-0.5 * z * z).exp() / (2.0 * std::f64::consts::PI).sqrt()
+}
+
 #[derive(Debug, Clone)]
 pub struct MultiplierConfig {
     /// House edge in basis points. 500 = 5%.
@@ -175,18 +179,21 @@ impl MultiplierCalculator {
 
         let distance_bps_round = distance_bps.round().min(u32::MAX as f64) as u32;
 
-        // First-passage probability inside the SPECIFIC window
-        // [t_start, t_end] from now. Using the diff of cumulative
-        // touch CDFs gives each cell a multiplier that depends on
-        // both distance AND when the window opens — so the same row
-        // pays differently across columns of the grid (early columns
-        // for far bands → very high mult; late columns → lower mult
-        // because the price has had time to drift toward the band).
+        // Touch probability inside the SPECIFIC window [t_start, t_end]
+        // from now. The resolver pays if the line touches the band at
+        // any point during that window; it does NOT require that this
+        // is the first touch ever since quote time. Therefore this is
+        // not `F(t_end) - F(t_start)`. For future windows we integrate
+        // over the unconstrained price distribution at `t_start` and
+        // then price a fresh first passage over the window duration.
         let t_start_sec = (window_start_offset_ms as f64) / 1_000.0;
-        let t_end_sec = ((window_start_offset_ms + window_duration_ms) as f64) / 1_000.0;
-        let p_by_start = bachelier_p_touch_by(distance_bps, t_start_sec, self.cfg.vol_bps_per_sqrt_sec);
-        let p_by_end = bachelier_p_touch_by(distance_bps, t_end_sec, self.cfg.vol_bps_per_sqrt_sec);
-        let bachelier_diff = (p_by_end - p_by_start).max(0.0);
+        let window_sec = (window_duration_ms as f64) / 1_000.0;
+        let bachelier_window = bachelier_p_touch_in_window(
+            distance_bps,
+            t_start_sec,
+            window_sec,
+            self.cfg.vol_bps_per_sqrt_sec,
+        );
 
         // Empirical lookup keyed on `(distance, duration, offset)`.
         //
@@ -246,10 +253,10 @@ impl MultiplierCalculator {
                 // house_edge is applied.
                 (padded.min(0.95), true)
             } else {
-                (bachelier_diff, false)
+                (bachelier_window, false)
             }
         } else {
-            (bachelier_diff, false)
+            (bachelier_window, false)
         };
 
         let p_touch = raw_p.max(0.005); // floor 0.5% to bound multiplier
@@ -287,6 +294,59 @@ fn bachelier_p_touch_by(distance_bps: f64, t_sec: f64, vol_bps_per_sqrt_sec: f64
     let denom = (vol_bps_per_sqrt_sec * t_sec.sqrt()).max(1e-6);
     let z = distance_bps / denom;
     erfc(z / std::f64::consts::SQRT_2).min(1.0)
+}
+
+/// Probability that a Bachelier-style path touches a one-sided barrier
+/// during the future window `[t_start, t_start + window]`.
+///
+/// This matches settlement semantics more closely than a difference of
+/// first-passage CDFs: a path that touched before the window can still
+/// touch again inside the window, and that is a win. We condition on the
+/// price at `t_start`, then apply the reflection principle over the
+/// window duration. If the conditional start is already beyond the near
+/// edge, we count it as touched at the window boundary. That is a
+/// conservative approximation for finite-width bands and avoids
+/// underpricing future columns.
+fn bachelier_p_touch_in_window(
+    distance_bps: f64,
+    t_start_sec: f64,
+    window_sec: f64,
+    vol_bps_per_sqrt_sec: f64,
+) -> f64 {
+    if window_sec <= 0.0 {
+        return 0.0;
+    }
+    if t_start_sec <= 0.001 {
+        return bachelier_p_touch_by(distance_bps, window_sec, vol_bps_per_sqrt_sec);
+    }
+
+    let start_std = (vol_bps_per_sqrt_sec * t_start_sec.sqrt()).max(1e-9);
+    let window_denom = (vol_bps_per_sqrt_sec * window_sec.sqrt()).max(1e-9);
+    let sigmas = 6.0;
+    let steps = 97usize;
+    let step = (sigmas * 2.0) / steps as f64;
+    let mut weighted = 0.0;
+    let mut total_weight = 0.0;
+
+    for i in 0..steps {
+        let z = -sigmas + (i as f64 + 0.5) * step;
+        let start_bps = start_std * z;
+        let weight = normal_pdf(z) * step;
+        let p = if start_bps >= distance_bps {
+            1.0
+        } else {
+            let remaining_bps = distance_bps - start_bps;
+            erfc((remaining_bps / window_denom) / std::f64::consts::SQRT_2).min(1.0)
+        };
+        weighted += weight * p;
+        total_weight += weight;
+    }
+
+    if total_weight > 0.0 {
+        (weighted / total_weight).clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -536,11 +596,11 @@ mod tests {
     }
 
     #[test]
-    fn first_passage_diff_yields_different_mults_per_window() {
+    fn future_window_probability_yields_different_mults_per_window() {
         // Same band, same duration, different start offsets → different
-        // multipliers. This is the whole point of first-passage pricing:
-        // a column-1 cell ([0s, 3s]) prices a *different* probability
-        // mass than a column-4 cell ([9s, 12s]) for an identical band.
+        // multipliers. A column-1 cell ([0s, 3s]) prices a different
+        // touch probability than a column-4 cell ([9s, 12s]) for an
+        // identical band.
         //
         // For a far-but-reachable band the early window is the rarest
         // (price has barely moved), so the multiplier there must be
@@ -575,7 +635,7 @@ mod tests {
         );
         assert_ne!(
             early.multiplier_bps, later.multiplier_bps,
-            "first-passage should produce different mults per offset"
+            "future-window pricing should produce different mults per offset"
         );
         assert!(
             early.multiplier_bps > later.multiplier_bps,
