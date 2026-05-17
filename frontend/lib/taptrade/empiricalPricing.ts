@@ -54,7 +54,7 @@ export const CALIBRATION = {
 export const PRICING = {
   HOUSE_EDGE_BPS: 500,           // 5% house edge
   MIN_MULT_BPS: 11_000,          // 1.10× floor
-  MAX_MULT_BPS: 50_000,          // 5× ceiling — Conservador-A bring-up cap
+  MAX_MULT_BPS: 5_000_000,       // 500x ceiling — risk remains capped by max payout/stake limits
   // Calibration is now against the live `arena_index` generator
   // itself (4096 paths via `bin/calibrate_index`), so the empirical
   // p_touch matches what the resolver actually sees. No model-risk

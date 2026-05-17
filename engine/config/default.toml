@@ -126,7 +126,7 @@ min_multiplier_bps = 11000
 # 500× cap. The grid uses first-passage probability per (row, col), so
 # distant cells in early columns can legitimately price at 100×–400×.
 # A tight 9× cap collapses the entire top of the ladder into a wall.
-max_multiplier_bps = 50000
+max_multiplier_bps = 5000000
 vol_bps_per_sqrt_sec = 2.8
 empirical_safety_factor = 1.0
 
