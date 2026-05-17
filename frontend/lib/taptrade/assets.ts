@@ -32,7 +32,7 @@ export const TAP_TRADE_ASSETS: TapTradeAsset[] = [
     symbol: "SOLUSDT",
     displaySymbol: "SOL/USD",
     label: "Solana",
-    priceStepUsd: 0.05,
+    priceStepUsd: 0.02,
     defaultPrice: 150,
     accent: "#14f195",
   },

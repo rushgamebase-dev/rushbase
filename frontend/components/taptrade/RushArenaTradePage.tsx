@@ -446,14 +446,10 @@ export default function RushArenaTradePage({
     };
   }, []);
 
-  // Active-zone center, quantised to integer price levels (multiples
-  // of `PRICE_STEP_BPS` from `anchorPrice`). The grid only rebuilds
-  // when the snake crosses a level boundary — that's roughly once
-  // every 40 bps of drift, NOT every 150 ms tick — so the local
-  // preview layer does not churn the full catalog. Cells outside the
-  // emitted band drop off the canvas; cells inside stay at their
-  // absolute price band forever (clicked bets pin via their own
-  // saved snapshot, independent of the live grid).
+  // Active-zone center, quantised to fixed USD price levels per asset
+  // (ETH=$0.50, BTC=$10, SOL=$0.02). This mirrors Euphoria's
+  // priceInterval grid: rows stay at absolute price bands, while
+  // quotes come from the backend and are only rendered when fresh.
   const centerLevel = useMemo(() => {
     if (anchorPrice <= 0 || currentPrice <= 0) return 0;
     const step = selectedAsset.priceStepUsd > 0

@@ -61,11 +61,11 @@ max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
 # in [risk], this caps a Sybil-coordinated drain attempt sharply.
 max_active_bets_per_user = 3
 allowed_window_ms = [3000, 5000, 6000, 9000, 12000, 18000, 30000, 60000]
-# Bands closer than 2 bps to the live price are inside the noise
-# floor of the path generator — first-passage is near-certain, EV
-# turns positive at the floor multiplier. Quote-grid disables them
-# pre-quote.
-min_distance_bps = 2
+# Euphoria-style real-price grids keep the nearest valid cell playable
+# at the floor multiplier (1.10x). Only a band that already envelops
+# the live price is refused by the EV guard; non-zero near-price cells
+# are quoted at the floor by `NEAR_PRICE_FLOOR_DISTANCE_BPS`.
+min_distance_bps = 0
 # Cap matches the calibrated grid. Distances are calibrated at
 # 20-bps spacing from 20 to 200 bps and the lookup tolerates ±20 bps,
 # so bands up to 220 bps from current price still resolve to a
