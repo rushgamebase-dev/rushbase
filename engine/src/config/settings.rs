@@ -322,6 +322,10 @@ fn default_real_price_history_window_ms() -> i64 {
 /// Touch-bet placement and resolution parameters.
 #[derive(Debug, Clone, Deserialize)]
 pub struct TouchConfig {
+    /// Operator kill switch for new entries. Resolution/withdrawals keep
+    /// running; quote-grid can stay visible but must mark cells paused.
+    #[serde(default = "default_accepting_bets")]
+    pub accepting_bets: bool,
     pub min_stake_wei: String,
     pub max_stake_wei: String,
     /// Hard cap on simultaneously open bets per wallet.
@@ -345,6 +349,10 @@ pub struct TouchConfig {
     /// price, but pinning the entry rules out an entry-price snipe.
     #[serde(default = "default_min_activation_delay_ms")]
     pub min_activation_delay_ms: i64,
+}
+
+fn default_accepting_bets() -> bool {
+    false
 }
 
 fn default_min_activation_delay_ms() -> i64 {

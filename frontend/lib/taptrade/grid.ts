@@ -661,6 +661,8 @@ export function buildSlidingCells(config: SlidingTapGridConfig): TapGridCell[] {
 
 function humanizeDisabledReason(reason: DisabledReason): string {
   switch (reason) {
+    case "PAUSED":
+      return "Paused";
     case "UNCALIBRATED":
       return "Uncalibrated";
     case "EV_POSITIVE":

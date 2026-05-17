@@ -772,6 +772,7 @@ export function lookupEmpirical(
 }
 
 export type DisabledReason =
+  | "PAUSED"
   | "UNCALIBRATED"
   | "EV_POSITIVE"
   | "INVALID_BAND"

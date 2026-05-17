@@ -77,7 +77,8 @@ async fn fresh_pool() -> PgPool {
 
 fn touch_cfg() -> TouchConfig {
     TouchConfig {
-        min_stake_wei: "1000000000000000".into(),    // 0.001 ETH
+        accepting_bets: true,
+        min_stake_wei: "1000000000000000".into(), // 0.001 ETH
         max_stake_wei: "5000000000000000000".into(), // 5 ETH
         max_active_bets_per_user: 25,
         allowed_window_ms: vec![3_000, 6_000, 9_000],

@@ -161,6 +161,7 @@ pub async fn quote_grid(
     let max_distance = app_state.touch_engine.max_distance_bps();
     let max_payout = app_state.touch_engine.max_payout_per_bet_wei();
     let allowed_windows = app_state.touch_engine.allowed_window_ms_sorted();
+    let accepting_bets = app_state.touch_engine.accepting_bets();
 
     let mut cells_out: Vec<QuoteGridCellResponse> = Vec::with_capacity(body.cells.len());
     for cell in &body.cells {
@@ -212,7 +213,9 @@ pub async fn quote_grid(
 
         // Determine disabled_reason — order matters: feed-level issues
         // first, then geometry, then EV.
-        let disabled_reason = if stale {
+        let disabled_reason = if !accepting_bets {
+            Some("PAUSED".to_string())
+        } else if stale {
             Some("PRICE_STALE".to_string())
         } else if !allowed_windows.contains(&cell.window_duration_ms) {
             Some("INVALID_WINDOW".to_string())
@@ -358,6 +361,9 @@ pub async fn open_bet(
         .touch_engine
         .canonical_symbol(&body.symbol)
         .ok_or_else(|| ApiError::bad_request("Unsupported Tap Trading symbol"))?;
+    if !app_state.touch_engine.accepting_bets() {
+        return Err(ApiError::service_unavailable("Tap Trading is paused"));
+    }
     let window_duration_ms = (body.window_end_ms - body.window_start_ms).max(0) as u64;
 
     // Idempotency: if the client supplied a key and we've already seen

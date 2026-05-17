@@ -72,6 +72,7 @@ async fn fresh_pool() -> PgPool {
 
 fn touch_cfg() -> TouchConfig {
     TouchConfig {
+        accepting_bets: true,
         min_stake_wei: "1000000000000000".into(),
         max_stake_wei: "5000000000000000000".into(),
         max_active_bets_per_user: 25,

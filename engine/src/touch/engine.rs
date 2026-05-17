@@ -81,6 +81,7 @@ pub struct TouchEngine {
     commit_signer: Arc<WithdrawSigner>,
 
     allowed_windows: HashSet<u64>,
+    accepting_bets: bool,
     min_stake_wei: U256,
     max_stake_wei: U256,
     min_distance_bps: u32,
@@ -141,6 +142,7 @@ impl TouchEngine {
                 empirical_safety_factor: multiplier_cfg.empirical_safety_factor,
             }),
             allowed_windows: touch_cfg.allowed_window_ms.iter().copied().collect(),
+            accepting_bets: touch_cfg.accepting_bets,
             min_stake_wei: parse(&touch_cfg.min_stake_wei),
             max_stake_wei: parse(&touch_cfg.max_stake_wei),
             min_distance_bps: touch_cfg.min_distance_bps,
@@ -196,6 +198,10 @@ impl TouchEngine {
         let mut v: Vec<u64> = self.allowed_windows.iter().copied().collect();
         v.sort_unstable();
         v
+    }
+
+    pub fn accepting_bets(&self) -> bool {
+        self.accepting_bets
     }
 
     pub fn canonical_symbol(&self, symbol: &str) -> Option<String> {
@@ -259,6 +265,9 @@ impl TouchEngine {
         req.symbol = self
             .canonical_symbol(&req.symbol)
             .ok_or_else(|| TradingError::InvalidSymbol(req.symbol.clone()))?;
+        if !self.accepting_bets {
+            return Err(TradingError::SafeMode);
+        }
         if self.exposure.is_circuit_breaker_triggered() {
             return Err(TradingError::CircuitBreakerOpen);
         }

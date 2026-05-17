@@ -64,6 +64,9 @@ const ACTIVATION_DELAY_MS = 3_000;
 const COLUMN_MS = 5_000;
 const QUOTE_GRID_REFRESH_MS = 250;
 const PRICE_STEP_BPS = 40;
+const TAP_TRADING_PAUSED = true;
+const TAP_TRADING_PAUSE_MESSAGE =
+  "Tap Trading is paused while Rush recalibrates the real-money grid.";
 // Stake presets are in ETH (the canonical unit on Base). Tier 1 caps
 // (Base mainnet smoke test, 2026-05-04) cap max_stake at 0.01 ETH via
 // `APP_TOUCH__MAX_STAKE_WEI` override in engine/.env. Anything above
@@ -101,6 +104,8 @@ function directionForCell(cell: TapGridCell, referencePrice: number): "UP" | "DO
 
 function formatQuoteDisabledReason(reason: string) {
   switch (reason) {
+    case "PAUSED":
+      return "Paused";
     case "UNCALIBRATED":
       return "Uncalibrated";
     case "EV_POSITIVE":
@@ -587,6 +592,7 @@ export default function RushArenaTradePage({
         ? weiGreaterThan(selectedStakeWei, serverQuote.maxStakeWei)
         : false;
       const disabled =
+        TAP_TRADING_PAUSED ||
         locallyLocked ||
         missingServerQuote ||
         Boolean(serverDisabledReason) ||
@@ -605,9 +611,11 @@ export default function RushArenaTradePage({
         multiplierBps,
         distanceBps: serverQuote?.distanceBps ?? cell.distanceBps,
         disabled,
-        reason: locallyLocked
-          ? "Locked"
-          : missingServerQuote
+        reason: TAP_TRADING_PAUSED
+          ? "Paused"
+          : locallyLocked
+            ? "Locked"
+            : missingServerQuote
             ? quoteGridError
               ? "Pricing offline"
               : "Pricing"
@@ -879,6 +887,11 @@ export default function RushArenaTradePage({
 
   const handleCellClick = useCallback(
     async (cell: TapGridCell) => {
+      if (TAP_TRADING_PAUSED) {
+        hapticError();
+        toast.error(TAP_TRADING_PAUSE_MESSAGE);
+        return;
+      }
       if (cell.disabled || stakeAmount <= 0) return;
       if (requiresSession) {
         hapticError();
@@ -1072,9 +1085,12 @@ export default function RushArenaTradePage({
                 bets={bets}
                 onCellClick={handleCellClick}
                 onCellHover={(cell) => setHoveredCellId(cell?.id ?? null)}
+                disabled={TAP_TRADING_PAUSED}
                 className="h-full w-full"
               />
-              {requiresSession ? (
+              {TAP_TRADING_PAUSED ? (
+                <TapTradingPausedPanel />
+              ) : requiresSession ? (
                 <SessionAccessPanel
                   isConnected={isConnected}
                   address={address}
@@ -1097,6 +1113,7 @@ export default function RushArenaTradePage({
             selectedPayout={selectedPayout}
             selectedTargetSeconds={selectedTargetSeconds}
             ctaState={ctaState}
+            paused={TAP_TRADING_PAUSED}
           />
         </main>
 
@@ -1104,6 +1121,7 @@ export default function RushArenaTradePage({
           stakeAmount={stakeAmount}
           setStakeAmount={setStakeAmount}
           balance={balance}
+          disabled={TAP_TRADING_PAUSED}
         />
 
         <RoundFooter
@@ -1113,6 +1131,25 @@ export default function RushArenaTradePage({
           pathRegime={activeVrfPathBet?.pathRegime}
           betStatus={activeVrfPathBet?.status}
         />
+      </div>
+    </div>
+  );
+}
+
+function TapTradingPausedPanel() {
+  return (
+    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 flex justify-center sm:inset-x-auto sm:bottom-5 sm:left-5">
+      <div className="pointer-events-auto w-full max-w-[430px] rounded-xl border border-[#ffd43b]/35 bg-[#100d04]/94 p-4 shadow-[0_0_38px_rgba(255,212,59,0.12)] backdrop-blur-md">
+        <div className="font-mono text-[10px] font-black uppercase tracking-[0.28em] text-[#ffd43b]">
+          Maintenance mode
+        </div>
+        <h2 className="mt-1 text-xl font-black text-white">Tap Trading paused</h2>
+        <p className="mt-2 text-sm leading-5 text-[#d6c98d]">
+          {TAP_TRADING_PAUSE_MESSAGE}
+        </p>
+        <div className="mt-4 rounded-lg border border-[#3a3215] bg-[#080702] px-3 py-2 font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#ffd43b]">
+          New entries disabled
+        </div>
       </div>
     </div>
   );
@@ -1342,6 +1379,7 @@ function TradeSidebar({
   selectedPayout,
   selectedTargetSeconds,
   ctaState,
+  paused,
 }: {
   stakeAmount: number;
   setStakeAmount: (value: number) => void;
@@ -1350,15 +1388,18 @@ function TradeSidebar({
   selectedPayout: number;
   selectedTargetSeconds: number;
   ctaState: "idle" | "ready" | "tracking";
+  paused?: boolean;
 }) {
-  const ctaLabel =
-    ctaState === "tracking"
+  const ctaLabel = paused
+    ? "Paused"
+    : ctaState === "tracking"
       ? "Tracking Target"
       : ctaState === "ready" && selectedTarget > 0
         ? `Place ${selectedTarget.toFixed(2)}x`
         : "Tap To Enter";
-  const ctaSubline =
-    ctaState === "tracking"
+  const ctaSubline = paused
+    ? "New entries disabled"
+    : ctaState === "tracking"
       ? `${selectedTargetSeconds}s remaining`
       : ctaState === "ready"
         ? "Click the highlighted cell"
@@ -1396,7 +1437,8 @@ function TradeSidebar({
               }
             }}
             inputMode="decimal"
-            className="min-w-0 flex-1 bg-transparent font-mono text-2xl font-black text-white outline-none"
+            disabled={paused}
+            className="min-w-0 flex-1 bg-transparent font-mono text-2xl font-black text-white outline-none disabled:cursor-not-allowed disabled:text-[#5a8068]"
           />
           <span className="font-mono text-xs font-bold text-[#8aa393]">ETH</span>
         </label>
@@ -1406,8 +1448,11 @@ function TradeSidebar({
             <button
               key={preset}
               onClick={() => setStakeAmount(preset)}
+              disabled={paused}
               className={`h-9 rounded-md border font-mono text-[11px] font-black transition ${
-                stakeAmount === preset
+                paused
+                  ? "cursor-not-allowed border-[#1a1a1a] bg-[#0a0a0a] text-[#3a3a3a]"
+                  : stakeAmount === preset
                   ? "border-[#00ff66] bg-[#00ff66]/18 text-[#00ff66] shadow-[0_0_14px_rgba(0,255,102,0.18)]"
                   : "border-[#1d3327] bg-[#07100f] text-[#b8c7d9] hover:border-[#00ff66]/55 hover:text-[#00ff66]"
               }`}
@@ -1442,8 +1487,11 @@ function TradeSidebar({
         </div>
 
         <button
+          disabled={paused}
           className={`mt-4 h-16 w-full rounded-md border font-mono text-lg font-black uppercase shadow-[0_0_24px_rgba(0,255,102,0.35)] transition ${
-            ctaState === "tracking"
+            paused
+              ? "cursor-not-allowed border-[#3a3215] bg-[#100d04] text-[#ffd43b] shadow-none"
+              : ctaState === "tracking"
               ? "border-[#7dff9b]/45 bg-[#0b2518] text-[#00ff66]"
               : ctaState === "ready"
                 ? "border-[#dfff2a]/70 bg-[#dfff2a] text-[#071400] hover:bg-[#ecff5a]"
@@ -1477,10 +1525,12 @@ function MobileStakeStrip({
   stakeAmount,
   setStakeAmount,
   balance,
+  disabled = false,
 }: {
   stakeAmount: number;
   setStakeAmount: (value: number) => void;
   balance: number;
+  disabled?: boolean;
 }) {
   // Touch-target ergonomics: Apple HIG + Material both recommend
   // ≥44 px tap surface. The previous 36 px buttons were misclick-prone
@@ -1530,7 +1580,8 @@ function MobileStakeStrip({
           }}
           inputMode="decimal"
           aria-label="Bet stake (ETH)"
-          className="min-w-0 flex-1 bg-transparent font-mono text-base font-black text-white outline-none"
+          disabled={disabled}
+          className="min-w-0 flex-1 bg-transparent font-mono text-base font-black text-white outline-none disabled:cursor-not-allowed disabled:text-[#5a8068]"
         />
         <span className="font-mono text-[10px] font-bold text-[#8aa393]">ETH</span>
       </label>
@@ -1545,9 +1596,9 @@ function MobileStakeStrip({
             <button
               key={preset}
               onClick={() => setStakeAmount(preset)}
-              disabled={overBalance}
+              disabled={disabled || overBalance}
               className={`flex h-12 w-16 shrink-0 flex-col items-center justify-center rounded-lg border font-mono text-xs font-black transition active:scale-95 ${
-                overBalance
+                disabled || overBalance
                   ? "cursor-not-allowed border-[#1a1a1a] bg-[#0a0a0a] text-[#3a3a3a]"
                   : isSelected
                     ? "border-[#00ff66] bg-[#00ff66]/18 text-[#00ff66] shadow-[0_0_18px_rgba(0,255,102,0.3)]"

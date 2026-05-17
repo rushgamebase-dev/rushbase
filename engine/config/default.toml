@@ -54,6 +54,7 @@ stale_after_ms = 5000
 history_window_ms = 180000
 
 [touch]
+accepting_bets = false                         # emergency operator pause; existing bets still resolve
 min_stake_wei = "100000000000000"              # 0.0001 ETH (~$0.30 — entry-level cherry tap)
 max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
 # Single-attacker exposure cap: 3 simultaneous bets (was 25). Combined
