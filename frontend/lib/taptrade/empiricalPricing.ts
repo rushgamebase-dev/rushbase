@@ -55,6 +55,7 @@ export const PRICING = {
   HOUSE_EDGE_BPS: 500,           // 5% house edge
   MIN_MULT_BPS: 11_000,          // 1.10× floor
   MAX_MULT_BPS: 5_000_000,       // 500x ceiling — risk remains capped by max payout/stake limits
+  NEAR_PRICE_FLOOR_DISTANCE_BPS: 5,
   // Calibration is now against the live `arena_index` generator
   // itself (4096 paths via `bin/calibrate_index`), so the empirical
   // p_touch matches what the resolver actually sees. No model-risk
@@ -814,6 +815,16 @@ export function quoteCell(args: {
   // this hard regardless of table coverage; we mirror.
   if (distanceBps === 0) {
     return makeDisabled("EV_POSITIVE");
+  }
+  if (distanceBps <= PRICING.NEAR_PRICE_FLOOR_DISTANCE_BPS) {
+    return {
+      multiplierBps: PRICING.MIN_MULT_BPS,
+      multiplier: PRICING.MIN_MULT_BPS / 10_000,
+      impliedPTouchBps: 0,
+      rawPTouch: 0,
+      fromEmpirical: false,
+      disabledReason: null,
+    };
   }
 
   const hit = lookupEmpirical(

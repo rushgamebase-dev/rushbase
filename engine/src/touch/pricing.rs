@@ -26,6 +26,12 @@ use std::collections::HashMap;
 /// under-priced wide-band cells against the VRF generator.
 pub type EmpiricalPTouchTable = HashMap<(u32, u64, u64), f64>;
 
+/// Product ladder guard for cells that sit directly beside the live
+/// price. These are high-frequency taps, not lottery cells; keep their
+/// payout at the minimum multiplier even if the raw statistical model
+/// would quote above it during a quiet market micro-window.
+const NEAR_PRICE_FLOOR_DISTANCE_BPS: u32 = 5;
+
 /// Complementary error function via Abramowitz & Stegun 7.1.26.
 /// Max absolute error ≈ 1.5e-7 across the entire real line.
 /// Used by the touch-probability formula (`erfc(z/√2) = 2(1−Φ(z))`).
@@ -263,12 +269,15 @@ impl MultiplierCalculator {
 
         let edge_factor = 1.0 - (self.cfg.house_edge_bps as f64) / 10_000.0;
         let multiplier = edge_factor / p_touch;
-        let multiplier_bps = (multiplier * 10_000.0)
+        let mut multiplier_bps = (multiplier * 10_000.0)
             .round()
             .clamp(
                 self.cfg.min_multiplier_bps as f64,
                 self.cfg.max_multiplier_bps as f64,
             ) as u32;
+        if distance_bps_round <= NEAR_PRICE_FLOOR_DISTANCE_BPS {
+            multiplier_bps = multiplier_bps.min(self.cfg.min_multiplier_bps);
+        }
 
         MultiplierQuote {
             distance_bps: distance_bps_round,
@@ -464,13 +473,15 @@ mod tests {
 
     #[test]
     fn empirical_table_overrides_bachelier() {
-        // 4bp/30s under Bachelier vol=2.8 yields p ≈ 0.79 → mult floor.
+        // 6bp/30s under Bachelier vol=2.8 yields p high enough to be
+        // materially different from the empirical table, and sits just
+        // outside the near-price floor zone.
         // The 7-day BTCUSDT empirical realises 0.091, which with a 1.5×
         // safety pad becomes target_p = 0.137 → mult ≈ 6.95×. The
         // engine must quote the empirical-driven value when the cell is
         // present in the lookup table.
         let mut table = EmpiricalPTouchTable::new();
-        table.insert((4, 30_000, 0), 0.091033);
+        table.insert((6, 30_000, 0), 0.091033);
         let cfg = MultiplierConfig {
             house_edge_bps: 500,
             min_multiplier_bps: 11_000,
@@ -480,16 +491,16 @@ mod tests {
             empirical_safety_factor: 1.5,
         };
         let calc = MultiplierCalculator::new(cfg);
-        // 50_000 entry, band 50_020..50_021 → 4bp distance UP, 30s window.
+        // 50_000 entry, band 50_030..50_031 → 6bp distance UP, 30s window.
         let q = calc.quote(
             50_000_00000000,
-            50_020_00000000,
-            50_021_00000000,
+            50_030_00000000,
+            50_031_00000000,
             TouchDirection::Up,
             0,
             30_000,
         );
-        assert_eq!(q.distance_bps, 4);
+        assert_eq!(q.distance_bps, 6);
         assert!(q.from_empirical, "should hit empirical table");
         // target_p = 0.091033 * 1.5 = 0.137; mult = 0.95/0.137 ≈ 6.95×
         assert!(
@@ -593,6 +604,27 @@ mod tests {
         assert!(calc.is_ev_positive_at_floor(0.51));
         // 2.0 × 0.49 < 1.0 → ok.
         assert!(!calc.is_ev_positive_at_floor(0.49));
+    }
+
+    #[test]
+    fn near_price_cells_stay_at_floor_multiplier() {
+        let cfg = MultiplierConfig {
+            vol_bps_per_sqrt_sec: 2.8,
+            min_multiplier_bps: 11_000,
+            max_multiplier_bps: 5_000_000,
+            ..Default::default()
+        };
+        let calc = MultiplierCalculator::new(cfg);
+        let q = calc.quote(
+            50_000_00000000,
+            50_015_00000000, // 3bp near edge
+            50_040_00000000,
+            TouchDirection::Up,
+            3_000,
+            5_000,
+        );
+        assert_eq!(q.distance_bps, 3);
+        assert_eq!(q.multiplier_bps, 11_000);
     }
 
     #[test]
