@@ -62,6 +62,7 @@ const GRID_FUTURE_COLS = 3;
 const GRID_PAST_COLS = 16;
 const ACTIVATION_DELAY_MS = 3_000;
 const COLUMN_MS = 5_000;
+const QUOTE_GRID_REFRESH_MS = 250;
 const PRICE_STEP_BPS = 40;
 // Stake presets are in ETH (the canonical unit on Base). Tier 1 caps
 // (Base mainnet smoke test, 2026-05-04) cap max_stake at 0.01 ETH via
@@ -550,7 +551,7 @@ export default function RushArenaTradePage({
     };
 
     void refreshQuotes();
-    intervalId = window.setInterval(() => void refreshQuotes(), 1_000);
+    intervalId = window.setInterval(() => void refreshQuotes(), QUOTE_GRID_REFRESH_MS);
     return () => {
       cancelled = true;
       if (intervalId !== undefined) window.clearInterval(intervalId);
