@@ -504,10 +504,15 @@ export function buildDynamicCells(config: DynamicTapGridConfig): TapGridCell[] {
   const step = fixedUsdStep ?? config.anchorPrice * (priceStepBps / 10_000);
   if (step <= 0) return [];
 
-  // Current snake level — integer index of the level closest to the
-  // live price. We emit `rowsAbove` levels above and `rowsBelow` below.
-  const currentLevelFloat = (config.currentPrice - config.anchorPrice) / step;
-  const centerLevel = Math.round(currentLevelFloat);
+  // Current snake level. Real-price mode mirrors Euphoria: row N is the
+  // absolute price band `[N * priceInterval, (N + 1) * priceInterval)`.
+  // Legacy RUSH_INDEX keeps the old anchor-relative bps grid.
+  const currentLevelFloat = fixedUsdStep
+    ? config.currentPrice / step
+    : (config.currentPrice - config.anchorPrice) / step;
+  const centerLevel = fixedUsdStep
+    ? Math.floor(currentLevelFloat)
+    : Math.round(currentLevelFloat);
   const minLevel = centerLevel - config.rowsBelow;
   const maxLevel = centerLevel + config.rowsAbove;
 
@@ -523,10 +528,10 @@ export function buildDynamicCells(config: DynamicTapGridConfig): TapGridCell[] {
     // each ruler row at a fixed dollar width; legacy mode keeps the
     // old bps geometry.
     const pMin = fixedUsdStep
-      ? Math.max(0.00000001, config.anchorPrice + (level - 0.5) * step)
+      ? Math.max(0.00000001, level * step)
       : config.anchorPrice * (1 + ((level - 0.5) * priceStepBps) / 10_000);
     const pMax = fixedUsdStep
-      ? Math.max(0.00000001, config.anchorPrice + (level + 0.5) * step)
+      ? Math.max(0.00000001, (level + 1) * step)
       : config.anchorPrice * (1 + ((level + 0.5) * priceStepBps) / 10_000);
     // Distance from the *current* snake to the band's near edge,
     // in bps. Used for client-side multiplier preview only — the

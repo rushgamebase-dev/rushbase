@@ -5,7 +5,8 @@
 
 use crate::api::dto::touch::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
-    OpenBetRequest, QuoteRequest, QuoteResponse,
+    OpenBetRequest, QuoteMatrixRequest, QuoteMatrixResponse, QuoteMatrixStartingIndex,
+    QuoteRequest, QuoteResponse,
 };
 use actix_web::HttpResponse;
 use utoipa::OpenApi;
@@ -19,6 +20,7 @@ use utoipa::OpenApi;
     ),
     paths(
         crate::api::handlers::touch::quote,
+        crate::api::handlers::touch::quote_matrix,
         crate::api::handlers::touch::multiplier_config,
         crate::api::handlers::touch::open_bet,
         crate::api::handlers::touch::list_active,
@@ -28,6 +30,9 @@ use utoipa::OpenApi;
         schemas(
             QuoteRequest,
             QuoteResponse,
+            QuoteMatrixRequest,
+            QuoteMatrixResponse,
+            QuoteMatrixStartingIndex,
             OpenBetRequest,
             BetResponse,
             BetListResponse,

@@ -2,7 +2,8 @@ use crate::api::anti_replay::{idempotency_key, NonceError};
 use crate::api::dto::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
     OpenBetRequest, PublicBetEntry, PublicBetListResponse, QuoteGridCellResponse, QuoteGridRequest,
-    QuoteGridResponse, QuoteRequest, QuoteResponse,
+    QuoteGridResponse, QuoteMatrixRequest, QuoteMatrixResponse, QuoteMatrixStartingIndex,
+    QuoteRequest, QuoteResponse,
 };
 use crate::api::middleware::AuthenticatedUser;
 use crate::api::state::AppState;
@@ -14,6 +15,7 @@ use crate::touch::{quote_token_expect_match, OpenBet, QuoteTokenError};
 use crate::ws::messages::{BetData, ServerMessage};
 use actix_web::{web, HttpRequest, HttpResponse};
 use alloy::primitives::U256;
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -278,6 +280,132 @@ pub async fn quote_grid(
         house_edge_bps: cfg.house_edge_bps,
         max_payout_per_bet_wei: max_payout.to_string(),
         cells: cells_out,
+    }))
+}
+
+/// Return an Euphoria-style rectangular matrix of multiplier quotes.
+///
+/// The matrix is row-major by time, then price:
+/// `idx = (time_index - start_time_index) * price_steps + (price_index - start_price_index)`.
+/// Values are Uint16 hundredths of multiplier, little-endian, base64 encoded.
+#[utoipa::path(
+    post,
+    path = "/api/v1/trade/quote-matrix",
+    request_body = QuoteMatrixRequest,
+    responses(
+        (status = 200, description = "Compact multiplier matrix", body = QuoteMatrixResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 503, description = "Price feed unavailable"),
+    ),
+    tag = "trade",
+)]
+pub async fn quote_matrix(
+    app_state: web::Data<AppState>,
+    body: web::Json<QuoteMatrixRequest>,
+) -> Result<HttpResponse, ApiError> {
+    if body.time_interval_ms == 0 {
+        return Err(ApiError::validation_error("time_interval_ms must be > 0"));
+    }
+    if body.time_steps == 0 || body.price_steps == 0 {
+        return Err(ApiError::validation_error("matrix dimensions must be > 0"));
+    }
+    let total_cells = body.time_steps as usize * body.price_steps as usize;
+    if total_cells > 10_000 {
+        return Err(ApiError::validation_error("matrix is too large"));
+    }
+
+    let symbol = app_state
+        .touch_engine
+        .canonical_symbol(&body.symbol)
+        .ok_or_else(|| ApiError::bad_request("Unsupported Tap Trading symbol"))?;
+    let entry = app_state
+        .touch_engine
+        .current_entry_q8(&symbol)
+        .map_err(map_err)?;
+    let price_interval = parse_u256("price_interval_q8", &body.price_interval_q8)?;
+    if price_interval == U256::ZERO {
+        return Err(ApiError::validation_error("price_interval_q8 must be > 0"));
+    }
+
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let stale = app_state
+        .real_price_feed
+        .snapshot(&symbol)
+        .map_or(false, |snapshot| snapshot.stale);
+    let real_price_symbol = app_state.touch_engine.is_real_price_symbol(&symbol);
+    let calc = app_state.touch_engine.multiplier();
+    let cfg = calc.config();
+    let min_distance = app_state.touch_engine.min_distance_bps();
+    let max_distance = app_state.touch_engine.max_distance_bps();
+    let max_payout = app_state.touch_engine.max_payout_per_bet_wei();
+    let allowed_windows = app_state.touch_engine.allowed_window_ms_sorted();
+    let accepting_bets = app_state.touch_engine.accepting_bets();
+    let time_interval_i64 = i64::try_from(body.time_interval_ms)
+        .map_err(|_| ApiError::validation_error("time_interval_ms is too large"))?;
+
+    let mut bytes = Vec::with_capacity(total_cells * 2);
+    for t in 0..body.time_steps {
+        let time_index = body.start_time_index + i64::from(t);
+        let window_start_ms = time_index.saturating_mul(time_interval_i64);
+        let window_start_offset_ms = if window_start_ms > now_ms {
+            (window_start_ms - now_ms) as u64
+        } else {
+            0
+        };
+
+        for p in 0..body.price_steps {
+            let price_index = body.start_price_index + i64::from(p);
+            let mut encoded: u16 = 0;
+
+            if price_index >= 0 && allowed_windows.contains(&body.time_interval_ms) {
+                let band_min = price_interval.saturating_mul(U256::from(price_index as u64));
+                let band_max = band_min.saturating_add(price_interval);
+                if band_max > band_min {
+                    let direction = if u256_to_u128_saturating(band_min) >= entry.max(0) as u128 {
+                        TouchDirection::Up
+                    } else {
+                        TouchDirection::Down
+                    };
+                    let q = calc.quote(
+                        entry as u128,
+                        u256_to_u128_saturating(band_min),
+                        u256_to_u128_saturating(band_max),
+                        direction,
+                        window_start_offset_ms,
+                        body.time_interval_ms,
+                    );
+                    let p_touch = q.implied_p_touch_bps as f64 / 10_000.0;
+                    let disabled = !accepting_bets
+                        || stale
+                        || q.distance_bps == 0
+                        || q.distance_bps < min_distance
+                        || q.distance_bps > max_distance
+                        || (!real_price_symbol && !q.from_empirical)
+                        || calc.is_ev_positive_at_floor(p_touch);
+                    if !disabled {
+                        encoded = ((q.multiplier_bps + 50) / 100).min(u16::MAX as u32) as u16;
+                    }
+                }
+            }
+
+            bytes.extend_from_slice(&encoded.to_le_bytes());
+        }
+    }
+
+    Ok(HttpResponse::Ok().json(QuoteMatrixResponse {
+        symbol,
+        server_time_ms: now_ms,
+        entry_price_q8: entry.to_string(),
+        starting_index: QuoteMatrixStartingIndex {
+            time_index: body.start_time_index,
+            price_index: body.start_price_index,
+        },
+        time_steps: body.time_steps,
+        price_steps: body.price_steps,
+        grid: BASE64_STANDARD.encode(bytes),
+        house_edge_bps: cfg.house_edge_bps,
+        max_payout_per_bet_wei: max_payout.to_string(),
+        accepting_bets,
     }))
 }
 

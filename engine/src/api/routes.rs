@@ -55,6 +55,15 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, governor: &RateLimit) {
                     .wrap(Governor::new(governor))
                     .route(web::post().to(handlers::quote_grid)),
             )
+            // Euphoria-style compact matrix: server builds the whole
+            // visible multiplier rectangle and the frontend only decodes
+            // Uint16 values. This is the primary quote feed for Tap
+            // Trading going forward.
+            .service(
+                web::resource("/trade/quote-matrix")
+                    .wrap(Governor::new(governor))
+                    .route(web::post().to(handlers::quote_matrix)),
+            )
             // Public, cacheable: pricing-config snapshot so the frontend
             // can replicate `multiplierFor` locally with the empirical
             // table. Not rate-limited — single response per UI session.

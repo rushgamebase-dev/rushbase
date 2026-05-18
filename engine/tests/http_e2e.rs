@@ -19,9 +19,9 @@ use std::sync::Arc;
 use actix_governor::{GovernorConfigBuilder, PeerIpKeyExtractor};
 use actix_web::{http::StatusCode, test, web, App};
 use alloy::primitives::Address;
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use bigdecimal::BigDecimal;
 use chrono::Utc;
-use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::str::FromStr;
 use testcontainers::runners::AsyncRunner;
@@ -32,7 +32,7 @@ use rush_engine::api::anti_replay::{
     MemoryActiveCache, MemoryIdempotency, MemoryNonceStore, MemoryRateLimit,
 };
 use rush_engine::api::{configure_routes, AppState};
-use rush_engine::arena_index::{ArenaIndex, RUSH_INDEX_SYMBOL};
+use rush_engine::arena_index::ArenaIndex;
 use rush_engine::auth::{JwtService, SiweVerifier};
 use rush_engine::chain::WithdrawSigner;
 use rush_engine::config::settings::{
@@ -373,6 +373,54 @@ async fn quote_returns_signed_token_and_open_bet_consumes_it() {
 }
 
 #[actix_web::test]
+async fn quote_matrix_returns_compact_multiplier_grid() {
+    let pool = fresh_pool().await;
+    let state = build_app_state(pool).await;
+    let governor_conf = governor();
+    let app = test::init_service(
+        App::new()
+            .app_data(state.clone())
+            .configure(move |cfg| configure_routes(cfg, &governor_conf)),
+    )
+    .await;
+
+    let start_time_index = Utc::now().timestamp_millis() / 3_000;
+    let req = test::TestRequest::post()
+        .peer_addr("127.0.0.1:54322".parse().unwrap())
+        .uri("/api/v1/trade/quote-matrix")
+        .set_json(serde_json::json!({
+            "symbol": SYMBOL,
+            "time_interval_ms": 3_000_u64,
+            "price_interval_q8": "10000000000",
+            "start_time_index": start_time_index,
+            "time_steps": 2_u32,
+            "start_price_index": 502_i64,
+            "price_steps": 3_u32,
+        }))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK, "quote matrix should succeed");
+    let body: serde_json::Value = test::read_body_json(resp).await;
+    assert_eq!(body["symbol"], SYMBOL);
+    assert_eq!(body["time_steps"], 2);
+    assert_eq!(body["price_steps"], 3);
+    assert_eq!(body["accepting_bets"], true);
+    assert_eq!(body["starting_index"]["price_index"], 502);
+
+    let grid_b64 = body["grid"].as_str().expect("grid base64");
+    let bytes = BASE64_STANDARD.decode(grid_b64).expect("decode grid");
+    assert_eq!(bytes.len(), 2 * 2 * 3);
+    let cells: Vec<u16> = bytes
+        .chunks_exact(2)
+        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+        .collect();
+    assert!(
+        cells.iter().any(|value| *value >= 110),
+        "expected at least one quoted cell, got {cells:?}"
+    );
+}
+
+#[actix_web::test]
 async fn open_bet_without_quote_token_rejected() {
     let pool = fresh_pool().await;
     let state = build_app_state(pool.clone()).await;
@@ -597,6 +645,7 @@ async fn openapi_endpoint_returns_valid_spec() {
     assert_eq!(body["openapi"], "3.1.0");
     assert_eq!(body["info"]["title"], "Rush Touch Trading Engine");
     assert!(body["paths"]["/api/v1/trade/quote"].is_object());
+    assert!(body["paths"]["/api/v1/trade/quote-matrix"].is_object());
     assert!(body["paths"]["/api/v1/trade/bets"].is_object());
 }
 

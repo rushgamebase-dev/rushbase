@@ -464,6 +464,42 @@ pub struct QuoteGridRequest {
     pub cells: Vec<QuoteGridCellRequest>,
 }
 
+/// Euphoria-style rectangular quote matrix. The frontend supplies the
+/// visible absolute time/price index rectangle; the engine returns one
+/// compact Uint16 multiplier grid encoded as base64 little-endian bytes.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct QuoteMatrixRequest {
+    pub symbol: String,
+    pub time_interval_ms: u64,
+    pub price_interval_q8: String,
+    pub start_time_index: i64,
+    pub time_steps: u32,
+    pub start_price_index: i64,
+    pub price_steps: u32,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct QuoteMatrixStartingIndex {
+    pub time_index: i64,
+    pub price_index: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct QuoteMatrixResponse {
+    pub symbol: String,
+    pub server_time_ms: i64,
+    pub entry_price_q8: String,
+    pub starting_index: QuoteMatrixStartingIndex,
+    pub time_steps: u32,
+    pub price_steps: u32,
+    /// Base64 of a little-endian Uint16Array. Decode and read
+    /// `grid[(timeIndex - startTime) * price_steps + (priceIndex - startPrice)] / 100`.
+    pub grid: String,
+    pub house_edge_bps: u32,
+    pub max_payout_per_bet_wei: String,
+    pub accepting_bets: bool,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct QuoteGridCellResponse {
     pub cell_id: String,

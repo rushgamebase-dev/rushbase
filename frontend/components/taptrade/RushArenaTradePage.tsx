@@ -33,8 +33,7 @@ import {
   type LeaderboardEntry,
   type ProvablyFairState,
   type PublicBetEntry,
-  type QuoteGridCellRequest,
-  type QuoteGridCellResponse,
+  type QuoteMatrixResponse,
   type RushArenaBet,
   type RushArenaEvent,
   type RushRound,
@@ -97,11 +96,6 @@ function priceToQ8(price: number) {
   return BigInt(Math.round(price * 1e8)).toString();
 }
 
-function directionForCell(cell: TapGridCell, referencePrice: number): "UP" | "DOWN" {
-  const bandMid = (cell.pMin + cell.pMax) / 2;
-  return bandMid >= referencePrice ? "UP" : "DOWN";
-}
-
 function formatQuoteDisabledReason(reason: string) {
   switch (reason) {
     case "PAUSED":
@@ -134,6 +128,15 @@ function weiGreaterThan(a: string, b: string) {
     return BigInt(a) > BigInt(b);
   } catch {
     return false;
+  }
+}
+
+function maxStakeForMultiplier(maxPayoutWei: string, multiplierBps: number) {
+  try {
+    if (multiplierBps <= 0) return "0";
+    return ((BigInt(maxPayoutWei) * BigInt(10_000)) / BigInt(multiplierBps)).toString();
+  } catch {
+    return "0";
   }
 }
 
@@ -210,12 +213,38 @@ interface RushArenaTradePageProps {
   bypassAuthGate?: boolean;
 }
 
-type QuoteGridSnapshot = {
+type QuoteMatrixSnapshot = QuoteMatrixResponse & {
   symbol: RealTapTradeSymbol;
   receivedAtMs: number;
-  serverTimeMs: number;
-  byId: Map<string, QuoteGridCellResponse>;
 };
+
+function quoteMatrixValue(
+  matrix: QuoteMatrixSnapshot | null,
+  cell: TapGridCell,
+  priceInterval: number
+) {
+  if (!matrix || priceInterval <= 0) return null;
+  const timeIndex = Math.round(cell.windowStartMs / COLUMN_MS);
+  const priceIndex = Math.round(cell.pMin / priceInterval);
+  const t = timeIndex - matrix.startingIndex.timeIndex;
+  const p = priceIndex - matrix.startingIndex.priceIndex;
+  if (t < 0 || p < 0 || t >= matrix.timeSteps || p >= matrix.priceSteps) return null;
+  const index = t * matrix.priceSteps + p;
+  const raw = matrix.grid[index] ?? 0;
+  if (raw <= 0) return {
+    multiplier: 0,
+    multiplierBps: 0,
+    maxStakeWei: "0",
+    disabledReason: matrix.acceptingBets ? "UNQUOTED" : "PAUSED",
+  };
+  const multiplierBps = raw * 100;
+  return {
+    multiplier: raw / 100,
+    multiplierBps,
+    maxStakeWei: maxStakeForMultiplier(matrix.maxPayoutPerBetWei, multiplierBps),
+    disabledReason: matrix.acceptingBets ? null : "PAUSED",
+  };
+}
 
 export default function RushArenaTradePage({
   bypassAuthGate = false,
@@ -286,7 +315,7 @@ export default function RushArenaTradePage({
   const lastTickRef = useRef<RushTick | null>(null);
   const particlesRef = useRef<ParticleSystemRef | null>(null);
   const handledResolutionRef = useRef<Set<string>>(new Set());
-  const quoteGridSeqRef = useRef(0);
+  const quoteMatrixSeqRef = useRef(0);
   const currentPriceRef = useRef(currentPrice);
   const vrfPlaybackActiveRef = useRef(false);
   const wasVrfPlaybackActiveRef = useRef(false);
@@ -420,8 +449,8 @@ export default function RushArenaTradePage({
     onlineCount: number;
     byKey: Map<string, { nBets: number; totalStakeWei: string }>;
   }>({ onlineCount: 0, byKey: new Map() });
-  const [quoteGrid, setQuoteGrid] = useState<QuoteGridSnapshot | null>(null);
-  const [quoteGridError, setQuoteGridError] = useState<string | null>(null);
+  const [quoteMatrix, setQuoteMatrix] = useState<QuoteMatrixSnapshot | null>(null);
+  const [quoteMatrixError, setQuoteMatrixError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -462,7 +491,9 @@ export default function RushArenaTradePage({
       ? selectedAsset.priceStepUsd
       : anchorPrice * (PRICE_STEP_BPS / 10_000);
     if (step <= 0) return 0;
-    return Math.round((currentPrice - anchorPrice) / step);
+    return selectedAsset.priceStepUsd > 0
+      ? Math.floor(currentPrice / step)
+      : Math.round((currentPrice - anchorPrice) / step);
   }, [anchorPrice, currentPrice, selectedAsset.priceStepUsd]);
 
   const firstFutureCol = roundOriginRef.current > 0
@@ -509,71 +540,66 @@ export default function RushArenaTradePage({
 
   useEffect(() => {
     let cancelled = false;
-    let intervalId: number | undefined;
 
     const refreshQuotes = async () => {
-      const requestNow = Date.now();
-      const referencePrice = currentPriceRef.current;
-      const requests: QuoteGridCellRequest[] = baseCells
-        .filter((cell) => cell.windowStartMs >= requestNow + ACTIVATION_DELAY_MS - 250)
-        .map((cell) => ({
-          cellId: cell.id,
-          direction: directionForCell(cell, referencePrice),
-          targetRowMinQ8: priceToQ8(cell.pMin),
-          targetRowMaxQ8: priceToQ8(cell.pMax),
-          windowStartOffsetMs: Math.max(0, cell.windowStartMs - requestNow),
-          windowDurationMs: cell.windowDurationMs,
-        }));
-
-      if (requests.length === 0) {
+      if (baseCells.length === 0 || selectedAsset.priceStepUsd <= 0) {
         if (!cancelled) {
-          setQuoteGrid({
-            symbol: selectedSymbol,
-            receivedAtMs: Date.now(),
-            serverTimeMs: Date.now(),
-            byId: new Map(),
-          });
-          setQuoteGridError(null);
+          setQuoteMatrix(null);
+          setQuoteMatrixError(null);
         }
         return;
       }
 
-      const seq = ++quoteGridSeqRef.current;
+      const timeIndexes = baseCells.map((cell) => Math.round(cell.windowStartMs / COLUMN_MS));
+      const priceIndexes = baseCells.map((cell) => Math.round(cell.pMin / selectedAsset.priceStepUsd));
+      const startTimeIndex = Math.min(...timeIndexes);
+      const endTimeIndex = Math.max(...timeIndexes);
+      const startPriceIndex = Math.min(...priceIndexes);
+      const endPriceIndex = Math.max(...priceIndexes);
+
+      const seq = ++quoteMatrixSeqRef.current;
       try {
-        const response = await rushArenaClient.getQuoteGrid(selectedSymbol, requests);
-        if (cancelled || seq !== quoteGridSeqRef.current) return;
-        setQuoteGrid({
+        const response = await rushArenaClient.getQuoteMatrix({
+          symbol: selectedSymbol,
+          timeIntervalMs: COLUMN_MS,
+          priceInterval: selectedAsset.priceStepUsd,
+          startTimeIndex,
+          timeSteps: endTimeIndex - startTimeIndex + 1,
+          startPriceIndex,
+          priceSteps: endPriceIndex - startPriceIndex + 1,
+        });
+        if (cancelled || seq !== quoteMatrixSeqRef.current) return;
+        setQuoteMatrix({
+          ...response,
           symbol: selectedSymbol,
           receivedAtMs: Date.now(),
-          serverTimeMs: response.serverTimeMs,
-          byId: new Map(response.cells.map((cell) => [cell.cellId, cell])),
         });
-        setQuoteGridError(null);
+        setQuoteMatrixError(null);
       } catch (error) {
-        if (cancelled || seq !== quoteGridSeqRef.current) return;
-        setQuoteGridError(error instanceof Error ? error.message : "Quote grid unavailable");
+        if (cancelled || seq !== quoteMatrixSeqRef.current) return;
+        setQuoteMatrixError(error instanceof Error ? error.message : "Quote matrix unavailable");
       }
     };
 
     void refreshQuotes();
-    intervalId = window.setInterval(() => void refreshQuotes(), QUOTE_GRID_REFRESH_MS);
+    const intervalId = window.setInterval(() => void refreshQuotes(), QUOTE_GRID_REFRESH_MS);
     return () => {
       cancelled = true;
-      if (intervalId !== undefined) window.clearInterval(intervalId);
+      window.clearInterval(intervalId);
     };
-  }, [baseCells, selectedSymbol]);
+  }, [baseCells, selectedAsset.priceStepUsd, selectedSymbol]);
 
-  const quoteGridFresh =
-    quoteGrid &&
-    quoteGrid.symbol === selectedSymbol &&
-    nowTime - quoteGrid.receivedAtMs <= 2_500
-      ? quoteGrid
+  const quoteMatrixFresh =
+    quoteMatrix &&
+    quoteMatrix.symbol === selectedSymbol &&
+    nowTime - quoteMatrix.receivedAtMs <= 2_500
+      ? quoteMatrix
       : null;
-  const quoteGridStatus = quoteGridFresh ? "live" : quoteGridError ? "offline" : "syncing";
+  const quoteGridStatus = quoteMatrixFresh ? "live" : quoteMatrixError ? "offline" : "syncing";
 
   // Final cells passed to the canvas. Geometry stays local because the
   // canvas needs stable world-time cells; price/multiplier/disabled
-  // state is server-authoritative from `/trade/quote-grid`. A bettable
+  // state is server-authoritative from `/trade/quote-matrix`. A bettable
   // cell without a fresh backend quote is intentionally disabled.
   const cells = useMemo(() => {
     if (baseCells.length === 0) return baseCells;
@@ -585,7 +611,7 @@ export default function RushArenaTradePage({
     return baseCells.map((cell) => {
       const offset = cell.windowStartMs - nowTime;
       const locallyLocked = cell.windowStartMs < nowTime + ACTIVATION_DELAY_MS - 1;
-      const serverQuote = quoteGridFresh?.byId.get(cell.id);
+      const serverQuote = quoteMatrixValue(quoteMatrixFresh, cell, selectedAsset.priceStepUsd);
       const missingServerQuote = !locallyLocked && !serverQuote;
       const serverDisabledReason = serverQuote?.disabledReason ?? null;
       const stakeAboveServerMax = serverQuote
@@ -597,9 +623,7 @@ export default function RushArenaTradePage({
         missingServerQuote ||
         Boolean(serverDisabledReason) ||
         stakeAboveServerMax;
-      const multiplierBps = serverQuote?.multiplierBps && serverQuote.multiplierBps > 0
-        ? serverQuote.multiplierBps
-        : cell.multiplierBps;
+      const multiplierBps = serverQuote ? serverQuote.multiplierBps : cell.multiplierBps;
       const pMinQ8 = priceToQ8(cell.pMin);
       const pMaxQ8 = priceToQ8(cell.pMax);
       const heatKey = `${pMinQ8}|${pMaxQ8}|${cell.windowStartMs}|${cell.windowEndMs}`;
@@ -609,14 +633,14 @@ export default function RushArenaTradePage({
         windowStartOffsetMs: offset,
         multiplier: multiplierBps / 10_000,
         multiplierBps,
-        distanceBps: serverQuote?.distanceBps ?? cell.distanceBps,
+        distanceBps: cell.distanceBps,
         disabled,
         reason: TAP_TRADING_PAUSED
           ? "Paused"
           : locallyLocked
             ? "Locked"
             : missingServerQuote
-            ? quoteGridError
+            ? quoteMatrixError
               ? "Pricing offline"
               : "Pricing"
             : stakeAboveServerMax
@@ -629,7 +653,7 @@ export default function RushArenaTradePage({
         totalStakeWei: heat?.totalStakeWei,
       };
     });
-  }, [baseCells, nowTime, heatmap, quoteGridFresh, quoteGridError, stakeAmount]);
+  }, [baseCells, nowTime, heatmap, quoteMatrixFresh, quoteMatrixError, stakeAmount, selectedAsset.priceStepUsd]);
 
   const activeVrfPathBet = useMemo(() => {
     return [...bets]

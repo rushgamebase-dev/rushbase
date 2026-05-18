@@ -221,6 +221,32 @@ export type QuoteGridResponse = {
   cells: QuoteGridCellResponse[];
 };
 
+export type QuoteMatrixRequest = {
+  symbol: TapTradeSymbol;
+  timeIntervalMs: number;
+  priceInterval: number;
+  startTimeIndex: number;
+  timeSteps: number;
+  startPriceIndex: number;
+  priceSteps: number;
+};
+
+export type QuoteMatrixResponse = {
+  symbol: string;
+  serverTimeMs: number;
+  entryPriceQ8: string;
+  startingIndex: {
+    timeIndex: number;
+    priceIndex: number;
+  };
+  timeSteps: number;
+  priceSteps: number;
+  grid: Uint16Array;
+  houseEdgeBps: number;
+  maxPayoutPerBetWei: string;
+  acceptingBets: boolean;
+};
+
 type PlaceBetParams = {
   symbol?: TapTradeSymbol;
   quote: RushQuote;
@@ -369,6 +395,29 @@ function bpsBetween(price: number, cell: QuoteGridCellRequest): number {
   const pMax = Number(cell.targetRowMaxQ8) / 1e8;
   const distance = Math.min(Math.abs(price - pMin), Math.abs(price - pMax));
   return Math.abs((distance / price) * 10_000);
+}
+
+function decimalPriceToQ8(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return BigInt(Math.round(value * 1e8)).toString();
+}
+
+function decodeUint16Base64(value: string): Uint16Array {
+  const binary = typeof globalThis.atob === "function"
+    ? globalThis.atob(value)
+    : ((globalThis as unknown as {
+        Buffer?: { from(input: string, encoding: "base64"): { toString(encoding: "binary"): string } };
+      }).Buffer?.from(value, "base64").toString("binary") ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const out = new Uint16Array(Math.floor(bytes.length / 2));
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 0; i < out.length; i += 1) {
+    out[i] = view.getUint16(i * 2, true);
+  }
+  return out;
 }
 
 function provablyFair(): ProvablyFairState {
@@ -648,6 +697,72 @@ export const rushArenaClient = {
       };
     }
     return requestJson<unknown>("/trade/multiplier_config");
+  },
+
+  async getQuoteMatrix(request: QuoteMatrixRequest): Promise<QuoteMatrixResponse> {
+    if (isRushArenaMockMode()) {
+      const total = Math.max(0, request.timeSteps * request.priceSteps);
+      const grid = new Uint16Array(total);
+      grid.fill(110);
+      return {
+        symbol: request.symbol,
+        serverTimeMs: Date.now(),
+        entryPriceQ8: String(Math.round(mockPrice * 1e8)),
+        startingIndex: {
+          timeIndex: request.startTimeIndex,
+          priceIndex: request.startPriceIndex,
+        },
+        timeSteps: request.timeSteps,
+        priceSteps: request.priceSteps,
+        grid,
+        houseEdgeBps: 500,
+        maxPayoutPerBetWei: "10000000000000000000",
+        acceptingBets: true,
+      };
+    }
+
+    const response = await requestJson<{
+      symbol: string;
+      server_time_ms: number;
+      entry_price_q8: string;
+      starting_index: {
+        time_index: number;
+        price_index: number;
+      };
+      time_steps: number;
+      price_steps: number;
+      grid: string;
+      house_edge_bps: number;
+      max_payout_per_bet_wei: string;
+      accepting_bets: boolean;
+    }>("/trade/quote-matrix", {
+      method: "POST",
+      body: JSON.stringify({
+        symbol: request.symbol,
+        time_interval_ms: request.timeIntervalMs,
+        price_interval_q8: decimalPriceToQ8(request.priceInterval),
+        start_time_index: request.startTimeIndex,
+        time_steps: request.timeSteps,
+        start_price_index: request.startPriceIndex,
+        price_steps: request.priceSteps,
+      }),
+    });
+
+    return {
+      symbol: response.symbol,
+      serverTimeMs: response.server_time_ms,
+      entryPriceQ8: response.entry_price_q8,
+      startingIndex: {
+        timeIndex: response.starting_index.time_index,
+        priceIndex: response.starting_index.price_index,
+      },
+      timeSteps: response.time_steps,
+      priceSteps: response.price_steps,
+      grid: decodeUint16Base64(response.grid),
+      houseEdgeBps: response.house_edge_bps,
+      maxPayoutPerBetWei: response.max_payout_per_bet_wei,
+      acceptingBets: response.accepting_bets,
+    };
   },
 
   async getActiveBets(): Promise<RushArenaBet[]> {
