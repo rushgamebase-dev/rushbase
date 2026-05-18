@@ -5,8 +5,9 @@
 
 use crate::api::dto::touch::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
-    OpenBetRequest, QuoteMatrixRequest, QuoteMatrixResponse, QuoteMatrixStartingIndex,
-    QuoteRequest, QuoteResponse,
+    OpenBetRequest, OpenShadowBetRequest, QuoteMatrixRequest, QuoteMatrixResponse,
+    QuoteMatrixStartingIndex, QuoteRequest, QuoteResponse, ResolveShadowBetsRequest,
+    ResolveShadowBetsResponse, ShadowBetListQuery, ShadowBetListResponse, ShadowBetResponse,
 };
 use actix_web::HttpResponse;
 use utoipa::OpenApi;
@@ -23,6 +24,10 @@ use utoipa::OpenApi;
         crate::api::handlers::touch::quote_matrix,
         crate::api::handlers::touch::multiplier_config,
         crate::api::handlers::touch::open_bet,
+        crate::api::handlers::touch::open_shadow_bet,
+        crate::api::handlers::touch::list_shadow_bets,
+        crate::api::handlers::touch::resolve_due_shadow_bets,
+        crate::api::handlers::touch::resolve_shadow_bet,
         crate::api::handlers::touch::list_active,
         crate::api::handlers::touch::list_history,
     ),
@@ -34,11 +39,17 @@ use utoipa::OpenApi;
             QuoteMatrixResponse,
             QuoteMatrixStartingIndex,
             OpenBetRequest,
+            OpenShadowBetRequest,
             BetResponse,
             BetListResponse,
             BetHistoryQuery,
             MultiplierConfigResponse,
             EmpiricalCellDto,
+            ShadowBetResponse,
+            ShadowBetListResponse,
+            ResolveShadowBetsRequest,
+            ResolveShadowBetsResponse,
+            ShadowBetListQuery,
         )
     ),
     tags(

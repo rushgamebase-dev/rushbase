@@ -13,7 +13,9 @@ pub mod pricing;
 pub mod quote_token;
 pub mod resolution_loop;
 
-pub use engine::{OpenBet, ResolveOutcome, TouchEngine};
+pub use engine::{OpenBet, OpenShadowBet, ResolveOutcome, ShadowResolveOutcome, TouchEngine};
 pub use pricing::{MultiplierCalculator, MultiplierConfig, MultiplierQuote};
-pub use quote_token::{expect_match as quote_token_expect_match, QuoteSigner, QuoteTokenError, QuoteTokenPayload};
+pub use quote_token::{
+    expect_match as quote_token_expect_match, QuoteSigner, QuoteTokenError, QuoteTokenPayload,
+};
 pub use resolution_loop::ResolutionLoop;

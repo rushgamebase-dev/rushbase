@@ -14,7 +14,7 @@
 //!
 //! Requires Docker (testcontainers).
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use actix_governor::{GovernorConfigBuilder, PeerIpKeyExtractor};
 use actix_web::{http::StatusCode, test, web, App};
@@ -136,6 +136,13 @@ fn jwt_cfg() -> JwtCfgToml {
 }
 
 async fn build_app_state(pool: PgPool) -> web::Data<AppState> {
+    build_app_state_with_touch_cfg(pool, touch_cfg()).await
+}
+
+async fn build_app_state_with_touch_cfg(
+    pool: PgPool,
+    touch_settings: TouchConfig,
+) -> web::Data<AppState> {
     let arena_index = Arc::new(ArenaIndex::new("http-e2e-test-seed"));
     let real_price_feed = Arc::new(RealPriceFeed::new(&Default::default()));
     real_price_feed.record_price(
@@ -165,7 +172,7 @@ async fn build_app_state(pool: PgPool) -> web::Data<AppState> {
         exposure.clone(),
         vrf_cipher.clone(),
         withdraw_signer.clone(),
-        &touch_cfg(),
+        &touch_settings,
         &mult_cfg(),
         &risk_cfg(),
     ));
@@ -418,6 +425,71 @@ async fn quote_matrix_returns_compact_multiplier_grid() {
         cells.iter().any(|value| *value >= 110),
         "expected at least one quoted cell, got {cells:?}"
     );
+}
+
+#[actix_web::test]
+async fn admin_can_run_shadow_canary_while_public_entries_paused() {
+    let pool = fresh_pool().await;
+    let mut cfg = touch_cfg();
+    cfg.accepting_bets = false;
+    cfg.allowed_window_ms = vec![1];
+    cfg.min_activation_delay_ms = 0;
+    let state = build_app_state_with_touch_cfg(pool.clone(), cfg).await;
+    let admin = make_user(&pool, "5000000000000000000", true).await;
+    let token = token_for(&state, admin, &format!("0x{:040x}", admin.as_u128()));
+    let governor_conf = governor();
+    let app = test::init_service(
+        App::new()
+            .app_data(state.clone())
+            .configure(move |cfg| configure_routes(cfg, &governor_conf)),
+    )
+    .await;
+
+    let create_req = test::TestRequest::post()
+        .uri("/api/v1/admin/trade/shadow-bets")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .set_json(serde_json::json!({
+            "symbol": SYMBOL,
+            "direction": "UP",
+            "stake_wei": "100000000000000000",
+            "target_row_min_q8": "5010000000000",
+            "target_row_max_q8": "5020000000000",
+            "window_start_offset_ms": 20_u64,
+            "window_duration_ms": 1_u64,
+        }))
+        .to_request();
+    let create_resp = test::call_service(&app, create_req).await;
+    assert_eq!(
+        create_resp.status(),
+        StatusCode::CREATED,
+        "shadow bet should be created even while accepting_bets=false"
+    );
+    let created: serde_json::Value = test::read_body_json(create_resp).await;
+    assert_eq!(created["status"], "ACTIVE");
+    assert!(created["multiplier_bps"].as_i64().unwrap_or(0) > 0);
+    let id = created["id"].as_str().expect("shadow id").to_string();
+    let window_start_ms = created["window_start_ms"].as_i64().unwrap();
+
+    // Feed a tick through the target band during the virtual window.
+    state
+        .real_price_feed
+        .record_price(SYMBOL, 50_150.0, window_start_ms + 1);
+    tokio::time::sleep(Duration::from_millis(35)).await;
+
+    let resolve_req = test::TestRequest::post()
+        .uri(&format!("/api/v1/admin/trade/shadow-bets/{id}/resolve"))
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let resolve_resp = test::call_service(&app, resolve_req).await;
+    assert_eq!(resolve_resp.status(), StatusCode::OK);
+    let resolved: serde_json::Value = test::read_body_json(resolve_resp).await;
+    assert_eq!(resolved["status"], "WON");
+    assert!(resolved["touched_at_ms"].as_i64().is_some());
+    assert!(resolved["realized_pnl_wei"]
+        .as_str()
+        .and_then(|s| BigDecimal::from_str(s).ok())
+        .map(|v| v > BigDecimal::from(0))
+        .unwrap_or(false));
 }
 
 #[actix_web::test]

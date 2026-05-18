@@ -246,9 +246,7 @@ mod bet_response_leak_tests {
             // Sensitive: seed_encrypted populated as it would be in
             // production. The serialized response below MUST NOT
             // contain these bytes anywhere.
-            seed_encrypted: Some(
-                b"DO_NOT_LEAK_TOTALLY_SECRET_PAYLOAD".to_vec(),
-            ),
+            seed_encrypted: Some(b"DO_NOT_LEAK_TOTALLY_SECRET_PAYLOAD".to_vec()),
             commit_hash: Some(vec![0xab; 32]),
             commit_signature: Some(vec![0xcd; 65]),
             path_config_version: Some("vrf-path-v2".into()),
@@ -528,4 +526,100 @@ pub struct QuoteGridResponse {
     /// per-cell limit is applied.
     pub max_payout_per_bet_wei: String,
     pub cells: Vec<QuoteGridCellResponse>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct OpenShadowBetRequest {
+    pub symbol: String,
+    pub direction: String,
+    pub stake_wei: String,
+    pub target_row_min_q8: String,
+    pub target_row_max_q8: String,
+    /// Delay from server time to virtual window start. This uses the
+    /// same anti-snipe activation gate as a real bet, but never moves
+    /// funds.
+    #[serde(default)]
+    pub window_start_offset_ms: u64,
+    pub window_duration_ms: u64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ShadowBetResponse {
+    pub id: Uuid,
+    pub symbol: String,
+    pub direction: String,
+    pub status: String,
+    pub stake_wei: String,
+    pub multiplier_bps: i32,
+    pub potential_payout_wei: String,
+    pub house_edge_wei: String,
+    pub entry_price_q8: String,
+    pub target_row_min_q8: String,
+    pub target_row_max_q8: String,
+    pub window_start_ms: i64,
+    pub window_end_ms: i64,
+    pub distance_bps: i32,
+    pub implied_p_touch_bps: i32,
+    pub from_empirical: bool,
+    pub touched_at_ms: Option<i64>,
+    pub realized_pnl_wei: Option<String>,
+    pub path_points_hash: Option<String>,
+    pub disabled_reason: Option<String>,
+    pub created_at_ms: i64,
+    pub resolved_at_ms: Option<i64>,
+    pub updated_at_ms: i64,
+}
+
+impl From<&crate::touch::engine::ShadowBet> for ShadowBetResponse {
+    fn from(b: &crate::touch::engine::ShadowBet) -> Self {
+        Self {
+            id: b.id,
+            symbol: b.symbol.clone(),
+            direction: b.direction.as_str().to_string(),
+            status: b.status.clone(),
+            stake_wei: b.stake_wei.to_string(),
+            multiplier_bps: b.multiplier_bps,
+            potential_payout_wei: b.potential_payout_wei.to_string(),
+            house_edge_wei: b.house_edge_wei.to_string(),
+            entry_price_q8: b.entry_price_q8.to_string(),
+            target_row_min_q8: b.target_row_min_q8.to_string(),
+            target_row_max_q8: b.target_row_max_q8.to_string(),
+            window_start_ms: b.window_start_ms,
+            window_end_ms: b.window_end_ms,
+            distance_bps: b.distance_bps,
+            implied_p_touch_bps: b.implied_p_touch_bps,
+            from_empirical: b.from_empirical,
+            touched_at_ms: b.touched_at_ms,
+            realized_pnl_wei: b.realized_pnl_wei.as_ref().map(|x| x.to_string()),
+            path_points_hash: b.path_points_hash.clone(),
+            disabled_reason: b.disabled_reason.clone(),
+            created_at_ms: b.created_at.timestamp_millis(),
+            resolved_at_ms: b.resolved_at.map(|t| t.timestamp_millis()),
+            updated_at_ms: b.updated_at.timestamp_millis(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ShadowBetListResponse {
+    pub bets: Vec<ShadowBetResponse>,
+    pub total: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ResolveShadowBetsResponse {
+    pub resolved: Vec<ShadowBetResponse>,
+    pub total: i64,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ResolveShadowBetsRequest {
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct ShadowBetListQuery {
+    pub status: Option<String>,
+    pub limit: Option<i64>,
 }

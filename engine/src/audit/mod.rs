@@ -42,6 +42,8 @@ pub mod event {
     pub const SIWE_LOGIN_FAILED: &str = "SIWE_LOGIN_FAILED";
     pub const TOUCH_BET_OPENED: &str = "TOUCH_BET_OPENED";
     pub const TOUCH_BET_RESOLVED: &str = "TOUCH_BET_RESOLVED";
+    pub const TAP_SHADOW_BET_OPENED: &str = "TAP_SHADOW_BET_OPENED";
+    pub const TAP_SHADOW_BETS_RESOLVED: &str = "TAP_SHADOW_BETS_RESOLVED";
     pub const WITHDRAW_AUTHORIZED: &str = "WITHDRAW_AUTHORIZED";
     pub const PROFILE_UPDATED: &str = "PROFILE_UPDATED";
     pub const BREAKER_TRIPPED: &str = "BREAKER_TRIPPED";

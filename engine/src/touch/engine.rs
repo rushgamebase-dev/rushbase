@@ -25,7 +25,8 @@ use crate::vrf::{
 };
 use alloy::primitives::{Address, U256};
 use bigdecimal::{BigDecimal, Zero};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use sqlx::FromRow;
 use sqlx::PgPool;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -50,6 +51,51 @@ pub struct OpenBet {
 #[derive(Debug, Clone)]
 pub struct ResolveOutcome {
     pub bet: TouchBet,
+    pub touched: bool,
+    pub realized_pnl_wei: BigDecimal,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenShadowBet {
+    pub symbol: String,
+    pub direction: TouchDirection,
+    pub stake_wei: U256,
+    pub target_row_min_q8: U256,
+    pub target_row_max_q8: U256,
+    pub window_start_ms: i64,
+    pub window_end_ms: i64,
+}
+
+#[derive(Debug, Clone, FromRow)]
+pub struct ShadowBet {
+    pub id: Uuid,
+    pub symbol: String,
+    pub direction: TouchDirection,
+    pub status: String,
+    pub stake_wei: BigDecimal,
+    pub multiplier_bps: i32,
+    pub potential_payout_wei: BigDecimal,
+    pub house_edge_wei: BigDecimal,
+    pub entry_price_q8: BigDecimal,
+    pub target_row_min_q8: BigDecimal,
+    pub target_row_max_q8: BigDecimal,
+    pub window_start_ms: i64,
+    pub window_end_ms: i64,
+    pub distance_bps: i32,
+    pub implied_p_touch_bps: i32,
+    pub from_empirical: bool,
+    pub touched_at_ms: Option<i64>,
+    pub realized_pnl_wei: Option<BigDecimal>,
+    pub path_points_hash: Option<String>,
+    pub disabled_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ShadowResolveOutcome {
+    pub bet: ShadowBet,
     pub touched: bool,
     pub realized_pnl_wei: BigDecimal,
 }
@@ -485,6 +531,317 @@ impl TouchEngine {
                 .release_potential_payout(&req.symbol, net_house_exposure_for_bet);
         }
         result
+    }
+
+    /// Open an operator-only shadow bet. This runs the same quote,
+    /// geometry, EV, and payout-cap checks as `open_bet`, then persists a
+    /// dry-run row that the shadow resolver can settle later against the
+    /// same market/index history. It deliberately ignores
+    /// `accepting_bets`, user balances, ledger writes, and exposure
+    /// reservations: no public money moves through this path.
+    pub async fn open_shadow_bet(&self, req: OpenShadowBet) -> Result<ShadowBet, TradingError> {
+        let mut req = req;
+        req.symbol = self
+            .canonical_symbol(&req.symbol)
+            .ok_or_else(|| TradingError::InvalidSymbol(req.symbol.clone()))?;
+
+        if req.stake_wei < self.min_stake_wei || req.stake_wei > self.max_stake_wei {
+            return Err(TradingError::InvalidStakeAmount {
+                amount_wei: req.stake_wei.to_string(),
+                min_wei: self.min_stake_wei.to_string(),
+                max_wei: self.max_stake_wei.to_string(),
+            });
+        }
+        if req.target_row_max_q8 <= req.target_row_min_q8 {
+            return Err(TradingError::InvalidBand {
+                reason: "max must be > min".into(),
+            });
+        }
+        if req.window_end_ms <= req.window_start_ms {
+            return Err(TradingError::InvalidWindow {
+                reason: "end must be > start".into(),
+            });
+        }
+
+        let now_ms = Utc::now().timestamp_millis();
+        check_activation_gate(req.window_start_ms, now_ms, self.min_activation_delay_ms)?;
+        let window_duration_ms = (req.window_end_ms - req.window_start_ms) as u64;
+        if !self.allowed_windows.contains(&window_duration_ms) {
+            return Err(TradingError::InvalidWindow {
+                reason: format!("duration {} ms is not in allowed list", window_duration_ms),
+            });
+        }
+
+        let entry_q8 = self.current_entry_q8(&req.symbol)?;
+        let entry_q8_u = U256::from(entry_q8 as u64);
+        let near_edge = match req.direction {
+            TouchDirection::Up => req.target_row_min_q8,
+            TouchDirection::Down => req.target_row_max_q8,
+        };
+        let distance_bps = self.distance_bps(entry_q8_u, near_edge);
+        if distance_bps < self.min_distance_bps || distance_bps > self.max_distance_bps {
+            return Err(TradingError::InvalidBand {
+                reason: format!(
+                    "distance {} bps outside allowed [{}, {}]",
+                    distance_bps, self.min_distance_bps, self.max_distance_bps
+                ),
+            });
+        }
+
+        let window_start_offset_ms = (req.window_start_ms - now_ms).max(0) as u64;
+        let quote = self.multiplier.quote_with_empirical(
+            entry_q8 as u128,
+            u256_to_u128_saturating(req.target_row_min_q8),
+            u256_to_u128_saturating(req.target_row_max_q8),
+            req.direction,
+            window_start_offset_ms,
+            window_duration_ms,
+            !self.is_real_price_symbol(&req.symbol),
+        );
+        if quote.distance_bps == 0 {
+            return Err(TradingError::InvalidBand {
+                reason: "Band envelops the live price (distance = 0)".into(),
+            });
+        }
+        if req.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) && !quote.from_empirical {
+            return Err(TradingError::InvalidBand {
+                reason: format!(
+                    "Cell not in calibrated table (distance={} bps, duration={} ms, offset={} ms)",
+                    quote.distance_bps, quote.window_duration_ms, quote.window_start_offset_ms
+                ),
+            });
+        }
+        let p_touch = quote.implied_p_touch_bps as f64 / 10_000.0;
+        if self.multiplier.is_ev_positive_at_floor(p_touch) {
+            return Err(TradingError::InvalidBand {
+                reason: format!(
+                    "EV+ trap: implied p_touch {} bps × floor multiplier > 1.0",
+                    quote.implied_p_touch_bps
+                ),
+            });
+        }
+
+        let payout = req
+            .stake_wei
+            .saturating_mul(U256::from(quote.multiplier_bps as u64))
+            / U256::from(10_000u64);
+        if payout > self.max_payout_per_bet_wei {
+            return Err(TradingError::PayoutCapExceeded {
+                max_potential_payout_wei: payout.to_string(),
+                cap_wei: self.max_payout_per_bet_wei.to_string(),
+            });
+        }
+        let house_edge_wei = req
+            .stake_wei
+            .saturating_mul(U256::from(self.multiplier.config().house_edge_bps as u64))
+            / U256::from(10_000u64);
+
+        let shadow: ShadowBet = sqlx::query_as(
+            r#"
+            INSERT INTO tap_shadow_bets (
+                symbol, direction, stake_wei, multiplier_bps,
+                potential_payout_wei, house_edge_wei, entry_price_q8,
+                target_row_min_q8, target_row_max_q8,
+                window_start_ms, window_end_ms,
+                distance_bps, implied_p_touch_bps, from_empirical
+            )
+            VALUES (
+                $1, $2::touch_direction, $3, $4,
+                $5, $6, $7,
+                $8, $9,
+                $10, $11,
+                $12, $13, $14
+            )
+            RETURNING *
+            "#,
+        )
+        .bind(&req.symbol)
+        .bind(req.direction.as_str())
+        .bind(u256_to_bd(req.stake_wei))
+        .bind(quote.multiplier_bps as i32)
+        .bind(u256_to_bd(payout))
+        .bind(u256_to_bd(house_edge_wei))
+        .bind(u256_to_bd(entry_q8_u))
+        .bind(u256_to_bd(req.target_row_min_q8))
+        .bind(u256_to_bd(req.target_row_max_q8))
+        .bind(req.window_start_ms)
+        .bind(req.window_end_ms)
+        .bind(quote.distance_bps as i32)
+        .bind(quote.implied_p_touch_bps as i32)
+        .bind(quote.from_empirical)
+        .fetch_one(&self.pool)
+        .await?;
+
+        tracing::info!(
+            shadow_bet_id = %shadow.id,
+            symbol = %shadow.symbol,
+            direction = ?shadow.direction,
+            multiplier_bps = shadow.multiplier_bps,
+            window_ms = shadow.window_end_ms - shadow.window_start_ms,
+            "Tap shadow bet opened"
+        );
+
+        Ok(shadow)
+    }
+
+    pub async fn find_shadow_bet(&self, id: Uuid) -> Result<Option<ShadowBet>, TradingError> {
+        Ok(
+            sqlx::query_as::<_, ShadowBet>("SELECT * FROM tap_shadow_bets WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?,
+        )
+    }
+
+    pub async fn list_shadow_bets(
+        &self,
+        status: Option<&str>,
+        limit: i64,
+    ) -> Result<Vec<ShadowBet>, TradingError> {
+        let limit = limit.clamp(1, 200);
+        if let Some(status) = status {
+            let status = status.trim().to_uppercase();
+            return Ok(sqlx::query_as::<_, ShadowBet>(
+                "SELECT * FROM tap_shadow_bets WHERE status = $1 ORDER BY created_at DESC LIMIT $2",
+            )
+            .bind(status)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await?);
+        }
+        Ok(sqlx::query_as::<_, ShadowBet>(
+            "SELECT * FROM tap_shadow_bets ORDER BY created_at DESC LIMIT $1",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    pub async fn resolve_due_shadow_bets(
+        &self,
+        now_ms: i64,
+        limit: i64,
+    ) -> Result<Vec<ShadowResolveOutcome>, TradingError> {
+        let limit = limit.clamp(1, 200);
+        let ids: Vec<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM tap_shadow_bets \
+             WHERE status = 'ACTIVE' AND window_end_ms <= $1 \
+             ORDER BY window_end_ms ASC LIMIT $2",
+        )
+        .bind(now_ms)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut outcomes = Vec::with_capacity(ids.len());
+        for id in ids {
+            match self.resolve_shadow_bet(id).await {
+                Ok(outcome) => outcomes.push(outcome),
+                Err(err) => {
+                    tracing::warn!(
+                        shadow_bet_id = %id,
+                        error = %err,
+                        "Tap shadow bet resolve failed"
+                    );
+                }
+            }
+        }
+        Ok(outcomes)
+    }
+
+    pub async fn resolve_shadow_bet(
+        &self,
+        shadow_id: Uuid,
+    ) -> Result<ShadowResolveOutcome, TradingError> {
+        let shadow = self
+            .find_shadow_bet(shadow_id)
+            .await?
+            .ok_or(TradingError::BetNotFound(shadow_id))?;
+        if shadow.status != "ACTIVE" {
+            return Err(TradingError::BetAlreadyResolved);
+        }
+
+        let now_ms = Utc::now().timestamp_millis();
+        if now_ms < shadow.window_end_ms {
+            return Err(TradingError::InvalidWindow {
+                reason: "window has not elapsed".into(),
+            });
+        }
+
+        let p_min = (bd_to_q8_i64(&shadow.target_row_min_q8) as f64) / 1e8;
+        let p_max = (bd_to_q8_i64(&shadow.target_row_max_q8) as f64) / 1e8;
+        let path = if shadow.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
+            self.arena_index
+                .path_window(shadow.window_start_ms, shadow.window_end_ms)
+        } else {
+            let persisted = self
+                .market_tick_repo
+                .path_window(&shadow.symbol, shadow.window_start_ms, shadow.window_end_ms)
+                .await?;
+            if persisted.is_empty() {
+                self.real_price_feed.path_window(
+                    &shadow.symbol,
+                    shadow.window_start_ms,
+                    shadow.window_end_ms,
+                )
+            } else {
+                persisted
+            }
+        };
+        if path.is_empty() {
+            return Err(TradingError::ResolverError(
+                "market/index history missing for shadow window".into(),
+            ));
+        }
+
+        let touched_at_ms = first_touch_in_path(&path, p_min, p_max);
+        let won = touched_at_ms.is_some();
+        let stake_u = bd_to_u256(&shadow.stake_wei).unwrap_or(U256::ZERO);
+        let payout_u = bd_to_u256(&shadow.potential_payout_wei).unwrap_or(U256::ZERO);
+        let pnl_signed = if won {
+            alloy::primitives::I256::from_raw(payout_u.saturating_sub(stake_u))
+        } else {
+            -alloy::primitives::I256::from_raw(stake_u)
+        };
+        let pnl_bd = i256_to_bd(pnl_signed);
+        let path_hash_hex = hash_index_path(&path);
+        let status = if won { "WON" } else { "LOST" };
+
+        let resolved: ShadowBet = sqlx::query_as(
+            r#"
+            UPDATE tap_shadow_bets
+               SET status = $2,
+                   resolved_at = NOW(),
+                   touched_at_ms = $3,
+                   realized_pnl_wei = $4,
+                   path_points_hash = $5,
+                   updated_at = NOW()
+             WHERE id = $1 AND status = 'ACTIVE'
+            RETURNING *
+            "#,
+        )
+        .bind(shadow.id)
+        .bind(status)
+        .bind(touched_at_ms)
+        .bind(&pnl_bd)
+        .bind(&path_hash_hex)
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(TradingError::BetAlreadyResolved)?;
+
+        tracing::info!(
+            shadow_bet_id = %resolved.id,
+            symbol = %resolved.symbol,
+            won,
+            pnl_wei = %pnl_bd,
+            "Tap shadow bet resolved"
+        );
+
+        Ok(ShadowResolveOutcome {
+            bet: resolved,
+            touched: won,
+            realized_pnl_wei: pnl_bd,
+        })
     }
 
     /// Atomic placement: lock user row, validate balance + active cap,

@@ -123,6 +123,23 @@ impl ResolutionLoop {
                 Err(e) => tracing::warn!(bet = %bet.id, error = %e, "Resolve attempt failed"),
             }
         }
+        let shadow_outcomes = self.engine.resolve_due_shadow_bets(now, 100).await?;
+        for outcome in shadow_outcomes {
+            record(
+                self.engine.bet_repo().pool(),
+                None,
+                audit_event::TAP_SHADOW_BETS_RESOLVED,
+                Severity::Info,
+                Some(serde_json::json!({
+                    "shadow_bet_id": outcome.bet.id,
+                    "symbol": outcome.bet.symbol,
+                    "outcome": if outcome.touched { "won" } else { "lost" },
+                    "realized_pnl_wei": outcome.realized_pnl_wei.to_string(),
+                    "auto": true,
+                })),
+            )
+            .await;
+        }
         Ok(())
     }
 }

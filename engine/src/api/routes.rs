@@ -84,10 +84,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, governor: &RateLimit) {
                 "/trade/wins/public",
                 web::get().to(handlers::list_public_wins),
             )
-            .route(
-                "/trade/heatmap",
-                web::get().to(handlers::get_heatmap),
-            )
+            .route("/trade/heatmap", web::get().to(handlers::get_heatmap))
             .service(
                 web::scope("/user")
                     .wrap(HttpAuthentication::bearer(validator))
@@ -124,7 +121,23 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig, governor: &RateLimit) {
                         web::post().to(handlers::revoke_all_tokens),
                     )
                     .route("/audit", web::get().to(handlers::list_audit))
-                    .route("/house/treasury", web::get().to(handlers::get_treasury)),
+                    .route("/house/treasury", web::get().to(handlers::get_treasury))
+                    .route(
+                        "/trade/shadow-bets",
+                        web::post().to(handlers::open_shadow_bet),
+                    )
+                    .route(
+                        "/trade/shadow-bets",
+                        web::get().to(handlers::list_shadow_bets),
+                    )
+                    .route(
+                        "/trade/shadow-bets/resolve-due",
+                        web::post().to(handlers::resolve_due_shadow_bets),
+                    )
+                    .route(
+                        "/trade/shadow-bets/{id}/resolve",
+                        web::post().to(handlers::resolve_shadow_bet),
+                    ),
             ),
     );
 }

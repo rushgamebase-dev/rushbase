@@ -1,9 +1,11 @@
 use crate::api::anti_replay::{idempotency_key, NonceError};
 use crate::api::dto::{
     BetHistoryQuery, BetListResponse, BetResponse, EmpiricalCellDto, MultiplierConfigResponse,
-    OpenBetRequest, PublicBetEntry, PublicBetListResponse, QuoteGridCellResponse, QuoteGridRequest,
-    QuoteGridResponse, QuoteMatrixRequest, QuoteMatrixResponse, QuoteMatrixStartingIndex,
-    QuoteRequest, QuoteResponse,
+    OpenBetRequest, OpenShadowBetRequest, PublicBetEntry, PublicBetListResponse,
+    QuoteGridCellResponse, QuoteGridRequest, QuoteGridResponse, QuoteMatrixRequest,
+    QuoteMatrixResponse, QuoteMatrixStartingIndex, QuoteRequest, QuoteResponse,
+    ResolveShadowBetsRequest, ResolveShadowBetsResponse, ShadowBetListQuery, ShadowBetListResponse,
+    ShadowBetResponse,
 };
 use crate::api::middleware::AuthenticatedUser;
 use crate::api::state::AppState;
@@ -11,7 +13,7 @@ use crate::audit::{event, record_async, Severity};
 use crate::errors::{ApiError, TradingError};
 use crate::models::touch_bet::TouchDirection;
 use crate::touch::engine::u256_to_u128_saturating;
-use crate::touch::{quote_token_expect_match, OpenBet, QuoteTokenError};
+use crate::touch::{quote_token_expect_match, OpenBet, OpenShadowBet, QuoteTokenError};
 use crate::ws::messages::{BetData, ServerMessage};
 use actix_web::{web, HttpRequest, HttpResponse};
 use alloy::primitives::U256;
@@ -615,6 +617,193 @@ pub async fn open_bet(
     Ok(HttpResponse::Created()
         .insert_header(("Content-Type", "application/json"))
         .body(body_bytes))
+}
+
+/// Operator-only dry-run placement. Prices and persists a virtual Tap
+/// Trading bet using production odds, but never touches balances,
+/// exposure reservations, or ledger rows. This is the canary path used
+/// while public entries remain paused.
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/trade/shadow-bets",
+    request_body = OpenShadowBetRequest,
+    responses(
+        (status = 201, description = "Shadow bet opened", body = ShadowBetResponse),
+        (status = 400, description = "Invalid canary request"),
+        (status = 401, description = "Authentication required"),
+        (status = 403, description = "Admin required"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "trade",
+)]
+pub async fn open_shadow_bet(
+    app_state: web::Data<AppState>,
+    user: AuthenticatedUser,
+    body: web::Json<OpenShadowBetRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let direction = parse_direction(&body.direction)?;
+    let stake = parse_u256("stake_wei", &body.stake_wei)?;
+    let target_min = parse_u256("target_row_min_q8", &body.target_row_min_q8)?;
+    let target_max = parse_u256("target_row_max_q8", &body.target_row_max_q8)?;
+    let offset_ms = i64::try_from(body.window_start_offset_ms)
+        .map_err(|_| ApiError::validation_error("window_start_offset_ms is too large"))?;
+    let duration_ms = i64::try_from(body.window_duration_ms)
+        .map_err(|_| ApiError::validation_error("window_duration_ms is too large"))?;
+    if duration_ms <= 0 {
+        return Err(ApiError::validation_error("window_duration_ms must be > 0"));
+    }
+
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let window_start_ms = now_ms.saturating_add(offset_ms);
+    let window_end_ms = window_start_ms.saturating_add(duration_ms);
+
+    let shadow = app_state
+        .touch_engine
+        .open_shadow_bet(OpenShadowBet {
+            symbol: body.symbol.clone(),
+            direction,
+            stake_wei: stake,
+            target_row_min_q8: target_min,
+            target_row_max_q8: target_max,
+            window_start_ms,
+            window_end_ms,
+        })
+        .await
+        .map_err(map_err)?;
+
+    record_async(
+        app_state.pool.clone(),
+        Some(user.user_id),
+        event::TAP_SHADOW_BET_OPENED,
+        Severity::Info,
+        Some(serde_json::json!({
+            "shadow_bet_id": shadow.id,
+            "symbol": shadow.symbol,
+            "direction": shadow.direction.as_str(),
+            "stake_wei": shadow.stake_wei.to_string(),
+            "multiplier_bps": shadow.multiplier_bps,
+            "window_ms": shadow.window_end_ms - shadow.window_start_ms,
+            "accepting_bets": app_state.touch_engine.accepting_bets(),
+        })),
+    );
+
+    Ok(HttpResponse::Created().json(ShadowBetResponse::from(&shadow)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/trade/shadow-bets",
+    params(ShadowBetListQuery),
+    responses(
+        (status = 200, description = "Recent shadow bets", body = ShadowBetListResponse),
+        (status = 401, description = "Authentication required"),
+        (status = 403, description = "Admin required"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "trade",
+)]
+pub async fn list_shadow_bets(
+    app_state: web::Data<AppState>,
+    _user: AuthenticatedUser,
+    query: web::Query<ShadowBetListQuery>,
+) -> Result<HttpResponse, ApiError> {
+    let status = query.status.as_ref().map(|s| s.trim().to_uppercase());
+    if let Some(ref status) = status {
+        if !matches!(status.as_str(), "ACTIVE" | "WON" | "LOST" | "CANCELLED") {
+            return Err(ApiError::validation_error(
+                "status must be ACTIVE, WON, LOST, or CANCELLED",
+            ));
+        }
+    }
+    let rows = app_state
+        .touch_engine
+        .list_shadow_bets(status.as_deref(), query.limit.unwrap_or(50))
+        .await
+        .map_err(map_err)?;
+    Ok(HttpResponse::Ok().json(ShadowBetListResponse {
+        total: rows.len() as i64,
+        bets: rows.iter().map(ShadowBetResponse::from).collect(),
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/trade/shadow-bets/resolve-due",
+    request_body = ResolveShadowBetsRequest,
+    responses(
+        (status = 200, description = "Resolved due shadow bets", body = ResolveShadowBetsResponse),
+        (status = 401, description = "Authentication required"),
+        (status = 403, description = "Admin required"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "trade",
+)]
+pub async fn resolve_due_shadow_bets(
+    app_state: web::Data<AppState>,
+    user: AuthenticatedUser,
+    body: web::Json<ResolveShadowBetsRequest>,
+) -> Result<HttpResponse, ApiError> {
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let outcomes = app_state
+        .touch_engine
+        .resolve_due_shadow_bets(now_ms, body.limit.unwrap_or(50))
+        .await
+        .map_err(map_err)?;
+    record_async(
+        app_state.pool.clone(),
+        Some(user.user_id),
+        event::TAP_SHADOW_BETS_RESOLVED,
+        Severity::Info,
+        Some(serde_json::json!({
+            "total": outcomes.len(),
+            "shadow_bet_ids": outcomes.iter().map(|o| o.bet.id).collect::<Vec<_>>(),
+        })),
+    );
+    Ok(HttpResponse::Ok().json(ResolveShadowBetsResponse {
+        total: outcomes.len() as i64,
+        resolved: outcomes
+            .iter()
+            .map(|o| ShadowBetResponse::from(&o.bet))
+            .collect(),
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/trade/shadow-bets/{id}/resolve",
+    responses(
+        (status = 200, description = "Shadow bet resolved", body = ShadowBetResponse),
+        (status = 400, description = "Window not elapsed or missing history"),
+        (status = 401, description = "Authentication required"),
+        (status = 403, description = "Admin required"),
+        (status = 404, description = "Shadow bet not found"),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "trade",
+)]
+pub async fn resolve_shadow_bet(
+    app_state: web::Data<AppState>,
+    user: AuthenticatedUser,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse, ApiError> {
+    let outcome = app_state
+        .touch_engine
+        .resolve_shadow_bet(path.into_inner())
+        .await
+        .map_err(map_err)?;
+    record_async(
+        app_state.pool.clone(),
+        Some(user.user_id),
+        event::TAP_SHADOW_BETS_RESOLVED,
+        Severity::Info,
+        Some(serde_json::json!({
+            "shadow_bet_id": outcome.bet.id,
+            "symbol": outcome.bet.symbol,
+            "outcome": if outcome.touched { "won" } else { "lost" },
+            "realized_pnl_wei": outcome.realized_pnl_wei.to_string(),
+        })),
+    );
+    Ok(HttpResponse::Ok().json(ShadowBetResponse::from(&outcome.bet)))
 }
 
 /// List the authenticated user's currently-active bets (status = ACTIVE).
