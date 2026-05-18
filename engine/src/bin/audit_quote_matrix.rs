@@ -55,6 +55,7 @@ struct AssetReport {
 }
 
 fn main() -> anyhow::Result<()> {
+    let _ = dotenvy::dotenv();
     let settings = Settings::new().context("load engine settings")?;
     let duration_ms = env_u64("AUDIT_DURATION_MS", DEFAULT_DURATION_MS)?;
     let columns = env_usize("AUDIT_COLUMNS", DEFAULT_COLUMNS)?;
@@ -265,13 +266,14 @@ fn quote_audit_cell(
     } else {
         TouchDirection::Down
     };
-    let q = calc.quote(
+    let q = calc.quote_with_empirical(
         entry_q8,
         band_min,
         band_max,
         direction,
         offset_ms,
         duration_ms,
+        false,
     );
     let p_touch = q.implied_p_touch_bps as f64 / 10_000.0;
     let disabled_reason = if q.distance_bps == 0 {

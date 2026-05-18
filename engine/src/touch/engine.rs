@@ -249,13 +249,14 @@ impl TouchEngine {
         window_duration_ms: u64,
     ) -> Result<MultiplierQuote, TradingError> {
         let entry = self.current_entry_q8(symbol)?;
-        Ok(self.multiplier.quote(
+        Ok(self.multiplier.quote_with_empirical(
             entry as u128,
             u256_to_u128_saturating(target_row_min_q8),
             u256_to_u128_saturating(target_row_max_q8),
             direction,
             window_start_offset_ms,
             window_duration_ms,
+            !self.is_real_price_symbol(symbol),
         ))
     }
 
@@ -318,13 +319,14 @@ impl TouchEngine {
         // client priced against, so first-passage probability matches
         // what was shown on the cell at click time.
         let window_start_offset_ms = (req.window_start_ms - now_ms).max(0) as u64;
-        let quote = self.multiplier.quote(
+        let quote = self.multiplier.quote_with_empirical(
             entry_q8 as u128,
             u256_to_u128_saturating(req.target_row_min_q8),
             u256_to_u128_saturating(req.target_row_max_q8),
             req.direction,
             window_start_offset_ms,
             window_duration_ms,
+            !self.is_real_price_symbol(&req.symbol),
         );
 
         // EV+ guard. Three cases that all leak free EV to the player

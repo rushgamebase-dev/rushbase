@@ -48,6 +48,7 @@ docs/RUSH_PLATFORM.md
 docs/SOCIOS.md
 
 # Calibrator tools (dev only)
+engine/calibration_*_*.csv
 frontend/public/line_calibrator.html
 frontend/public/roi_calibrator.html
 frontend/public/oracle-ws.json

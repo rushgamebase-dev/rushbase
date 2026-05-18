@@ -203,13 +203,14 @@ pub async fn quote_grid(
             continue;
         }
 
-        let q = calc.quote(
+        let q = calc.quote_with_empirical(
             entry as u128,
             u256_to_u128_saturating(target_min),
             u256_to_u128_saturating(target_max),
             dir,
             cell.window_start_offset_ms,
             cell.window_duration_ms,
+            !real_price_symbol,
         );
         let p_touch = q.implied_p_touch_bps as f64 / 10_000.0;
 
@@ -366,13 +367,14 @@ pub async fn quote_matrix(
                     } else {
                         TouchDirection::Down
                     };
-                    let q = calc.quote(
+                    let q = calc.quote_with_empirical(
                         entry as u128,
                         u256_to_u128_saturating(band_min),
                         u256_to_u128_saturating(band_max),
                         direction,
                         window_start_offset_ms,
                         body.time_interval_ms,
+                        !real_price_symbol,
                     );
                     let p_touch = q.implied_p_touch_bps as f64 / 10_000.0;
                     let disabled = !accepting_bets

@@ -158,6 +158,27 @@ impl MultiplierCalculator {
         window_start_offset_ms: u64,
         window_duration_ms: u64,
     ) -> MultiplierQuote {
+        self.quote_with_empirical(
+            entry_q8,
+            band_min_q8,
+            band_max_q8,
+            _direction,
+            window_start_offset_ms,
+            window_duration_ms,
+            true,
+        )
+    }
+
+    pub fn quote_with_empirical(
+        &self,
+        entry_q8: u128,
+        band_min_q8: u128,
+        band_max_q8: u128,
+        _direction: TouchDirection,
+        window_start_offset_ms: u64,
+        window_duration_ms: u64,
+        use_empirical_table: bool,
+    ) -> MultiplierQuote {
         // Distance to the *near* edge of the band — that's the barrier
         // the price has to actually cross to register a touch.
         //
@@ -233,31 +254,35 @@ impl MultiplierCalculator {
         // schedule jitter when the client polls quote-grid every 250 ms.
         const DIST_TOL_BPS: u32 = 20;
         const OFFSET_TOL_MS: u64 = 750;
-        let (raw_p, from_empirical) = if let Some(table) = &self.cfg.empirical_p_touch_table {
-            let mut best: Option<(u32, u64, f64)> = None;
-            for (&(d, dur, off), &p) in table {
-                if dur != window_duration_ms {
-                    continue;
+        let (raw_p, from_empirical) = if use_empirical_table {
+            if let Some(table) = &self.cfg.empirical_p_touch_table {
+                let mut best: Option<(u32, u64, f64)> = None;
+                for (&(d, dur, off), &p) in table {
+                    if dur != window_duration_ms {
+                        continue;
+                    }
+                    let dist_diff =
+                        (d as i64 - distance_bps_round as i64).unsigned_abs() as u32;
+                    let off_diff =
+                        (off as i64 - window_start_offset_ms as i64).unsigned_abs() as u64;
+                    if dist_diff > DIST_TOL_BPS || off_diff > OFFSET_TOL_MS {
+                        continue;
+                    }
+                    let score = dist_diff + (off_diff / 100) as u32;
+                    if best.map_or(true, |(b_score, _, _)| score < b_score) {
+                        best = Some((score, dist_diff as u64 + off_diff, p));
+                    }
                 }
-                let dist_diff =
-                    (d as i64 - distance_bps_round as i64).unsigned_abs() as u32;
-                let off_diff =
-                    (off as i64 - window_start_offset_ms as i64).unsigned_abs() as u64;
-                if dist_diff > DIST_TOL_BPS || off_diff > OFFSET_TOL_MS {
-                    continue;
+                if let Some((_, _, empirical_p)) = best {
+                    let padded = empirical_p * self.cfg.empirical_safety_factor;
+                    // Cap padded p at 0.95: we still want a positive
+                    // house edge even on the "easiest" cell; a
+                    // target_p > 0.95 would price below 1.0× before
+                    // house_edge is applied.
+                    (padded.min(0.95), true)
+                } else {
+                    (bachelier_window, false)
                 }
-                let score = dist_diff + (off_diff / 100) as u32;
-                if best.map_or(true, |(b_score, _, _)| score < b_score) {
-                    best = Some((score, dist_diff as u64 + off_diff, p));
-                }
-            }
-            if let Some((_, _, empirical_p)) = best {
-                let padded = empirical_p * self.cfg.empirical_safety_factor;
-                // Cap padded p at 0.95: we still want a positive
-                // house edge even on the "easiest" cell; a
-                // target_p > 0.95 would price below 1.0× before
-                // house_edge is applied.
-                (padded.min(0.95), true)
             } else {
                 (bachelier_window, false)
             }
@@ -540,6 +565,43 @@ mod tests {
         );
         assert_eq!(q.distance_bps, 6);
         assert!(!q.from_empirical, "must fall back");
+    }
+
+    #[test]
+    fn empirical_table_can_be_disabled_for_real_price_symbols() {
+        let mut table = EmpiricalPTouchTable::new();
+        table.insert((6, 30_000, 0), 0.091033);
+        let cfg = MultiplierConfig {
+            house_edge_bps: 500,
+            min_multiplier_bps: 11_000,
+            max_multiplier_bps: 500_000,
+            vol_bps_per_sqrt_sec: 2.8,
+            empirical_p_touch_table: Some(table),
+            empirical_safety_factor: 1.5,
+        };
+        let calc = MultiplierCalculator::new(cfg);
+        let with_table = calc.quote_with_empirical(
+            50_000_00000000,
+            50_030_00000000,
+            50_031_00000000,
+            TouchDirection::Up,
+            0,
+            30_000,
+            true,
+        );
+        let without_table = calc.quote_with_empirical(
+            50_000_00000000,
+            50_030_00000000,
+            50_031_00000000,
+            TouchDirection::Up,
+            0,
+            30_000,
+            false,
+        );
+
+        assert!(with_table.from_empirical);
+        assert!(!without_table.from_empirical);
+        assert_ne!(with_table.multiplier_bps, without_table.multiplier_bps);
     }
 
     #[test]
