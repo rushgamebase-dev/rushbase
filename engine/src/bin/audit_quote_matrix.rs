@@ -20,7 +20,10 @@ use rush_engine::models::touch_bet::TouchDirection;
 use rush_engine::touch::{MultiplierCalculator, MultiplierConfig};
 use std::collections::BTreeMap;
 
-const DEFAULT_DURATION_MS: u64 = 5_000;
+// Matches a calibrated empirical-table duration so the RUSH_INDEX
+// audit pass (added below) exercises the empirical lookup instead
+// of silently falling back to Bachelier.
+const DEFAULT_DURATION_MS: u64 = 6_000;
 const DEFAULT_COLUMNS: usize = 5;
 const DEFAULT_ROWS_EACH_SIDE: i64 = 260;
 const EASY_DISTANCE_BPS: u32 = 5;
@@ -139,6 +142,26 @@ fn main() -> anyhow::Result<()> {
         all_failures.extend(report.failures);
     }
 
+    // RUSH_INDEX (VRF/arena_index) pass — exercises the empirical
+    // lookup the BTC/ETH/SOL audits skip. Two extra invariants we
+    // care about:
+    //   (a) Determinism: same inputs → same multiplier across
+    //       repeated calls. Catches HashMap-style iteration drift
+    //       (the empirical table is now a `BTreeMap`, but the
+    //       guarantee should be exercised).
+    //   (b) Coverage: every (distance, duration, offset) combination
+    //       the catalog hands to clients must actually hit the
+    //       empirical table — a Bachelier fallback there means the
+    //       handler will refuse the cell as `UNCALIBRATED`.
+    println!();
+    println!("RUSH_INDEX empirical determinism:");
+    let rush_failures = audit_rush_index_empirical(&calc, &settings, duration_ms);
+    println!(
+        "  checked={} duration={}ms failures={}",
+        rush_failures.checked, duration_ms, rush_failures.failures.len()
+    );
+    all_failures.extend(rush_failures.failures);
+
     if !all_failures.is_empty() {
         println!();
         println!("FAILURES:");
@@ -152,8 +175,114 @@ fn main() -> anyhow::Result<()> {
     }
 
     println!();
-    println!("PASS: quote-matrix safety rules hold for ETH/BTC/SOL.");
+    println!("PASS: quote-matrix safety rules hold for ETH/BTC/SOL + RUSH_INDEX.");
     Ok(())
+}
+
+/// Outcome of the RUSH_INDEX-specific audit.
+struct RushIndexAudit {
+    checked: usize,
+    failures: Vec<String>,
+}
+
+fn audit_rush_index_empirical(
+    calc: &MultiplierCalculator,
+    settings: &Settings,
+    duration_ms: u64,
+) -> RushIndexAudit {
+    let mut audit = RushIndexAudit {
+        checked: 0,
+        failures: Vec::new(),
+    };
+    // Match `arena_index::INITIAL_PRICE` so distance-bps math
+    // resolves to the catalog rows the engine will actually serve.
+    const RUSH_INITIAL_PRICE: f64 = 1_245.73;
+    let entry_q8 = usd_to_q8(RUSH_INITIAL_PRICE);
+    // Band width matches the calibrator (`band_width_bps = 40`).
+    const BAND_WIDTH_BPS: f64 = 40.0;
+    // Offsets the catalog actually exposes (cf. `[multiplier.empirical_cells]`).
+    let offsets = [0u64, 1_500, 3_000, 4_500, 6_000, 7_500, 9_000, 10_500, 12_000];
+    // Distances the calibrator sweeps every 20 bps.
+    let distances: Vec<u32> = (20..=200).step_by(20).collect();
+
+    if !settings.touch.allowed_window_ms.contains(&duration_ms) {
+        audit.failures.push(format!(
+            "RUSH_INDEX audit duration_ms={} not in allowed_window_ms",
+            duration_ms
+        ));
+        return audit;
+    }
+
+    for &distance_bps in &distances {
+        let band_min_q8 = ((RUSH_INITIAL_PRICE * (1.0 + (distance_bps as f64) / 10_000.0))
+            * 100_000_000.0)
+            .round() as u128;
+        let band_max_q8 = ((RUSH_INITIAL_PRICE
+            * (1.0 + ((distance_bps as f64) + BAND_WIDTH_BPS) / 10_000.0))
+            * 100_000_000.0)
+            .round() as u128;
+        for &offset_ms in &offsets {
+            let first = calc.quote_with_empirical(
+                entry_q8,
+                band_min_q8,
+                band_max_q8,
+                TouchDirection::Up,
+                offset_ms,
+                duration_ms,
+                true,
+            );
+            let second = calc.quote_with_empirical(
+                entry_q8,
+                band_min_q8,
+                band_max_q8,
+                TouchDirection::Up,
+                offset_ms,
+                duration_ms,
+                true,
+            );
+            audit.checked += 1;
+
+            if first.multiplier_bps != second.multiplier_bps
+                || first.implied_p_touch_bps != second.implied_p_touch_bps
+            {
+                audit.failures.push(format!(
+                    "RUSH_INDEX non-deterministic lookup at d={}bps off={}ms: \
+                     {:?} vs {:?}",
+                    distance_bps, offset_ms, first, second
+                ));
+            }
+            if !first.from_empirical {
+                audit.failures.push(format!(
+                    "RUSH_INDEX cell d={}bps dur={}ms off={}ms missed empirical \
+                     table (would render UNCALIBRATED)",
+                    distance_bps, duration_ms, offset_ms
+                ));
+            }
+            if first.multiplier_bps > settings.multiplier.max_multiplier_bps {
+                audit.failures.push(format!(
+                    "RUSH_INDEX cell d={}bps off={}ms quotes {:.2}× above cap {:.2}×",
+                    distance_bps,
+                    offset_ms,
+                    first.multiplier_bps as f64 / 10_000.0,
+                    settings.multiplier.max_multiplier_bps as f64 / 10_000.0
+                ));
+            }
+            // EV guard: implied_p_touch × multiplier should never
+            // exceed 1.0 + slack. The padded p is already capped at
+            // TARGET_P_CAP=0.95 in pricing.rs, so 1.0001 is a tight
+            // safety margin.
+            let ev = (first.implied_p_touch_bps as f64 / 10_000.0)
+                * (first.multiplier_bps as f64 / 10_000.0)
+                - 1.0;
+            if ev > 0.0001 {
+                audit.failures.push(format!(
+                    "RUSH_INDEX EV+ leak at d={}bps off={}ms ev={:+.4}",
+                    distance_bps, offset_ms, ev
+                ));
+            }
+        }
+    }
+    audit
 }
 
 fn build_calculator(settings: &Settings) -> MultiplierCalculator {
