@@ -42,7 +42,7 @@ use rush_engine::touch::{MultiplierCalculator, MultiplierConfig};
 use rush_engine::vrf::{
     first_touch_ms, generate_vrf_path, VrfPathInput, PATH_CONFIG_VERSION,
 };
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const START_PRICE: f64 = 1_245.73;
 /// 0.001 ETH per bet — small enough that 5_000 bets sum to ≪ 1 ETH
@@ -136,7 +136,7 @@ const CALIBRATED_CELLS: &[((u32, u64, u64), f64)] = &[
 ];
 
 fn build_calc() -> MultiplierCalculator {
-    let table: HashMap<(u32, u64, u64), f64> =
+    let table: BTreeMap<(u32, u64, u64), f64> =
         CALIBRATED_CELLS.iter().copied().collect();
     MultiplierCalculator::new(MultiplierConfig {
         house_edge_bps: 500,

@@ -15,7 +15,7 @@
 
 use crate::models::touch_bet::TouchDirection;
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Empirical `(distance_bps, duration_ms, window_start_offset_ms)` →
 /// realised p_touch lookup. The third axis matters because cells in
@@ -24,7 +24,13 @@ use std::collections::HashMap;
 /// when the window opens, not just its duration. Earlier calibration
 /// covered offset=0 only and let Bachelier price the rest, which
 /// under-priced wide-band cells against the VRF generator.
-pub type EmpiricalPTouchTable = HashMap<(u32, u64, u64), f64>;
+///
+/// `BTreeMap` (not `HashMap`) so iteration is deterministic across
+/// processes and restarts: when two cells tie on the lookup score,
+/// the smaller `(distance, duration, offset)` key wins. Smaller
+/// distance → larger p_touch → smaller multiplier, so the tie
+/// resolves in the house's favour by construction.
+pub type EmpiricalPTouchTable = BTreeMap<(u32, u64, u64), f64>;
 
 /// Product ladder guard for cells that sit directly beside the live
 /// price. These are high-frequency taps, not lottery cells; keep their
@@ -256,6 +262,12 @@ impl MultiplierCalculator {
         const OFFSET_TOL_MS: u64 = 750;
         let (raw_p, from_empirical) = if use_empirical_table {
             if let Some(table) = &self.cfg.empirical_p_touch_table {
+                // Iteration over `BTreeMap` is in ascending key order
+                // (`(distance, duration, offset)`), so the
+                // tie-breaker on `score` is deterministic across runs
+                // and processes. The strict `<` on `score` keeps the
+                // first match for a given score, which under BTreeMap
+                // ordering means the smallest-key match wins.
                 let mut best: Option<(u32, u64, f64)> = None;
                 for (&(d, dur, off), &p) in table {
                     if dur != window_duration_ms {

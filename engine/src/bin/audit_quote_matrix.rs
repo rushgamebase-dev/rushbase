@@ -18,7 +18,7 @@ use anyhow::{bail, Context};
 use rush_engine::config::settings::Settings;
 use rush_engine::models::touch_bet::TouchDirection;
 use rush_engine::touch::{MultiplierCalculator, MultiplierConfig};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const DEFAULT_DURATION_MS: u64 = 5_000;
 const DEFAULT_COLUMNS: usize = 5;
@@ -158,7 +158,7 @@ fn main() -> anyhow::Result<()> {
 
 fn build_calculator(settings: &Settings) -> MultiplierCalculator {
     let m = &settings.multiplier;
-    let table: Option<HashMap<(u32, u64, u64), f64>> = if m.empirical_cells.is_empty() {
+    let table: Option<BTreeMap<(u32, u64, u64), f64>> = if m.empirical_cells.is_empty() {
         None
     } else {
         Some(

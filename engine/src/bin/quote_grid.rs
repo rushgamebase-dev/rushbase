@@ -11,7 +11,7 @@
 use rush_engine::config::settings::Settings;
 use rush_engine::models::touch_bet::TouchDirection;
 use rush_engine::touch::{MultiplierCalculator, MultiplierConfig};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 fn main() -> anyhow::Result<()> {
     // Load the same config the engine boots from. Skip dotenv so we
@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let settings = Settings::new()?;
     let m = &settings.multiplier;
 
-    let table: Option<HashMap<(u32, u64, u64), f64>> = if m.empirical_cells.is_empty() {
+    let table: Option<BTreeMap<(u32, u64, u64), f64>> = if m.empirical_cells.is_empty() {
         None
     } else {
         Some(
