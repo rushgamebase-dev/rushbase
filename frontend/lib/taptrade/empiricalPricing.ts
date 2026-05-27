@@ -54,7 +54,11 @@ export const CALIBRATION = {
 export const PRICING = {
   HOUSE_EDGE_BPS: 500,           // 5% house edge
   MIN_MULT_BPS: 11_000,          // 1.10× floor
-  MAX_MULT_BPS: 5_000_000,       // 500x ceiling — risk remains capped by max payout/stake limits
+  // Effective ceiling. The 0.005 p_touch floor below caps the raw
+  // multiplier at `(1 - house_edge) / 0.005 = 190×` regardless of
+  // what this constant says. Kept aligned with the engine so cell
+  // labels never advertise a number `/trade/quote` can't honour.
+  MAX_MULT_BPS: 1_900_000,
   NEAR_PRICE_FLOOR_DISTANCE_BPS: 5,
   // Calibration is now against the live `arena_index` generator
   // itself (4096 paths via `bin/calibrate_index`), so the empirical

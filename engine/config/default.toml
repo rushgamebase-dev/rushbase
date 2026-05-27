@@ -135,10 +135,14 @@ min_activation_delay_ms = 1000                  # anti-snipe: window must start 
 # both in lockstep or `QuoteMismatch` regressions appear.
 house_edge_bps = 500
 min_multiplier_bps = 11000
-# 500× cap. The grid uses first-passage probability per (row, col), so
-# distant cells in early columns can legitimately price at 100×–400×.
-# A tight 9× cap collapses the entire top of the ladder into a wall.
-max_multiplier_bps = 5000000
+# Effective ceiling. `pricing.rs` floors `p_touch` at 0.005, so the
+# theoretical max multiplier is `(1 - house_edge) / 0.005 = 0.95 / 0.005
+# = 190×` regardless of how high we set this cap. The previous 500×
+# value advertised reach the engine could never deliver; lowering to
+# the realised ceiling lets the matrix encoder + frontend labels
+# match what `quote()` will actually return. To genuinely raise the
+# cap, lower the `P_TOUCH_FLOOR` constant in `pricing.rs` first.
+max_multiplier_bps = 1900000
 vol_bps_per_sqrt_sec = 3.5
 empirical_safety_factor = 1.0
 

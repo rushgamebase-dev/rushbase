@@ -58,9 +58,17 @@ export const DEFAULT_GRID = {
   minDistanceBps: 0,
   maxDistanceBps: 1_000_000,
   minMultiplier: 1.1,
-  maxMultiplier: 500,
+  // Aligned with `engine/config/default.toml [multiplier]
+  // max_multiplier_bps = 1_900_000`. The p_touch floor of 0.005
+  // means the engine never quotes above 190× regardless of how high
+  // we set this clamp; matching the number keeps labels truthful.
+  maxMultiplier: 190,
   houseEdgeBps: 500,
-  volBpsPerSqrtSec: 2.8,
+  // Engine uses 3.5 bps/√s (recalibrated 2026-05-18). Frontend
+  // Bachelier preview must match or quote drift will surface as
+  // QuoteMismatch when the preview-driven UI bets land at the
+  // server's quote.
+  volBpsPerSqrtSec: 3.5,
 };
 
 function clamp(value: number, min: number, max: number) {
