@@ -428,27 +428,54 @@ impl TouchEngine {
             });
         }
 
-        // Tolerate 10% multiplier drift between quote and bet. The
-        // arena_index can move 30-50 bps in the 100-300 ms click→submit
-        // RTT and that translates to 5-10% mult swing on cells near
-        // the snake. The HMAC quote_token already pins the parameters
-        // to the original quote (TTL 2s), so this is just a sanity
-        // check against a client tampering with `expected_multiplier_bps`.
-        // The previous 1% tolerance was rejecting roughly half of all
-        // honest clicks during fast price moves.
-        let mult_drift_bps =
-            (quote.multiplier_bps as i64 - req.expected_multiplier_bps as i64).abs();
-        let mult_tolerance = (req.expected_multiplier_bps as i64 / 10).max(500); // 10% of expected, ≥500 bps
-        if mult_drift_bps > mult_tolerance {
+        // Drift between the quote the client signed and what the
+        // engine quotes RIGHT NOW. Two flavours:
+        //
+        //  - "house-favourable" drift: re-quote ≥ expected. The band
+        //    moved away while the click was in flight, so the engine
+        //    would price the cell at a higher multiplier today. The
+        //    client gets honoured at their original (lower) expected
+        //    mult, which is the same EV the engine signed off on.
+        //    Reject only on huge moves (sanity guard).
+        //
+        //  - "client-favourable" drift: re-quote < expected. The band
+        //    crept closer to the snake during the click latency, so
+        //    realised p_touch is higher than what was priced. Paying
+        //    the client the original expected mult here LEAKS the
+        //    drift directly to them — they only submit the bet when
+        //    the move favoured them, so the leak is asymmetric and
+        //    can erase the entire 5% house edge. Cap tightly.
+        //
+        // The token already pins the original parameters via HMAC
+        // (TTL 2 s); this guard exists for the small window where
+        // price could realistically move during click→submit RTT.
+        let current_bps = quote.multiplier_bps as i64;
+        let expected_bps = req.expected_multiplier_bps as i64;
+        let house_favourable_drift = (current_bps - expected_bps).max(0);
+        let client_favourable_drift = (expected_bps - current_bps).max(0);
+        // ~3 % of expected (or 300 bps abs floor) — absorbs the
+        // arena_index / Binance feed flicker during click latency
+        // without leaving room for a full house-edge raid.
+        let client_favourable_tol = (expected_bps / 33).max(300);
+        // Generous ceiling on house-favourable drift: it's pure
+        // sanity (the client already loses EV vs the live quote).
+        let house_favourable_tol = expected_bps; // 100 % of expected
+        if client_favourable_drift > client_favourable_tol
+            || house_favourable_drift > house_favourable_tol
+        {
             return Err(TradingError::QuoteMismatch {
                 expected_multiplier_bps: req.expected_multiplier_bps,
                 actual_multiplier_bps: quote.multiplier_bps,
             });
         }
-        // Use the client-quoted mult (which the token signed) for the
-        // bet record, so payout matches what was shown at click time.
+        // Pay the LOWER of (current re-quote, client-expected). When
+        // the band drifted toward the snake during the RTT, the
+        // engine honours the worse-for-client number — clients see
+        // their cell render at 10× and may receive 9.85×, but they
+        // can never lock in a stale favourable mult while the live
+        // p_touch keeps climbing. House edge stays intact.
         let mut quote = quote;
-        quote.multiplier_bps = req.expected_multiplier_bps;
+        quote.multiplier_bps = quote.multiplier_bps.min(req.expected_multiplier_bps);
 
         let payout = req
             .stake_wei
@@ -770,18 +797,26 @@ impl TouchEngine {
 
         let p_min = (bd_to_q8_i64(&shadow.target_row_min_q8) as f64) / 1e8;
         let p_max = (bd_to_q8_i64(&shadow.target_row_max_q8) as f64) / 1e8;
+        // Anti-snipe clamp mirrors the real-bet resolver. Shadow bets
+        // don't move user funds but still feed `tap_shadow_bets` rows
+        // that the calibration harness reads — the canary needs the
+        // same first-touch semantics or its EV signal drifts.
+        let effective_start_ms = effective_window_start_ms(
+            shadow.window_start_ms,
+            shadow.created_at.timestamp_millis(),
+        );
         let path = if shadow.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
             self.arena_index
-                .path_window(shadow.window_start_ms, shadow.window_end_ms)
+                .path_window(effective_start_ms, shadow.window_end_ms)
         } else {
             let persisted = self
                 .market_tick_repo
-                .path_window(&shadow.symbol, shadow.window_start_ms, shadow.window_end_ms)
+                .path_window(&shadow.symbol, effective_start_ms, shadow.window_end_ms)
                 .await?;
             if persisted.is_empty() {
                 self.real_price_feed.path_window(
                     &shadow.symbol,
-                    shadow.window_start_ms,
+                    effective_start_ms,
                     shadow.window_end_ms,
                 )
             } else {
@@ -1087,18 +1122,26 @@ impl TouchEngine {
         let p_min = (bd_to_q8_i64(&bet.target_row_min_q8) as f64) / 1e8;
         let p_max = (bd_to_q8_i64(&bet.target_row_max_q8) as f64) / 1e8;
 
+        // Anti-snipe clamp: never accept price action observed
+        // before placement, even if `window_start_ms` claims
+        // otherwise. The placement-time `check_activation_gate`
+        // already enforces a 1 s gap, but having the resolver clamp
+        // independently is the defense-in-depth that survives any
+        // future gate relaxation or clock-skew rollback.
+        let effective_start_ms =
+            effective_window_start_ms(bet.window_start_ms, bet.placed_at.timestamp_millis());
         let path = if bet.symbol.eq_ignore_ascii_case(RUSH_INDEX_SYMBOL) {
             self.arena_index
-                .path_window(bet.window_start_ms, bet.window_end_ms)
+                .path_window(effective_start_ms, bet.window_end_ms)
         } else {
             let persisted = self
                 .market_tick_repo
-                .path_window(&bet.symbol, bet.window_start_ms, bet.window_end_ms)
+                .path_window(&bet.symbol, effective_start_ms, bet.window_end_ms)
                 .await?;
             if persisted.is_empty() {
                 self.real_price_feed.path_window(
                     &bet.symbol,
-                    bet.window_start_ms,
+                    effective_start_ms,
                     bet.window_end_ms,
                 )
             } else {
