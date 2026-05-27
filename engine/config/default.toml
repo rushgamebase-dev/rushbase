@@ -61,7 +61,14 @@ max_stake_wei = "1000000000000000000"          # 1 ETH (was 5; tightened P0)
 # with `max_payout_per_bet_wei` and `max_potential_payout_per_user_wei`
 # in [risk], this caps a Sybil-coordinated drain attempt sharply.
 max_active_bets_per_user = 3
-allowed_window_ms = [3000, 5000, 6000, 9000, 12000, 18000, 30000, 60000]
+# 5000 ms is NOT in this list intentionally: the empirical p_touch
+# table below has no calibrated row for that duration. Adding 5000
+# would let RUSH_INDEX cells render as UNCALIBRATED (handler refuses
+# them) while real-price cells get a Bachelier fallback — same UX,
+# two different reasons, both surprising. Re-add only after extending
+# `bin/calibrate_vrf` to cover duration_ms=5000 and pasting the
+# resulting cells into `[multiplier.empirical_cells]`.
+allowed_window_ms = [3000, 6000, 9000, 12000, 18000, 30000, 60000]
 # Euphoria-style real-price grids keep the nearest valid cell playable
 # at the floor multiplier (1.10x). Only a band that already envelops
 # the live price is refused by the EV guard; non-zero near-price cells

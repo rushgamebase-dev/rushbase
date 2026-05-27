@@ -76,7 +76,9 @@ const STAKE_PRESETS = [0.0001, 0.0005, 0.001, 0.005];
 // The empirical table is calibrated against exactly these durations;
 // passing the list to `buildDynamicCells` lets the local quote refuse
 // (`INVALID_WINDOW`) any cell whose duration drifted off-catalog.
-const ALLOWED_WINDOW_MS = [3_000, 5_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_000];
+// 5000 ms is intentionally missing — re-add together with the engine
+// config once `bin/calibrate_vrf` is extended to cover that duration.
+const ALLOWED_WINDOW_MS = [3_000, 6_000, 9_000, 12_000, 18_000, 30_000, 60_000];
 
 // `stakeAmount` carries an ETH amount as a regular JS number — fine
 // for the canvas math because the engine accepts a wei string we
